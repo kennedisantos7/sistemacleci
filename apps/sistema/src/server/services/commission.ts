@@ -53,3 +53,20 @@ export async function cancelCommissionForSale(saleId: string) {
     data: { status: CommissionStatus.CANCELADA },
   });
 }
+
+/** Aprova uma comissão pendente, liberando-a para o saldo disponível. */
+export async function approveCommission(commissionId: string) {
+  await prisma.commission.updateMany({
+    where: { id: commissionId, status: CommissionStatus.PENDENTE },
+    data: { status: CommissionStatus.APROVADA, approvedAt: new Date() },
+  });
+}
+
+/** Aprova em lote todas as comissões pendentes (uso administrativo). */
+export async function approveAllPending(): Promise<number> {
+  const result = await prisma.commission.updateMany({
+    where: { status: CommissionStatus.PENDENTE },
+    data: { status: CommissionStatus.APROVADA, approvedAt: new Date() },
+  });
+  return result.count;
+}
