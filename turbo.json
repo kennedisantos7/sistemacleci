@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "DIRECT_URL",
+    "NEXTAUTH_SECRET",
+    "NEXTAUTH_URL",
+    "AUTH_SECRET",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "STRIPE_PUBLISHABLE_KEY",
+    "ATTRIBUTION_COOKIE_DAYS",
+    "SITE_URL",
+    "SISTEMA_URL",
+    "INGEST_API_KEY"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {},
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "generate": {
+      "cache": false
+    }
+  }
+}

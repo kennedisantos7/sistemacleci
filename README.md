@@ -1,20 +1,47 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Cleci — Monorepo
 
-# Run and deploy your AI Studio app
+Plataforma da **Cleci Personalizados**: site público + Sistema de Afiliação e Gestão de Vendas.
 
-This contains everything you need to run your app locally.
+## Estrutura
 
-View your app in AI Studio: https://ai.studio/apps/7fca834c-8037-48c1-84d1-842003137a8c
+```
+cleci/
+├── apps/
+│   ├── site/        # site público (catálogo) — leitura de ?ref=, cookie de atribuição
+│   └── sistema/     # Next.js App Router — painéis RBAC (Admin/Vendedor/Afiliado) + API/webhooks
+├── packages/
+│   ├── db/          # Prisma schema + client (fonte única do banco)
+│   ├── auth/        # configuração Auth.js + RBAC compartilhado
+│   └── config/      # tsconfig/eslint compartilhados
+└── turbo.json
+```
 
-## Run Locally
+## Stack
 
-**Prerequisites:**  Node.js
+- **Next.js (App Router)** — front + back do sistema
+- **PostgreSQL** (Coolify) + **Prisma** (ORM)
+- **Auth.js (NextAuth)** com RBAC (ADMIN / VENDEDOR_FIXO / AFILIADO)
+- **Tailwind CSS + Shadcn/UI**
+- **Stripe** (checkout + webhooks); comissão via saldo virtual + saque manual
 
+## Como rodar (dev)
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+pnpm install
+cp .env.example .env          # preencha as variáveis
+pnpm db:generate              # gera o Prisma Client
+pnpm db:migrate               # cria as tabelas
+pnpm db:seed                  # cria o admin inicial + config
+pnpm dev                      # sobe site (3000) e sistema (3001)
+```
+
+## Valores monetários
+
+Todos os valores são armazenados em **centavos (Int)**. Taxas de comissão em
+**pontos-base (bps)**: `1500 = 15%`. Nunca usar `Float` para dinheiro.
+
+## Deploy (Coolify)
+
+Cada app tem seu próprio `Dockerfile` (multi-stage) e vira um serviço independente
+apontando para o mesmo PostgreSQL. Use **PgBouncer** (`DATABASE_URL`) para o runtime
+e conexão direta (`DIRECT_URL`) para migrations.

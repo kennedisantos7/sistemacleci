@@ -1,0 +1,262 @@
+// =====================================================================
+// Cleci — Sistema de Afiliação e Gestão de Vendas
+// Regras: dinheiro em CENTAVOS (Int). Taxas em pontos-base (bps): 1500 = 15%.
+// =====================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // via PgBouncer (runtime)
+  directUrl = env("DIRECT_URL")   // conexão direta (migrations)
+}
+
+// --------------------------- RBAC ---------------------------
+enum Role {
+  ADMIN
+  VENDEDOR_FIXO
+  AFILIADO
+}
+
+enum UserStatus {
+  PENDENTE // aguardando aprovação do admin
+  ATIVO
+  BLOQUEADO
+}
+
+// --------------------- Auth.js (NextAuth) -------------------
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?
+  passwordHash  String? // login por credenciais
+  image         String?
+
+  role   Role       @default(AFILIADO)
+  status UserStatus @default(PENDENTE)
+
+  // Taxa de comissão individual (sobrepõe a global). Em bps: 1500 = 15%.
+  commissionRateBps Int?
+
+  accounts Account[]
+  sessions Session[]
+
+  affiliateLinks AffiliateLink[]
+  sales          Sale[]
+  commissions    Commission[]
+  payouts        Payout[]
+  paymentInfo    PaymentInfo?
+  auditLogs      AuditLog[]      @relation("ActorLogs")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role, status])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// --------------- Configuração global do sistema -------------
+model CommissionConfig {
+  id                 String   @id @default(cuid())
+  defaultRateBps     Int      @default(1000) // 10% padrão
+  cookieDurationDays Int      @default(30) // 30 | 60 | 90
+  singletonKey       String   @unique @default("global") // garante 1 linha só
+  updatedAt          DateTime @updatedAt
+}
+
+// ----------------- Links de afiliado/vendedor ---------------
+model AffiliateLink {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  ref         String  @unique // código exposto na URL ?ref=
+  slug        String? // produto/campanha alvo
+  destination String // URL completa para redirect
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+
+  clicks Int    @default(0)
+  sales  Sale[]
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// ----------------------- Vendas -----------------------------
+enum SaleStatus {
+  PENDENTE
+  PAGO
+  RECUSADO
+  REEMBOLSADO
+}
+
+enum SaleOrigin {
+  CHECKOUT // pagamento online (Stripe)
+  WHATSAPP_MANUAL // venda registrada manualmente
+}
+
+model Sale {
+  id String @id @default(cuid())
+
+  // atribuição
+  affiliateLinkId String?
+  affiliateLink   AffiliateLink? @relation(fields: [affiliateLinkId], references: [id])
+  userId          String? // afiliado/vendedor que recebe (desnormalizado p/ query)
+  user            User?          @relation(fields: [userId], references: [id])
+
+  // gateway / origem
+  origin         SaleOrigin @default(CHECKOUT)
+  gateway        String?    @default("stripe")
+  gatewayOrderId String?    @unique // id da ordem no gateway (idempotência); null até gerar Payment Link
+  status         SaleStatus @default(PENDENTE)
+
+  amountCents   Int
+  currency      String  @default("BRL")
+  customerEmail String?
+  customerName  String?
+  note          String?
+
+  commission Commission?
+
+  createdAt  DateTime  @default(now())
+  paidAt     DateTime?
+  refundedAt DateTime?
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+}
+
+// --------------------- Comissões ----------------------------
+enum CommissionStatus {
+  PENDENTE // venda paga, em período de garantia/aprovação
+  APROVADA // liberada, entra no saldo disponível
+  LIBERADA // já paga via saque
+  CANCELADA // venda reembolsada/recusada
+}
+
+model Commission {
+  id     String @id @default(cuid())
+  saleId String @unique
+  sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  rateBps     Int // SNAPSHOT da taxa no momento da venda
+  amountCents Int // valor da comissão
+  status      CommissionStatus @default(PENDENTE)
+
+  payoutId String?
+  payout   Payout? @relation(fields: [payoutId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  approvedAt DateTime?
+
+  @@index([userId, status])
+}
+
+// ----------------------- Saques -----------------------------
+enum PayoutStatus {
+  SOLICITADO
+  APROVADO
+  PAGO
+  REJEITADO
+}
+
+model Payout {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  amountCents Int
+  status      PayoutStatus @default(SOLICITADO)
+  method      String? // "pix" | "ted"
+  pixKey      String?
+  note        String? // observação do admin
+
+  commissions Commission[]
+  requestedAt DateTime     @default(now())
+  processedAt DateTime?
+
+  @@index([userId, status])
+}
+
+model PaymentInfo {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pixKey      String?
+  bankName    String?
+  bankAgency  String?
+  bankAccount String?
+  document    String? // CPF/CNPJ
+}
+
+// ------------- Idempotência de Webhooks ---------------------
+model WebhookEvent {
+  id         String   @id @default(cuid())
+  gateway    String
+  eventId    String // id do evento no gateway
+  type       String
+  payload    Json
+  processed  Boolean  @default(false)
+  receivedAt DateTime @default(now())
+
+  @@unique([gateway, eventId])
+}
+
+// ----------- Auditoria de ações sensíveis -------------------
+model AuditLog {
+  id       String  @id @default(cuid())
+  actorId  String?
+  actor    User?   @relation("ActorLogs", fields: [actorId], references: [id])
+  action   String // ex: "PAYOUT_APPROVED", "USER_BLOCKED"
+  entity   String // ex: "Payout"
+  entityId String?
+  metadata Json?
+  ip       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}
