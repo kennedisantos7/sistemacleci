@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Não redirecionar arquivos e pastas que existem de fato
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Redirecionar tudo para index.html (SPA)
+  RewriteRule ^ index.html [QSA,L]
+</IfModule>
