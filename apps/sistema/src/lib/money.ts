@@ -22,3 +22,22 @@ export function commissionFromBps(amountCents: number, rateBps: number): number 
 export function bpsToPercent(bps: number): string {
   return `${(bps / 100).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
 }
+
+/**
+ * Converte um valor digitado em reais ("123,45" ou "123.45") para centavos.
+ * Retorna null se inválido.
+ */
+export function parseReaisToCents(input: string): number | null {
+  const normalized = input.trim().replace(/\./g, "").replace(",", ".");
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  return Math.round(value * 100);
+}
+
+/** Converte percentual ("15" ou "15,5") em bps. Retorna null se inválido. */
+export function parsePercentToBps(input: string): number | null {
+  const normalized = input.trim().replace(",", ".");
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value < 0 || value > 100) return null;
+  return Math.round(value * 100);
+}
