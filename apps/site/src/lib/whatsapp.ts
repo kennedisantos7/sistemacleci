@@ -2,6 +2,8 @@
 // Constantes globais de WhatsApp — edite aqui para propagar por todo o site
 // ---------------------------------------------------------------------------
 
+import { getAttributedRef } from "./attribution";
+
 /** Número de WhatsApp para recebimento de pedidos */
 export const WA_NUMBER = "556392349085";
 export const WA_BASE = `https://wa.me/${WA_NUMBER}`;
@@ -66,6 +68,12 @@ export function buildWaLink(
     message = `Olá! Vim pelo site da Cleci Personaliza e tenho interesse em *${fullProductTitle}*${sizeInfo}${codeInfo}${installInfo}. Poderia me passar informações sobre personalização e valores?`;
   } else {
     message = `Olá! Vim pelo site da Cleci Personaliza e tenho interesse em *${fullProductTitle}*${sizeInfo}${codeInfo}${installInfo}. Poderia me passar mais informações?`;
+  }
+
+  // Anexa o código do afiliado (se houver) para atribuição da venda manual.
+  const ref = getAttributedRef();
+  if (ref) {
+    message += `\n\n_(ref: ${ref})_`;
   }
 
   // Retornando a URL com a mensagem codificada de forma limpa
