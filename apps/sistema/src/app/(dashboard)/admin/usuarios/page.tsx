@@ -2,7 +2,12 @@ import { prisma, UserStatus, type Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { approveUserAction, blockUserAction, unblockUserAction } from "./actions";
+import {
+  approveUserAction,
+  blockUserAction,
+  unblockUserAction,
+  updateUserRoleAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +73,21 @@ export default async function AdminUsersPage() {
                     <span className="text-xs text-muted-foreground">(você)</span>
                   ) : (
                     <>
+                      <form action={updateUserRoleAction} className="flex items-center gap-1">
+                        <input type="hidden" name="userId" value={u.id} />
+                        <select
+                          name="role"
+                          defaultValue={u.role}
+                          className="h-9 rounded-md border border-border bg-background px-2 text-xs"
+                        >
+                          <option value="AFILIADO">Afiliado</option>
+                          <option value="VENDEDOR_FIXO">Vendedor</option>
+                          <option value="ADMIN">Admin</option>
+                        </select>
+                        <Button size="sm" variant="outline" type="submit">
+                          Papel
+                        </Button>
+                      </form>
                       {u.status === UserStatus.PENDENTE && (
                         <form action={approveUserAction}>
                           <input type="hidden" name="userId" value={u.id} />

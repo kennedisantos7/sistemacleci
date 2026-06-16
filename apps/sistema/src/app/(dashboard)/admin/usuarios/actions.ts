@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma, UserStatus } from "@cleci/db";
+import { prisma, UserStatus, Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
 
 async function setUserStatus(targetId: string, status: UserStatus, action: string) {
@@ -34,4 +34,29 @@ export async function blockUserAction(formData: FormData) {
 
 export async function unblockUserAction(formData: FormData) {
   await setUserStatus(String(formData.get("userId")), UserStatus.ATIVO, "USER_UNBLOCKED");
+}
+
+const ROLES: Role[] = [Role.ADMIN, Role.VENDEDOR_FIXO, Role.AFILIADO];
+
+export async function updateUserRoleAction(formData: FormData) {
+  const admin = await requireUser(["ADMIN"]);
+  const targetId = String(formData.get("userId") ?? "");
+  const role = String(formData.get("role") ?? "") as Role;
+  if (!targetId || !ROLES.includes(role)) return;
+  if (targetId === admin.id) return; // admin não muda o próprio papel
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: targetId }, data: { role } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: "USER_ROLE_CHANGED",
+        entity: "User",
+        entityId: targetId,
+        metadata: { role },
+      },
+    }),
+  ]);
+
+  revalidatePath("/admin/usuarios");
 }
