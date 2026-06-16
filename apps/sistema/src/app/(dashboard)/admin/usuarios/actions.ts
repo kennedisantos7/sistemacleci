@@ -1,6 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { prisma, UserStatus, Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
 
@@ -37,6 +39,54 @@ export async function unblockUserAction(formData: FormData) {
 }
 
 const ROLES: Role[] = [Role.ADMIN, Role.VENDEDOR_FIXO, Role.AFILIADO];
+
+const createSchema = z.object({
+  name: z.string().min(2).max(120),
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(["ADMIN", "VENDEDOR_FIXO", "AFILIADO"]),
+});
+
+export type CreateUserState = { error?: string; success?: string };
+
+/** Admin cria um login diretamente (ex.: Vendedor Fixo), já ATIVO. */
+export async function createUserAction(
+  _prev: CreateUserState,
+  formData: FormData,
+): Promise<CreateUserState> {
+  const admin = await requireUser(["ADMIN"]);
+
+  const parsed = createSchema.safeParse({
+    name: formData.get("name"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+    role: formData.get("role"),
+  });
+  if (!parsed.success) {
+    return { error: "Dados inválidos (senha mín. 8 caracteres)." };
+  }
+
+  const { name, email, password, role } = parsed.data;
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing) return { error: "Já existe uma conta com este e-mail." };
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  const user = await prisma.user.create({
+    data: { name, email, passwordHash, role, status: UserStatus.ATIVO },
+  });
+  await prisma.auditLog.create({
+    data: {
+      actorId: admin.id,
+      action: "USER_CREATED",
+      entity: "User",
+      entityId: user.id,
+      metadata: { role },
+    },
+  });
+
+  revalidatePath("/admin/usuarios");
+  return { success: `Login criado para ${email} (${role}).` };
+}
 
 export async function updateUserRoleAction(formData: FormData) {
   const admin = await requireUser(["ADMIN"]);

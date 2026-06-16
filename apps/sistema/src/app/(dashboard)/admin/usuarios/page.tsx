@@ -1,7 +1,8 @@
 import { prisma, UserStatus, type Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { CreateUserForm } from "./create-user-form";
 import {
   approveUserAction,
   blockUserAction,
@@ -44,6 +45,19 @@ export default async function AdminUsersPage() {
         <h1 className="text-2xl font-bold">Usuários</h1>
         <p className="text-muted-foreground">Aprove cadastros e gerencie o acesso das contas.</p>
       </header>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Criar login</CardTitle>
+          <CardDescription>
+            Crie contas de vendedor (ou admin/afiliado) diretamente. Já entram ativas — o cadastro
+            público é apenas para afiliados.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <CreateUserForm />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
