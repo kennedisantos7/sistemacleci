@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { formatCents } from "../../lib/format";
+import AffiliateCopy from "../AffiliateCopy";
 
 export type BorderOption = {
   name: string;
@@ -87,13 +88,15 @@ export default function ProductCard({
       </Link>
 
       {/* Botão de Pedido - Fora do Link principal para não dar conflito */}
-      <div className="px-5 pb-5 mt-auto">
+      <div className="px-5 pb-5 mt-auto space-y-2">
         <Link
           href={`/produto/${product.id}`}
           className="w-full bg-[#25D366] text-white font-label-md text-label-md py-3 rounded-DEFAULT hover:bg-[#1DA851] transition-colors text-center block"
         >
           Fazer Pedido
         </Link>
+        {/* Aparece só no modo afiliado */}
+        <AffiliateCopy productId={product.id} />
       </div>
     </article>
   );

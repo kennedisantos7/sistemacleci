@@ -1,15 +1,30 @@
-import { prisma, SaleStatus, SaleOrigin, type Sale } from "@cleci/db";
+import { prisma, SaleStatus, SaleOrigin, UserStatus, type Sale } from "@cleci/db";
 import { createCommissionForSale, cancelCommissionForSale } from "./commission";
 
-/** Resolve a atribuição a partir de um código ref (link ativo). */
+/**
+ * Resolve a atribuição a partir de um `ref`. Aceita:
+ *  - ref de um link de campanha (AffiliateLink) ativo; ou
+ *  - código pessoal de afiliação (User.affiliateCode) de uma conta ATIVA.
+ * A comissão sempre vai para o usuário dono do ref/código.
+ */
 export async function resolveAttribution(ref?: string | null) {
   if (!ref) return { affiliateLinkId: null, userId: null };
+
   const link = await prisma.affiliateLink.findUnique({
     where: { ref },
     select: { id: true, userId: true, active: true },
   });
-  if (!link || !link.active) return { affiliateLinkId: null, userId: null };
-  return { affiliateLinkId: link.id, userId: link.userId };
+  if (link?.active) return { affiliateLinkId: link.id, userId: link.userId };
+
+  const user = await prisma.user.findUnique({
+    where: { affiliateCode: ref },
+    select: { id: true, status: true },
+  });
+  if (user && user.status === UserStatus.ATIVO) {
+    return { affiliateLinkId: null, userId: user.id };
+  }
+
+  return { affiliateLinkId: null, userId: null };
 }
 
 export type CreateSaleInput = {

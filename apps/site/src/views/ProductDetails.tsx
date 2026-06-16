@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { type BorderOption } from "../components/ui/ProductCard";
 import BuyButton from "../components/BuyButton";
+import AffiliateCopy from "../components/AffiliateCopy";
 import { buildWaLink } from "../lib/whatsapp";
 import { formatCents } from "../lib/format";
 import { TAPETES_CATALOG } from "../data/tapetes";
@@ -298,6 +299,9 @@ export default function ProductDetails() {
               >
                 Solicitar Orçamento
               </a>
+
+              {/* Modo afiliado: copiar link deste produto */}
+              <AffiliateCopy productId={product.id} />
 
               {/* Botão Fixo no Mobile (Bottom Bar) */}
               <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-outline-variant z-50 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">

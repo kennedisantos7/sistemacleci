@@ -40,3 +40,39 @@ export function getAttributedRef(): string | null {
   if (typeof window === "undefined") return null;
   return readCookie(COOKIE_NAME);
 }
+
+// ---------------------------------------------------------------------------
+// Modo afiliado: o afiliado ativa pelo painel (abre o site com ?aff=CODE).
+// O código fica no localStorage e habilita o botão "Copiar meu link" nos
+// produtos. É só conveniência de UX; a atribuição real continua via ?ref=.
+// ---------------------------------------------------------------------------
+
+const AFF_KEY = "cleci_aff";
+const AFF_EVENT = "cleci-aff-change";
+const CODE_RE = /^[0-9A-Za-z]{4,32}$/;
+
+/** Captura o ?aff= da URL e ativa o modo afiliado (localStorage). */
+export function captureAffiliateMode(): void {
+  if (typeof window === "undefined") return;
+  const aff = new URLSearchParams(window.location.search).get("aff");
+  if (aff && CODE_RE.test(aff)) {
+    localStorage.setItem(AFF_KEY, aff);
+    window.dispatchEvent(new Event(AFF_EVENT));
+  }
+}
+
+/** Código do modo afiliado ativo (ou null). */
+export function getAffiliateCode(): string | null {
+  if (typeof window === "undefined") return null;
+  const code = localStorage.getItem(AFF_KEY);
+  return code && CODE_RE.test(code) ? code : null;
+}
+
+/** Desativa o modo afiliado. */
+export function clearAffiliateMode(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(AFF_KEY);
+  window.dispatchEvent(new Event(AFF_EVENT));
+}
+
+export const AFFILIATE_EVENT = AFF_EVENT;

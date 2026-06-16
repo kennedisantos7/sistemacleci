@@ -4,6 +4,7 @@ import "./globals.css";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import AttributionTracker from "../components/AttributionTracker";
+import AffiliateModeBar from "../components/AffiliateModeBar";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "https://clecipersonalizados.com.br"),
@@ -44,6 +45,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Suspense fallback={null}>
           <AttributionTracker />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AffiliateModeBar />
         </Suspense>
         <div className="min-h-screen flex flex-col">
           <Header />
