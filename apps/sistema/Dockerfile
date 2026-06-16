@@ -3,21 +3,19 @@ FROM node:22-alpine AS base
 RUN corepack enable || npm i -g pnpm@9.15.0
 WORKDIR /app
 
-# ---------- Dependências ----------
-FROM base AS deps
+# ---------- Build ----------
+# Instala as deps no próprio estágio (evita copiar node_modules entre estágios,
+# o que quebra os symlinks por-pacote do pnpm).
+FROM base AS builder
+ENV DOCKER_BUILD=1
+# Camada de deps cacheável: só invalida quando muda lockfile/manifests.
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/sistema/package.json apps/sistema/package.json
 COPY packages/db/package.json packages/db/package.json
-# --prod=false: garante devDependencies (prisma, next, typescript, tailwind)
-# mesmo quando o Coolify injeta NODE_ENV=production no build.
+# --prod=false: garante devDependencies mesmo com NODE_ENV=production (Coolify).
 RUN pnpm install --frozen-lockfile --prod=false
-
-# ---------- Build ----------
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
+# Código + geração do Prisma Client + build do Next.
 COPY . .
-# Prisma Client precisa ser gerado antes do build
-ENV DOCKER_BUILD=1
 RUN pnpm --filter @cleci/db generate
 RUN pnpm --filter @cleci/sistema build
 

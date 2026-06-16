@@ -3,20 +3,16 @@ FROM node:22-alpine AS base
 RUN npm i -g pnpm@9.15.0
 WORKDIR /app
 
-# ---------- Dependências ----------
-FROM base AS deps
+# ---------- Build ----------
+# Instala as deps no próprio estágio (evita copiar node_modules entre estágios,
+# o que quebra os symlinks por-pacote do pnpm).
+FROM base AS builder
+ENV DOCKER_BUILD=1
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/site/package.json apps/site/package.json
-# --prod=false: garante devDependencies (next, typescript, tailwind) no build,
-# mesmo com NODE_ENV=production injetado pelo Coolify.
+# --prod=false: garante devDependencies mesmo com NODE_ENV=production (Coolify).
 RUN pnpm install --frozen-lockfile --prod=false --filter @cleci/site...
-
-# ---------- Build ----------
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/site/node_modules ./apps/site/node_modules
 COPY . .
-ENV DOCKER_BUILD=1
 # Duração do cookie de atribuição embutida no bundle (deve casar com Admin › Comissões)
 ARG NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=30
 ENV NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=$NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS
