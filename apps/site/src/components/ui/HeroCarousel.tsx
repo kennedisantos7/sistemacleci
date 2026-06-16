@@ -126,12 +126,16 @@ export default function HeroCarousel() {
             index === current && (
               <motion.div
                 key={slide.id}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8 }}
-                className={cn("absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center px-6 md:px-12 gap-x-12 lg:gap-x-24", slide.bgColor)}
+                initial={{ opacity: 0, scale: 1.04 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.02 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className={cn("absolute inset-0 w-full h-full flex flex-col md:flex-row items-center justify-center px-6 md:px-12 gap-x-12 lg:gap-x-24 overflow-hidden", slide.bgColor)}
               >
+                {/* Brilhos decorativos animados para dar profundidade */}
+                <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-white/10 blur-3xl animate-float" aria-hidden="true" />
+                <div className="pointer-events-none absolute -bottom-28 right-0 w-80 h-80 rounded-full bg-black/10 blur-3xl animate-float-slow" aria-hidden="true" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" aria-hidden="true" />
                 {/* Lado Esquerdo: Copy (Hidden on Mobile) */}
                 <div className="relative z-10 hidden md:flex md:w-auto md:max-w-md lg:max-w-lg flex-col justify-center text-white h-full">
                   <motion.div
@@ -173,10 +177,10 @@ export default function HeroCarousel() {
                     </span>
 
                     <div className="w-28 h-28 sm:w-40 sm:h-40 lg:w-48 lg:h-48 bg-white rounded-xl mb-3 md:mb-4 overflow-hidden shadow-inner flex items-center justify-center p-2 mt-2">
-                      <img 
-                        src={slide.featuredProduct.image} 
+                      <img
+                        src={slide.featuredProduct.image}
                         alt={slide.featuredProduct.name}
-                        className="w-full h-full object-contain hover:scale-110 transition-transform duration-500"
+                        className="w-full h-full object-contain animate-float hover:scale-110 transition-transform duration-500"
                       />
                     </div>
                     <h3 className="text-white font-bold text-xs sm:text-base lg:text-lg mb-1 leading-tight">
@@ -214,19 +218,27 @@ export default function HeroCarousel() {
           <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
         </button>
 
-        {/* Dots */}
+        {/* Dots com barra de progresso no slide ativo */}
         <div className="absolute bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrent(index)}
-              className={`transition-all duration-300 rounded-full h-1.5 ${
-                current === index 
-                  ? "w-8 bg-white" 
-                  : "w-2 bg-white/30 hover:bg-white/50"
+              className={`relative h-1.5 overflow-hidden rounded-full transition-all duration-300 ${
+                current === index ? "w-8 bg-white/30" : "w-2 bg-white/30 hover:bg-white/50"
               }`}
-              aria-label={`Go to slide ${index + 1}`}
-            />
+              aria-label={`Ir para o slide ${index + 1}`}
+            >
+              {current === index && (
+                <motion.span
+                  key={current}
+                  className="absolute inset-y-0 left-0 bg-white rounded-full"
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 6, ease: "linear" }}
+                />
+              )}
+            </button>
           ))}
         </div>
       </div>

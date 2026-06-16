@@ -275,7 +275,7 @@ export default function Header() {
                   {/* Mega Menu */}
                   <div className={cn(
                     "absolute left-1/2 -translate-x-1/2 top-full w-full max-w-[1100px] transition-all duration-300 z-50",
-                    hoveredMenu === link.name ? "opacity-100 visible" : "opacity-0 invisible"
+                    hoveredMenu === link.name ? "opacity-100 visible translate-y-0" : "opacity-0 invisible translate-y-2"
                   )}>
                     <div className="bg-[#1541FC] shadow-2xl w-full p-10 rounded-b-xl border-x-2 border-b-2 border-white/20">
                       <h3 className="text-white font-black text-2xl mb-8 uppercase tracking-tighter flex items-center gap-3">

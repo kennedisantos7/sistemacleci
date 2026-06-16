@@ -75,6 +75,39 @@
   .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
   .hide-scrollbar::-webkit-scrollbar { display: none; }
 
+  /* ── Toolkit de animações ─────────────────────────────────────────── */
+  .animate-float { animation: cleci-float 6s ease-in-out infinite; }
+  .animate-float-slow { animation: cleci-float 9s ease-in-out infinite; }
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: cleci-gradient 8s ease infinite;
+  }
+  .animate-shimmer { position: relative; overflow: hidden; }
+  .animate-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: cleci-shimmer 2.5s ease-in-out infinite;
+  }
+  /* Levanta suavemente no hover (cards, botões) */
+  .hover-lift { transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s cubic-bezier(.22,1,.36,1); }
+  .hover-lift:hover { transform: translateY(-6px); }
+  /* Sublinhado animado a partir do centro */
+  .link-underline { position: relative; }
+  .link-underline::after {
+    content: "";
+    position: absolute;
+    left: 0; bottom: -2px;
+    height: 2px; width: 100%;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform .3s ease;
+  }
+  .link-underline:hover::after { transform: scaleX(1); }
+
   .custom-scrollbar::-webkit-scrollbar {
     height: 4px;
   }
@@ -91,10 +124,39 @@
   }
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   @apply bg-background text-on-background antialiased selection:bg-primary-container selection:text-on-primary-container;
   font-family: 'Nunito', sans-serif;
   font-size: 16px;
   line-height: 1.6;
   font-weight: 400;
+}
+
+/* ── Keyframes ──────────────────────────────────────────────────────── */
+@keyframes cleci-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes cleci-gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes cleci-shimmer {
+  0% { transform: translateX(-100%); }
+  60%, 100% { transform: translateX(100%); }
+}
+
+/* Acessibilidade: respeita quem prefere menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
