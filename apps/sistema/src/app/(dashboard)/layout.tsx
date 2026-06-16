@@ -11,6 +11,7 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/admin", label: "Dashboard" },
     { href: "/admin/usuarios", label: "Usuários" },
     { href: "/admin/vendas", label: "Vendas" },
+    { href: "/admin/metas", label: "Metas" },
     { href: "/admin/comissoes", label: "Comissões" },
     { href: "/admin/saques", label: "Saques" },
   ],

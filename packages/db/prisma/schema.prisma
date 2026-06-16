@@ -49,6 +49,7 @@ model User {
   commissions    Commission[]
   payouts        Payout[]
   paymentInfo    PaymentInfo?
+  salesGoals     SalesGoal[]
   auditLogs      AuditLog[]      @relation("ActorLogs")
 
   createdAt DateTime @default(now())
@@ -242,6 +243,22 @@ model WebhookEvent {
   receivedAt DateTime @default(now())
 
   @@unique([gateway, eventId])
+}
+
+// ----------- Metas de venda (Vendedor Fixo) -----------------
+model SalesGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  year        Int
+  month       Int // 1-12
+  targetCents Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, year, month])
+  @@index([userId])
 }
 
 // ----------- Auditoria de ações sensíveis -------------------
