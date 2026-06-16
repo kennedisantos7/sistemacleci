@@ -2,12 +2,14 @@ import { prisma, UserStatus, type Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { CreateUserForm } from "./create-user-form";
 import {
   approveUserAction,
   blockUserAction,
   unblockUserAction,
   updateUserRoleAction,
+  resetPasswordAction,
 } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -126,6 +128,18 @@ export default async function AdminUsersPage() {
                           </Button>
                         </form>
                       )}
+                      <form action={resetPasswordAction} className="flex items-center gap-1">
+                        <input type="hidden" name="userId" value={u.id} />
+                        <Input
+                          name="password"
+                          type="text"
+                          placeholder="nova senha"
+                          className="h-9 w-32 text-xs"
+                        />
+                        <Button size="sm" variant="outline" type="submit">
+                          Resetar
+                        </Button>
+                      </form>
                     </>
                   )}
                 </div>

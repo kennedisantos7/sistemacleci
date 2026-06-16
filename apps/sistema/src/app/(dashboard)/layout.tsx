@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, UserCog } from "lucide-react";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "./actions";
@@ -51,6 +52,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="border-t border-border p-4">
           <p className="mb-1 text-sm font-medium">{session.user.name ?? session.user.email}</p>
           <p className="mb-3 text-xs text-muted-foreground">{ROLE_LABEL[role]}</p>
+          <Link
+            href="/conta"
+            className="mb-2 flex items-center gap-2 rounded-md px-1 text-sm text-foreground/70 hover:text-foreground"
+          >
+            <UserCog className="h-4 w-4" /> Minha conta
+          </Link>
           <form action={signOutAction}>
             <Button variant="outline" size="sm" className="w-full" type="submit">
               <LogOut className="h-4 w-4" /> Sair

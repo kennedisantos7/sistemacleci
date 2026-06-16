@@ -88,6 +88,23 @@ export async function createUserAction(
   return { success: `Login criado para ${email} (${role}).` };
 }
 
+export async function resetPasswordAction(formData: FormData) {
+  const admin = await requireUser(["ADMIN"]);
+  const userId = String(formData.get("userId") ?? "");
+  const password = String(formData.get("password") ?? "");
+  if (!userId || password.length < 8) return;
+  if (userId === admin.id) return; // admin troca a própria senha em /conta
+
+  const passwordHash = await bcrypt.hash(password, 12);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { passwordHash } }),
+    prisma.auditLog.create({
+      data: { actorId: admin.id, action: "USER_PASSWORD_RESET", entity: "User", entityId: userId },
+    }),
+  ]);
+  revalidatePath("/admin/usuarios");
+}
+
 export async function updateUserRoleAction(formData: FormData) {
   const admin = await requireUser(["ADMIN"]);
   const targetId = String(formData.get("userId") ?? "");
