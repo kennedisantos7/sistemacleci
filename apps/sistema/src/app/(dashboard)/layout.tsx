@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { auth } from "@/auth";
 import { Button } from "@/components/ui/button";
 import { signOutAction } from "./actions";
+import { SidebarNav } from "./sidebar-nav";
 import type { Role } from "@cleci/db";
 
 const NAV: Record<Role, Array<{ href: string; label: string }>> = {
@@ -43,20 +43,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="flex min-h-screen">
       <aside className="flex w-64 flex-col border-r border-border bg-card">
         <div className="flex items-center gap-2 px-6 py-5">
-          <LayoutDashboard className="h-5 w-5 text-primary" />
-          <span className="font-semibold">Cleci</span>
+          <span className="text-xl font-heading font-extrabold text-primary">
+            Cleci<span className="text-secondary">.</span>
+          </span>
         </div>
-        <nav className="flex-1 space-y-1 px-3">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-md px-3 py-2 text-sm hover:bg-muted"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <SidebarNav items={items} />
         <div className="border-t border-border p-4">
           <p className="mb-1 text-sm font-medium">{session.user.name ?? session.user.email}</p>
           <p className="mb-3 text-xs text-muted-foreground">{ROLE_LABEL[role]}</p>

@@ -5,10 +5,13 @@ import { LoginForm } from "./login-form";
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm border-t-4 border-t-primary">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sistema Cleci</CardTitle>
-          <CardDescription>Acesse o painel de afiliados e vendas</CardDescription>
+          <div className="mb-1 text-3xl font-heading font-extrabold text-primary">
+            Cleci<span className="text-secondary">.</span>
+          </div>
+          <CardTitle className="text-xl">Sistema de Afiliados &amp; Vendas</CardTitle>
+          <CardDescription>Acesse seu painel</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <LoginForm />
