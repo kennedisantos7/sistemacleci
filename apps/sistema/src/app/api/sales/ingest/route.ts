@@ -18,6 +18,8 @@ const bodySchema = z.object({
   note: z.string().max(500).optional(),
   productName: z.string().max(200).optional(),
   createCheckout: z.boolean().optional(),
+  successUrl: z.string().url().optional(),
+  cancelUrl: z.string().url().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -62,6 +64,8 @@ export async function POST(req: NextRequest) {
       const checkoutUrl = await createCheckoutSession(sale, {
         ref: data.ref,
         productName: data.productName,
+        successUrl: data.successUrl,
+        cancelUrl: data.cancelUrl,
       });
       return NextResponse.json({ saleId: sale.id, checkoutUrl }, { status: 201 });
     } catch (err) {

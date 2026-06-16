@@ -20,6 +20,7 @@ export interface Product {
   description?: string; // Descrição curta (ex: dimensões)
   images?: string[];    // Galeria de imagens
   waLink?: string;
+  priceCents?: number;  // Se definido, habilita o checkout online (Stripe)
 }
 
 interface ProductCardProps {

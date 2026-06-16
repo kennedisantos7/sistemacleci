@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { type BorderOption } from "../components/ui/ProductCard";
+import BuyButton from "../components/BuyButton";
 import { buildWaLink } from "../lib/whatsapp";
+import { formatCents } from "../lib/format";
 import { TAPETES_CATALOG } from "../data/tapetes";
 import { GRAFICA_CATALOG } from "../data/grafica";
 import { SACOLAS_CATALOG } from "../data/sacolas";
@@ -270,6 +272,22 @@ export default function ProductDetails() {
 
             {/* Actions Section */}
             <div className="flex flex-col gap-6 mt-auto">
+              {/* Compra online (quando o produto tem preço definido) */}
+              {product.priceCents ? (
+                <div className="flex flex-col gap-3 border-b border-outline-variant/30 pb-6">
+                  <div className="flex items-baseline gap-2">
+                    <span className="font-headline-md text-3xl text-on-background font-bold">
+                      {formatCents(product.priceCents)}
+                    </span>
+                    <span className="text-xs text-on-surface-variant">à vista</span>
+                  </div>
+                  <BuyButton productId={product.id} />
+                  <p className="text-xs text-on-surface-variant text-center">
+                    Pagamento seguro via Stripe. Ou solicite um orçamento abaixo.
+                  </p>
+                </div>
+              ) : null}
+
               {/* Botão para Desktop (Escondido no Mobile) */}
               <a
                 href={buildLink()}

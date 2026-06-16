@@ -24,7 +24,14 @@ export async function processStripeEvent(event: Stripe.Event): Promise<void> {
       const sale =
         (await findSaleById(session.metadata?.saleId)) ??
         (await findSaleByGatewayOrderId(session.id));
-      if (sale) await markSalePaid(sale);
+      if (sale) {
+        // Captura o e-mail informado no checkout, se ainda não tínhamos.
+        const email = session.customer_details?.email;
+        if (email && !sale.customerEmail) {
+          await prisma.sale.update({ where: { id: sale.id }, data: { customerEmail: email } });
+        }
+        await markSalePaid(sale);
+      }
       break;
     }
 
