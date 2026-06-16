@@ -1,0 +1,44 @@
+# Ambiente local de banco para desenvolvimento.
+# Sobe Postgres (5432) e PgBouncer (6432, pooling) espelhando a produção.
+#   docker compose up -d
+# Depois: pnpm db:migrate && pnpm db:seed && pnpm dev
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: cleci-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cleci
+      POSTGRES_PASSWORD: cleci
+      POSTGRES_DB: cleci
+    ports:
+      - "5432:5432"
+    volumes:
+      - cleci_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cleci"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: cleci-pgbouncer
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgres
+      DB_USER: cleci
+      DB_PASSWORD: cleci
+      DB_NAME: cleci
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "20"
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - "6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  cleci_pgdata:

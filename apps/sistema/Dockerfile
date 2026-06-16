@@ -22,16 +22,26 @@ RUN pnpm --filter @cleci/sistema build
 # ---------- Runner ----------
 FROM base AS runner
 ENV NODE_ENV=production
+# CLI do Prisma global (independente do pnpm) para rodar migrations no start
+RUN npm i -g prisma@6.19.3 && apk add --no-cache wget openssl
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 # Output standalone do Next.js
 COPY --from=builder /app/apps/sistema/.next/standalone ./
 COPY --from=builder /app/apps/sistema/.next/static ./apps/sistema/.next/static
 COPY --from=builder /app/apps/sistema/public ./apps/sistema/public
-# Prisma engines + schema para migrate deploy no start
+# Schema para migrate deploy no start
 COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
+COPY apps/sistema/docker-entrypoint.sh ./docker-entrypoint.sh
+RUN chmod +x ./docker-entrypoint.sh
 
 USER nextjs
 EXPOSE 3001
 ENV PORT=3001 HOSTNAME=0.0.0.0
+
+# Healthcheck para o Coolify
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3001/api/health || exit 1
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "apps/sistema/server.js"]

@@ -28,7 +28,10 @@ export function bpsToPercent(bps: number): string {
  * Retorna null se inválido.
  */
 export function parseReaisToCents(input: string): number | null {
-  const normalized = input.trim().replace(/\./g, "").replace(",", ".");
+  const s = input.trim();
+  // Com vírgula: formato BR (vírgula decimal, ponto = milhar). Ex: "1.234,56".
+  // Sem vírgula: o ponto é tratado como separador decimal. Ex: "123.45".
+  const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
   const value = Number(normalized);
   if (!Number.isFinite(value) || value <= 0) return null;
   return Math.round(value * 100);

@@ -27,13 +27,17 @@ cleci/
 ## Como rodar (dev)
 
 ```bash
+docker compose up -d          # sobe Postgres (5432) + PgBouncer (6432)
 pnpm install
-cp .env.example .env          # preencha as variáveis
+cp .env.example .env          # já alinhado com o docker-compose
 pnpm db:generate              # gera o Prisma Client
 pnpm db:migrate               # cria as tabelas
 pnpm db:seed                  # cria o admin inicial + config
 pnpm dev                      # sobe site (3000) e sistema (3001)
 ```
+
+Testes do núcleo financeiro: `pnpm --filter @cleci/sistema test`.
+Deploy em produção: ver [DEPLOY.md](DEPLOY.md).
 
 ## Valores monetários
 
