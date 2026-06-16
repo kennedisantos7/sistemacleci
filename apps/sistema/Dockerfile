@@ -18,6 +18,9 @@ RUN pnpm install --frozen-lockfile --prod=false
 COPY . .
 RUN pnpm --filter @cleci/db generate
 RUN pnpm --filter @cleci/sistema build
+# Stage o engine do Prisma num caminho fixo (glob de shell resolve o hash do pnpm).
+RUN mkdir -p /engine && \
+    cp /app/node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/libquery_engine-*.so.node /engine/
 
 # ---------- Runner ----------
 FROM base AS runner
@@ -30,6 +33,9 @@ RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 COPY --from=builder /app/apps/sistema/.next/standalone ./
 COPY --from=builder /app/apps/sistema/.next/static ./apps/sistema/.next/static
 COPY --from=builder /app/apps/sistema/public ./apps/sistema/public
+# Engine do Prisma: o bundler do Next standalone não copia o .so.node.
+# Colocamos em .next/server (um dos caminhos que o Prisma procura em runtime).
+COPY --from=builder /engine/ ./apps/sistema/.next/server/
 # Schema para migrate deploy no start
 COPY --from=builder /app/packages/db/prisma ./packages/db/prisma
 COPY apps/sistema/docker-entrypoint.sh ./docker-entrypoint.sh
