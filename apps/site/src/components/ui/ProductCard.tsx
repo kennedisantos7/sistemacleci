@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatCents } from "../../lib/format";
 
 export type BorderOption = {
   name: string;
@@ -77,6 +78,11 @@ export default function ProductCard({
           <h3 className="font-headline-sm text-xl text-on-surface mb-2 leading-tight group-hover:text-primary transition-colors">
             {product.title}
           </h3>
+          {product.priceCents ? (
+            <span className="mt-auto pt-2 font-headline-sm text-lg text-primary font-bold">
+              {formatCents(product.priceCents)}
+            </span>
+          ) : null}
         </div>
       </Link>
 
