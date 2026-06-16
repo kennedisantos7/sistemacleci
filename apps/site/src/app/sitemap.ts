@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { ALL_PRODUCTS } from "@/lib/catalog";
 
-const BASE = process.env.SITE_URL ?? "https://clecipersonalizados.com.br";
+const BASE = process.env.SITE_URL ?? "https://cleci.com.br";
 
 const STATIC_ROUTES = [
   "",

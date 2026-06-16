@@ -7,7 +7,7 @@ import AttributionTracker from "../components/AttributionTracker";
 import AffiliateModeBar from "../components/AffiliateModeBar";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.SITE_URL ?? "https://clecipersonalizados.com.br"),
+  metadataBase: new URL(process.env.SITE_URL ?? "https://cleci.com.br"),
   title: "Cleci Personaliza | Sacolas, Tapetes e Comunicação Visual",
   description:
     "Especialista em Sacolas Personalizadas, Tapetes e Comunicação Visual. Qualidade premium, durabilidade e entrega para todo o Brasil. Solicite seu orçamento agora!",
