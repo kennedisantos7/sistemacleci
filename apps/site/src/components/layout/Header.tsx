@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Home, Search, LayoutGrid, Menu, X } from "lucide-react";
+import { ChevronDown, Home, Search, LayoutGrid, Menu, X, LogIn } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -90,9 +90,13 @@ const MEGA_MENU_CONTENT: Record<string, any[]> = {
 // ---------------------------------------------------------------------------
 // Componente
 // ---------------------------------------------------------------------------
+// URL do sistema (painel). Embutida no build via NEXT_PUBLIC_SISTEMA_URL.
+const PAINEL_URL = process.env.NEXT_PUBLIC_SISTEMA_URL ?? "http://localhost:3001";
+
 export default function Header() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
+  const loginUrl = `${PAINEL_URL}/login`;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
@@ -184,7 +188,7 @@ export default function Header() {
             </div>
 
             {/* Ações (Sempre no canto) */}
-            <div className="flex items-center gap-4 md:gap-6 text-[#1541FC] flex-shrink-0 justify-self-end">
+            <div className="flex items-center gap-3 md:gap-5 text-[#1541FC] flex-shrink-0 justify-self-end">
               <a
                 href="https://wa.me/556392349085"
                 target="_blank"
@@ -193,6 +197,15 @@ export default function Header() {
                 className="hover:text-[#1034D3] transition-colors hover:scale-110 transform"
               >
                 <WhatsAppIcon className="w-7 h-7" />
+              </a>
+              {/* Acesso ao painel (vendedor/afiliado/admin) */}
+              <a
+                href={loginUrl}
+                aria-label="Entrar no painel"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[#1541FC] px-3 py-1.5 text-xs md:text-sm font-bold hover:bg-[#1541FC] hover:text-white transition-colors"
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Entrar</span>
               </a>
             </div>
           </div>
@@ -328,8 +341,15 @@ export default function Header() {
           </div>
 
           <nav className="p-4 flex flex-col gap-1">
-            <Link 
-              href="/" 
+            <a
+              href={loginUrl}
+              className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-[#1541FC] p-3 font-bold text-white"
+            >
+              <LogIn className="w-5 h-5" />
+              Entrar no painel
+            </a>
+            <Link
+              href="/"
               onClick={toggleMenu}
               className="flex items-center gap-3 p-3 font-bold text-[#333] hover:bg-gray-50 rounded-lg"
             >

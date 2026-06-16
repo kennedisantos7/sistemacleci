@@ -13,9 +13,12 @@ COPY apps/site/package.json apps/site/package.json
 # --prod=false: garante devDependencies mesmo com NODE_ENV=production (Coolify).
 RUN pnpm install --frozen-lockfile --prod=false --filter @cleci/site...
 COPY . .
-# Duração do cookie de atribuição embutida no bundle (deve casar com Admin › Comissões)
+# Variáveis públicas embutidas no bundle em build-time.
 ARG NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=30
 ENV NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=$NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS
+# URL do sistema (painel) para o botão "Entrar".
+ARG NEXT_PUBLIC_SISTEMA_URL=http://localhost:3001
+ENV NEXT_PUBLIC_SISTEMA_URL=$NEXT_PUBLIC_SISTEMA_URL
 RUN pnpm --filter @cleci/site build
 
 # ---------- Runner ----------
