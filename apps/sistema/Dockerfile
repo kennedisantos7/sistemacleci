@@ -8,7 +8,9 @@ FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/sistema/package.json apps/sistema/package.json
 COPY packages/db/package.json packages/db/package.json
-RUN pnpm install --frozen-lockfile
+# --prod=false: garante devDependencies (prisma, next, typescript, tailwind)
+# mesmo quando o Coolify injeta NODE_ENV=production no build.
+RUN pnpm install --frozen-lockfile --prod=false
 
 # ---------- Build ----------
 FROM base AS builder

@@ -7,7 +7,9 @@ WORKDIR /app
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/site/package.json apps/site/package.json
-RUN pnpm install --frozen-lockfile --filter @cleci/site...
+# --prod=false: garante devDependencies (next, typescript, tailwind) no build,
+# mesmo com NODE_ENV=production injetado pelo Coolify.
+RUN pnpm install --frozen-lockfile --prod=false --filter @cleci/site...
 
 # ---------- Build ----------
 FROM base AS builder
