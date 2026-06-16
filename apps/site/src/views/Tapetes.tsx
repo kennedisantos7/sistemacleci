@@ -1,32 +1,41 @@
+"use client";
+
 import { useMemo } from "react";
-import { ChevronRight, ShoppingBag, Filter, X } from "lucide-react";
+import { ChevronRight, Layers, Filter, X } from "lucide-react";
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
 import ProductCard from "../components/ui/ProductCard";
-import { SACOLAS_CATALOG, SACOLAS_SLUGS } from "../data/sacolas";
+import { TAPETES_CATALOG, TAPETES_SLUGS } from "../data/tapetes";
 
-const CATEGORIAS = Object.values(SACOLAS_SLUGS);
+// Categorias na ordem definida em TAPETES_SLUGS (única fonte de verdade)
+const CATEGORIAS = Object.values(TAPETES_SLUGS);
 
-const SLUG_TO_LABEL = SACOLAS_SLUGS;
+// Mapeia slug → label (invertendo TAPETES_SLUGS)
+const SLUG_TO_LABEL = TAPETES_SLUGS;
 const LABEL_TO_SLUG = Object.fromEntries(
-  Object.entries(SACOLAS_SLUGS).map(([slug, label]) => [label, slug])
+  Object.entries(TAPETES_SLUGS).map(([slug, label]) => [label, slug])
 );
 
-export default function Sacolas() {
-  const [searchParams, setSearchParams] = useSearchParams();
+export default function Tapetes() {
+  const { searchParams, setQuery } = useQueryParams();
   const tipoParam = searchParams.get("tipo");
   const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
+  // Produtos filtrados
   const produtosFiltrados = useMemo(() => {
-    if (!categoriaAtiva) return SACOLAS_CATALOG;
-    return SACOLAS_CATALOG.filter((p) => p.category === categoriaAtiva);
+    if (!categoriaAtiva) return TAPETES_CATALOG;
+    return TAPETES_CATALOG.filter((p) => p.category === categoriaAtiva);
   }, [categoriaAtiva]);
 
   function selecionar(label: string | null) {
-    if (!label) setSearchParams({});
-    else setSearchParams({ tipo: LABEL_TO_SLUG[label] });
+    if (!label) {
+      setQuery({});
+    } else {
+      setQuery({ tipo: LABEL_TO_SLUG[label] });
+    }
     setShowFiltersMobile(false);
   }
 
@@ -35,18 +44,18 @@ export default function Sacolas() {
 
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="font-label-md text-label-md text-on-surface-variant flex items-center gap-2 mb-8">
-        <Link to="/" className="hover:text-primary transition-colors">Início</Link>
+        <Link href="/" className="hover:text-primary transition-colors">Início</Link>
         <ChevronRight className="w-4 h-4" aria-hidden="true" />
-        <Link to="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
+        <Link href="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
         <ChevronRight className="w-4 h-4" aria-hidden="true" />
         {categoriaAtiva ? (
           <>
-            <Link to="/sacolas" className="hover:text-primary transition-colors">Sacolas</Link>
+            <Link href="/tapetes" className="hover:text-primary transition-colors">Tapetes</Link>
             <ChevronRight className="w-4 h-4" aria-hidden="true" />
             <span className="text-on-surface" aria-current="page">{categoriaAtiva}</span>
           </>
         ) : (
-          <span className="text-on-surface" aria-current="page">Sacolas</span>
+          <span className="text-on-surface" aria-current="page">Tapetes</span>
         )}
       </nav>
 
@@ -56,7 +65,7 @@ export default function Sacolas() {
         !showFiltersMobile && "hidden lg:block"
       )}>
         <h1 className="font-headline-lg text-headline-lg text-on-surface">
-          {categoriaAtiva ? categoriaAtiva : "Sacolas"}
+          {categoriaAtiva ? categoriaAtiva : "Todos os Tapetes"}
         </h1>
         <p className="font-body-md text-body-md text-on-surface-variant mt-2">
           {produtosFiltrados.length} produto{produtosFiltrados.length !== 1 ? "s" : ""} encontrado{produtosFiltrados.length !== 1 ? "s" : ""}
@@ -76,22 +85,23 @@ export default function Sacolas() {
 
         {/* ── Sidebar ── */}
         <aside 
-          aria-label="Categorias de sacolas" 
+          aria-label="Categorias de tapetes" 
           className={cn(
             "w-full lg:w-56 flex-shrink-0",
             !showFiltersMobile && "hidden lg:block"
           )}
         >
           <div className="flex items-center justify-between mb-4">
-            <Link
-              to="/produtos"
+            <Link 
+              href="/produtos"
               className="font-label-md text-label-md text-on-surface uppercase tracking-wider flex items-center gap-2 hover:text-primary transition-colors group"
             >
-              <ShoppingBag className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+              <Layers className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
               Categorias
             </Link>
           </div>
           <ul className="flex flex-col gap-1">
+            {/* Ver tudo */}
             <li>
               <button
                 type="button"
@@ -103,11 +113,12 @@ export default function Sacolas() {
                 }`}
               >
                 Ver Tudo
-                <span className="ml-2 text-xs opacity-60">({SACOLAS_CATALOG.length})</span>
+                <span className="ml-2 text-xs opacity-60">({TAPETES_CATALOG.length})</span>
               </button>
             </li>
+            {/* Cada categoria */}
             {CATEGORIAS.map((cat) => {
-              const count = SACOLAS_CATALOG.filter((p) => p.category === cat).length;
+              const count = TAPETES_CATALOG.filter((p) => p.category === cat).length;
               const active = categoriaAtiva === cat;
               return (
                 <li key={cat}>
@@ -133,7 +144,7 @@ export default function Sacolas() {
         <div className="flex-1">
           {produtosFiltrados.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-on-surface-variant">
-              <ShoppingBag className="w-12 h-12 mb-4 opacity-30" />
+              <Layers className="w-12 h-12 mb-4 opacity-30" />
               <p className="font-headline-sm">Nenhum produto encontrado</p>
             </div>
           ) : (

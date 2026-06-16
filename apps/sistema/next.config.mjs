@@ -1,5 +1,11 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  outputFileTracingRoot: path.join(__dirname, "../../"),
   // Standalone só no build Docker (Coolify). Em dev no Windows o passo de
   // cópia do standalone falha por symlink (EPERM), então deixamos desligado.
   output: process.env.DOCKER_BUILD === "1" ? "standalone" : undefined,

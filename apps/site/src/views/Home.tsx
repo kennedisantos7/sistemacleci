@@ -1,9 +1,10 @@
+"use client";
+
 import { ArrowRight, ShieldCheck, Truck, Quote, Star, StarHalf } from "lucide-react";
-import { Link } from "react-router-dom";
-import { useMemo } from "react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 import HeroCarousel from "../components/ui/HeroCarousel";
 import ProductCard, { type Product } from "../components/ui/ProductCard";
-import { buildWaLink } from "../lib/whatsapp";
 
 // Importar todos os catálogos para compor a vitrine dinâmica
 import { TAPETES_CATALOG } from "../data/tapetes";
@@ -49,15 +50,26 @@ const DEPOIMENTOS = [
   },
 ];
 
+type Showcase = { novidades: Product[]; top1: Product; maisVendidos: Product[] };
+
+const deterministicPicks = (): Showcase => ({
+  novidades: ALL_PRODUCTS.slice(0, 4),
+  top1: ALL_PRODUCTS[4],
+  maisVendidos: ALL_PRODUCTS.slice(5, 8),
+});
+
 export default function Home() {
-  // Seleção aleatória de produtos para a vitrine
-  const { novidades, top1, maisVendidos } = useMemo(() => {
+  // SSR e primeira pintura usam uma seleção determinística (evita hydration
+  // mismatch); após montar, embaralhamos para dar variedade à vitrine.
+  const [{ novidades, top1, maisVendidos }, setPicks] = useState<Showcase>(deterministicPicks);
+
+  useEffect(() => {
     const shuffled = shuffle(ALL_PRODUCTS);
-    return {
+    setPicks({
       novidades: shuffled.slice(0, 4),
       top1: shuffled[4],
-      maisVendidos: shuffled.slice(5, 8)
-    };
+      maisVendidos: shuffled.slice(5, 8),
+    });
   }, []);
 
   return (
@@ -73,7 +85,7 @@ export default function Home() {
             <h2 id="novidades-title" className="font-headline-md text-headline-md text-on-background">Novidades</h2>
             <p className="font-body-md text-body-md text-on-surface-variant mt-2">As últimas criações do nosso estúdio de design.</p>
           </div>
-          <Link to="/produtos" className="font-label-md text-label-md text-secondary hover:underline hidden md:flex items-center gap-1">
+          <Link href="/produtos" className="font-label-md text-label-md text-secondary hover:underline hidden md:flex items-center gap-1">
             Ver todas as novidades <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
@@ -85,7 +97,7 @@ export default function Home() {
         </div>
 
         <div className="mt-8 text-center md:hidden">
-          <Link to="/produtos" className="inline-block bg-surface-container border border-outline font-label-md text-label-md text-on-surface px-6 py-3 rounded-DEFAULT hover:bg-surface-variant transition-colors">
+          <Link href="/produtos" className="inline-block bg-surface-container border border-outline font-label-md text-label-md text-on-surface px-6 py-3 rounded-DEFAULT hover:bg-surface-variant transition-colors">
             Ver todas as novidades
           </Link>
         </div>
@@ -172,7 +184,7 @@ export default function Home() {
               <h3 className="font-headline-sm text-headline-sm text-on-background mb-2">{top1.title}</h3>
               <p className="font-body-md text-body-md text-on-surface-variant mb-6">{top1.description || "Produto de alta qualidade com personalização exclusiva para o seu negócio."}</p>
               <Link
-                to={`/produto/${top1.id}`}
+                href={`/produto/${top1.id}`}
                 className="bg-[#25D366] text-white font-label-md text-label-md px-6 py-3 rounded-DEFAULT hover:bg-[#1DA851] transition-colors block text-center w-full max-w-xs"
               >
                 Fazer Pedido
@@ -201,7 +213,7 @@ export default function Home() {
                   </div>
                 </div>
                 <Link
-                  to={`/produto/${item.id}`}
+                  href={`/produto/${item.id}`}
                   className="w-full sm:w-auto bg-[#25D366] text-white px-6 sm:px-4 py-3 sm:py-2 rounded-lg sm:rounded-full font-label-md text-sm flex items-center justify-center hover:bg-[#1DA851] transition-colors shrink-0 shadow-sm"
                 >
                   Fazer Pedido

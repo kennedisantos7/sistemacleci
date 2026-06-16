@@ -7,8 +7,8 @@
 
 const COOKIE_NAME = "cleci_ref";
 
-/** Duração do cookie em dias. Sobrescreva via VITE_ATTRIBUTION_COOKIE_DAYS. */
-const COOKIE_DAYS = Number(import.meta.env.VITE_ATTRIBUTION_COOKIE_DAYS ?? 30);
+/** Duração do cookie em dias. Sobrescreva via NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS. */
+const COOKIE_DAYS = Number(process.env.NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS ?? 30);
 
 function setCookie(name: string, value: string, days: number) {
   const maxAge = days * 24 * 60 * 60;

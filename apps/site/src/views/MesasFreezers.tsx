@@ -1,4 +1,7 @@
-import { useSearchParams, Link } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { useQueryParams } from "../lib/use-query-params";
 import { ChevronRight, LayoutGrid, Filter, X } from "lucide-react";
 import { useState } from "react";
 import ProductCard from "../components/ui/ProductCard";
@@ -11,7 +14,7 @@ const CATEGORIAS = Object.values(MESAS_FREEZERS_SLUGS);
 const SLUG_TO_LABEL = MESAS_FREEZERS_SLUGS;
 
 export default function MesasFreezers() {
-  const [searchParams] = useSearchParams();
+  const { searchParams } = useQueryParams();
   const tipo = searchParams.get("tipo");
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
@@ -27,9 +30,9 @@ export default function MesasFreezers() {
       <nav className="bg-white border-b border-outline-variant/30 py-4">
         <div className="max-w-container-max mx-auto px-gutter md:px-gutter">
           <div className="flex items-center gap-2 text-sm text-on-surface-variant font-body-md">
-            <Link to="/" className="hover:text-primary transition-colors">Início</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Início</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
+            <Link href="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-on-surface font-bold">MESAS</span>
           </div>
@@ -45,7 +48,7 @@ export default function MesasFreezers() {
             !showFiltersMobile && "hidden lg:block"
           )}>
             <Link 
-              to="/produtos"
+              href="/produtos"
               className="flex items-center gap-2 text-on-surface hover:text-primary transition-colors mb-8 group"
             >
               <h2 className="font-headline-sm uppercase tracking-tighter">Categorias</h2>
@@ -55,7 +58,7 @@ export default function MesasFreezers() {
             <ul className="space-y-2">
               <li>
                 <Link
-                  to="/mesas-e-freezers"
+                  href="/mesas-e-freezers"
                   onClick={() => setShowFiltersMobile(false)}
                   className={cn(
                     "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg font-body-md text-body-md transition-colors",
@@ -83,7 +86,7 @@ export default function MesasFreezers() {
                 return (
                   <li key={cat}>
                     <Link
-                      to={`/mesas-e-freezers?tipo=${catSlug}`}
+                      href={`/mesas-e-freezers?tipo=${catSlug}`}
                       onClick={() => setShowFiltersMobile(false)}
                       className={cn(
                         "flex items-center justify-between w-full text-left py-2 px-3 rounded-lg font-body-md text-body-md transition-colors",

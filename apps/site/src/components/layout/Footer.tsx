@@ -1,4 +1,3 @@
-import { Link } from "react-router-dom";
 import { Facebook, Instagram, Mail } from "lucide-react";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
 

@@ -1,5 +1,8 @@
+"use client";
+
 import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { type BorderOption } from "../components/ui/ProductCard";
 import { buildWaLink } from "../lib/whatsapp";
@@ -22,8 +25,9 @@ const ALL_PRODUCTS = [
 ];
 
 export default function ProductDetails() {
-  const { id } = useParams();
-  const product = ALL_PRODUCTS.find((p) => p.id === id);
+  const params = useParams();
+  const id = typeof params?.id === "string" ? params.id : "";
+  const product = ALL_PRODUCTS.find((p) => String(p.id) === id);
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
@@ -47,7 +51,7 @@ export default function ProductDetails() {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
         <h1 className="text-2xl font-bold text-on-background">Produto não encontrado</h1>
-        <Link to="/produtos" className="text-primary hover:underline font-bold">Voltar para produtos</Link>
+        <Link href="/produtos" className="text-primary hover:underline font-bold">Voltar para produtos</Link>
       </div>
     );
   }
@@ -91,9 +95,9 @@ export default function ProductDetails() {
       <nav className="bg-white border-b border-outline-variant/30 py-4 mb-8">
         <div className="max-w-container-max mx-auto px-gutter md:px-gutter">
           <div className="flex items-center gap-2 text-sm text-on-surface-variant font-body-md">
-            <Link to="/" className="hover:text-primary transition-colors">Início</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Início</Link>
             <ChevronRight className="w-4 h-4" />
-            <Link to="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
+            <Link href="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-on-surface font-bold truncate max-w-[200px] md:max-w-none">{displayName}</span>
           </div>
@@ -267,10 +271,11 @@ export default function ProductDetails() {
             {/* Actions Section */}
             <div className="flex flex-col gap-6 mt-auto">
               {/* Botão para Desktop (Escondido no Mobile) */}
-              <a 
+              <a
                 href={buildLink()}
-                target="_blank" 
-                rel="noopener noreferrer" 
+                suppressHydrationWarning
+                target="_blank"
+                rel="noopener noreferrer"
                 className="hidden md:flex w-full bg-[#25D366] text-white font-bold py-5 px-8 rounded-xl uppercase tracking-widest justify-center items-center gap-3 hover:bg-[#1da851] transition-all shadow-xl shadow-green-500/20 active:scale-[0.98]"
               >
                 Solicitar Orçamento
@@ -278,10 +283,11 @@ export default function ProductDetails() {
 
               {/* Botão Fixo no Mobile (Bottom Bar) */}
               <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-outline-variant z-50 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
-                <a 
+                <a
                   href={buildLink()}
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                  suppressHydrationWarning
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex w-full bg-[#25D366] text-white font-bold py-4 px-8 rounded-xl uppercase tracking-widest justify-center items-center gap-3 active:scale-[0.98]"
                 >
                   Solicitar Orçamento

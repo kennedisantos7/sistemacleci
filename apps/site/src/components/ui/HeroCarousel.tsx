@@ -1,7 +1,9 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { cn } from "../../lib/utils";
 
 const slides = [
@@ -147,10 +149,10 @@ export default function HeroCarousel() {
                       {slide.subtitle}
                     </p>
                     <div className="flex flex-wrap gap-2 md:gap-4 mt-3 md:mt-0">
-                      <Link to={slide.primaryLink} className="bg-white text-on-surface font-label-md text-[11px] md:text-label-md px-4 md:px-8 py-2.5 md:py-4 rounded-DEFAULT hover:bg-white/90 transition-colors shadow-lg font-bold">
+                      <Link href={slide.primaryLink} className="bg-white text-on-surface font-label-md text-[11px] md:text-label-md px-4 md:px-8 py-2.5 md:py-4 rounded-DEFAULT hover:bg-white/90 transition-colors shadow-lg font-bold">
                         {slide.primaryText}
                       </Link>
-                      <Link to={slide.secondaryLink} className="hidden sm:inline-flex bg-transparent border border-white/50 text-white font-label-md text-xs md:text-label-md px-5 md:px-8 py-2.5 md:py-4 rounded-DEFAULT hover:bg-white/10 transition-colors">
+                      <Link href={slide.secondaryLink} className="hidden sm:inline-flex bg-transparent border border-white/50 text-white font-label-md text-xs md:text-label-md px-5 md:px-8 py-2.5 md:py-4 rounded-DEFAULT hover:bg-white/10 transition-colors">
                         {slide.secondaryText}
                       </Link>
                     </div>
@@ -184,7 +186,7 @@ export default function HeroCarousel() {
                       {slide.featuredProduct.desc}
                     </p>
                     <Link 
-                      to={slide.primaryLink}
+                      href={slide.primaryLink}
                       className="mt-2.5 md:mt-4 text-[9px] lg:text-[10px] uppercase font-bold tracking-widest text-white border-b border-white/30 hover:border-white transition-all pb-1"
                     >
                       Ver Detalhes

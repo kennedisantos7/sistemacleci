@@ -1,7 +1,10 @@
+"use client";
+
 import { useMemo } from "react";
 import { ChevronRight, Megaphone, Filter, X } from "lucide-react";
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
 import ProductCard from "../components/ui/ProductCard";
 import { COMUNICACAO_VISUAL_CATALOG, COMUNICACAO_VISUAL_SLUGS } from "../data/comunicacao-visual";
@@ -16,7 +19,7 @@ const LABEL_TO_SLUG = Object.fromEntries(
 );
 
 export default function ComunicacaoVisual() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, setQuery } = useQueryParams();
   const tipoParam = searchParams.get("tipo");
   const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
@@ -29,9 +32,9 @@ export default function ComunicacaoVisual() {
 
   function selecionar(label: string | null) {
     if (!label) {
-      setSearchParams({});
+      setQuery({});
     } else {
-      setSearchParams({ tipo: LABEL_TO_SLUG[label] });
+      setQuery({ tipo: LABEL_TO_SLUG[label] });
     }
     setShowFiltersMobile(false);
   }
@@ -41,13 +44,13 @@ export default function ComunicacaoVisual() {
 
       {/* Breadcrumb */}
       <nav aria-label="Breadcrumb" className="font-label-md text-label-md text-on-surface-variant flex items-center gap-2 mb-8">
-        <Link to="/" className="hover:text-primary transition-colors">Início</Link>
+        <Link href="/" className="hover:text-primary transition-colors">Início</Link>
         <ChevronRight className="w-4 h-4" aria-hidden="true" />
-        <Link to="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
+        <Link href="/produtos" className="hover:text-primary transition-colors">Produtos</Link>
         <ChevronRight className="w-4 h-4" aria-hidden="true" />
         {categoriaAtiva ? (
           <>
-            <Link to="/comunicacao-visual" className="hover:text-primary transition-colors">Comunicação Visual</Link>
+            <Link href="/comunicacao-visual" className="hover:text-primary transition-colors">Comunicação Visual</Link>
             <ChevronRight className="w-4 h-4" aria-hidden="true" />
             <span className="text-on-surface" aria-current="page">{categoriaAtiva}</span>
           </>
@@ -90,7 +93,7 @@ export default function ComunicacaoVisual() {
         >
           <div className="flex items-center justify-between mb-4">
             <Link 
-              to="/produtos"
+              href="/produtos"
               className="font-label-md text-label-md text-on-surface uppercase tracking-wider flex items-center gap-2 hover:text-primary transition-colors group"
             >
               <Megaphone className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />

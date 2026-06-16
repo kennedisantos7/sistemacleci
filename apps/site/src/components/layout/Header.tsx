@@ -1,6 +1,9 @@
+"use client";
+
 import { ChevronDown, Home, Search, LayoutGrid, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "../../lib/utils";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
 import { SACOLAS_CATALOG } from "../../data/sacolas";
@@ -88,8 +91,8 @@ const MEGA_MENU_CONTENT: Record<string, any[]> = {
 // Componente
 // ---------------------------------------------------------------------------
 export default function Header() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname() ?? "";
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
@@ -103,7 +106,7 @@ export default function Header() {
   const handleSearch = () => {
     const q = searchQuery.trim();
     if (!q) return;
-    navigate(`/produtos?q=${encodeURIComponent(q)}`);
+    router.push(`/produtos?q=${encodeURIComponent(q)}`);
     setSearchQuery("");
     setIsMenuOpen(false);
   };
@@ -146,7 +149,7 @@ export default function Header() {
             </button>
 
             {/* Logo */}
-            <Link to="/" aria-label="Ir para a página inicial" className="flex-shrink-0 group justify-self-center">
+            <Link href="/" aria-label="Ir para a página inicial" className="flex-shrink-0 group justify-self-center">
               <div className="w-[80px] md:w-[100px] h-auto transform group-hover:scale-105 transition-transform flex items-center justify-center">
                 <img 
                   src="/icons/logotipo.jpg" 
@@ -227,7 +230,7 @@ export default function Header() {
           >
             {/* Início */}
             <Link
-              to="/"
+              href="/"
               className="flex items-center gap-2 py-2 px-6 hover:text-[#1541FC] transition-colors border-r border-gray-200 relative group"
             >
               <Home className="w-[18px] h-[18px] text-[#1541FC]" strokeWidth={2.5} />
@@ -236,7 +239,7 @@ export default function Header() {
 
             {/* Links com dropdown */}
             {NAV_LINKS.map((link) => {
-              const isActive = location.pathname.startsWith(link.path);
+              const isActive = pathname.startsWith(link.path);
               return (
                 <div 
                   key={link.path} 
@@ -245,7 +248,7 @@ export default function Header() {
                   onMouseLeave={() => setHoveredMenu(null)}
                 >
                   <Link
-                    to={link.path}
+                    href={link.path}
                     onClick={() => setHoveredMenu(null)}
                     className={cn(
                       "flex items-center gap-1.5 py-2 px-6 hover:text-[#1541FC] transition-colors border-r border-gray-200 h-full",
@@ -271,7 +274,7 @@ export default function Header() {
                         {(MEGA_MENU_CONTENT[link.name] || []).map((item) => (
                           <Link
                             key={item.name}
-                            to={item.link}
+                            href={item.link}
                             onClick={() => setHoveredMenu(null)}
                             className="flex flex-col items-center gap-1.5 group/item transition-transform hover:-translate-y-1 py-1"
                           >
@@ -326,7 +329,7 @@ export default function Header() {
 
           <nav className="p-4 flex flex-col gap-1">
             <Link 
-              to="/" 
+              href="/" 
               onClick={toggleMenu}
               className="flex items-center gap-3 p-3 font-bold text-[#333] hover:bg-gray-50 rounded-lg"
             >
@@ -337,7 +340,7 @@ export default function Header() {
             {NAV_LINKS.map((link) => (
               <div key={link.path}>
                 <div className="flex items-center justify-between p-3 font-bold text-[#333] hover:bg-gray-50 rounded-lg">
-                  <Link to={link.path} onClick={toggleMenu} className="flex-1 uppercase">
+                  <Link href={link.path} onClick={toggleMenu} className="flex-1 uppercase">
                     {link.name}
                   </Link>
                   <button 
@@ -357,7 +360,7 @@ export default function Header() {
                     {(MEGA_MENU_CONTENT[link.name] || []).map((item) => (
                       <Link
                         key={item.name}
-                        to={item.link}
+                        href={item.link}
                         onClick={toggleMenu}
                         className="text-sm py-2 px-3 text-[#555] hover:text-[#1541FC] border-l-2 border-transparent hover:border-[#1541FC] transition-all"
                       >

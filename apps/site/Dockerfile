@@ -7,7 +7,6 @@ WORKDIR /app
 FROM base AS deps
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/site/package.json apps/site/package.json
-COPY packages/db/package.json packages/db/package.json
 RUN pnpm install --frozen-lockfile --filter @cleci/site...
 
 # ---------- Build ----------
@@ -15,14 +14,27 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/site/node_modules ./apps/site/node_modules
 COPY . .
-# VITE_* são embutidas no bundle em build-time
-ARG VITE_ATTRIBUTION_COOKIE_DAYS=30
-ENV VITE_ATTRIBUTION_COOKIE_DAYS=$VITE_ATTRIBUTION_COOKIE_DAYS
+ENV DOCKER_BUILD=1
+# Duração do cookie de atribuição embutida no bundle (deve casar com Admin › Comissões)
+ARG NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=30
+ENV NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=$NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS
 RUN pnpm --filter @cleci/site build
 
-# ---------- Runner (nginx servindo SPA) ----------
-FROM nginx:alpine AS runner
-COPY apps/site/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=builder /app/apps/site/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# ---------- Runner ----------
+FROM base AS runner
+ENV NODE_ENV=production
+RUN apk add --no-cache wget
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
+
+COPY --from=builder /app/apps/site/.next/standalone ./
+COPY --from=builder /app/apps/site/.next/static ./apps/site/.next/static
+COPY --from=builder /app/apps/site/public ./apps/site/public
+
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000 HOSTNAME=0.0.0.0
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/ || exit 1
+
+CMD ["node", "apps/site/server.js"]

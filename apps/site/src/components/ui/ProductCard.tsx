@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import { buildWaLink } from "../../lib/whatsapp";
+import Link from "next/link";
 
 export type BorderOption = {
   name: string;
@@ -39,13 +38,14 @@ export default function ProductCard({
   className = "",
   imageLoading = "lazy",
 }: ProductCardProps) {
-  const waLink = product.waLink ?? buildWaLink(product.title, { category: product.category });
+  // linkToDetail mantido na API por compatibilidade; ambos os links levam ao detalhe.
+  void linkToDetail;
 
   return (
     <article
       className={`group bg-surface-container-lowest rounded-lg border border-outline-variant overflow-hidden flex flex-col hover:shadow-[0_10px_40px_-10px_rgba(21,65,252,0.12)] transition-shadow duration-300 h-full relative ${className}`}
     >
-      <Link to={`/produto/${product.id}`} className="flex-grow flex flex-col">
+      <Link href={`/produto/${product.id}`} className="flex-grow flex flex-col">
         {/* Imagem */}
         <div className="relative h-[260px] bg-surface-container-low flex items-center justify-center overflow-hidden">
           <img
@@ -82,9 +82,8 @@ export default function ProductCard({
       {/* Botão de Pedido - Fora do Link principal para não dar conflito */}
       <div className="px-5 pb-5 mt-auto">
         <Link
-          to={`/produto/${product.id}`}
+          href={`/produto/${product.id}`}
           className="w-full bg-[#25D366] text-white font-label-md text-label-md py-3 rounded-DEFAULT hover:bg-[#1DA851] transition-colors text-center block"
-          onClick={(e) => e.stopPropagation()}
         >
           Fazer Pedido
         </Link>

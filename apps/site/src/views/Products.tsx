@@ -1,6 +1,9 @@
+"use client";
+
 import { ChevronDown, ChevronLeft, ChevronRight, Package, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import Link from "next/link";
+import { useQueryParams } from "../lib/use-query-params";
 import ProductCard from "../components/ui/ProductCard";
 import { TAPETES_CATALOG } from "../data/tapetes";
 import { GRAFICA_CATALOG } from "../data/grafica";
@@ -30,7 +33,7 @@ const PAGE_SIZE = 24;
 // Page
 // ---------------------------------------------------------------------------
 export default function Products() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { searchParams, setQuery } = useQueryParams();
   const queryParam = searchParams.get("q") ?? "";
 
   const [inputValue, setInputValue] = useState(queryParam);
@@ -44,16 +47,16 @@ export default function Products() {
   const handleSearch = () => {
     const q = inputValue.trim();
     if (q) {
-      setSearchParams({ q });
+      setQuery({ q });
     } else {
-      setSearchParams({});
+      setQuery({});
     }
     setPage(1);
   };
 
   const clearSearch = () => {
     setInputValue("");
-    setSearchParams({});
+    setQuery({});
     setPage(1);
     inputRef.current?.focus();
   };
@@ -82,7 +85,7 @@ export default function Products() {
       <nav className="bg-white border-b border-outline-variant/30 py-4">
         <div className="max-w-container-max mx-auto px-gutter md:px-gutter">
           <div className="flex items-center gap-2 text-sm text-on-surface-variant font-body-md">
-            <Link to="/" className="hover:text-primary transition-colors">Início</Link>
+            <Link href="/" className="hover:text-primary transition-colors">Início</Link>
             <ChevronRight className="w-4 h-4" />
             <span className="text-on-surface font-bold">Nossos Produtos</span>
             {queryParam && (
@@ -154,7 +157,7 @@ export default function Products() {
                 ].map(({ label, path, count }) => (
                   <li key={path}>
                     <Link
-                      to={path}
+                      href={path}
                       className="flex items-center justify-between w-full py-2 px-3 rounded-lg font-body-md text-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                     >
                       <span>{label}</span>
