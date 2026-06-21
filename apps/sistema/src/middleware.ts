@@ -14,6 +14,6 @@ export default middleware((req) => {
 export const config = {
   // Protege tudo, exceto assets, API de auth e webhooks (validados por assinatura).
   matcher: [
-    "/((?!api/auth|api/webhooks|api/sales/ingest|api/health|api/admin/bootstrap|go/|_next/static|_next/image|favicon.ico|.*\\.).*)",
+    "/((?!api/auth|api/me|api/webhooks|api/sales/ingest|api/health|api/admin/bootstrap|go/|_next/static|_next/image|favicon.ico|.*\\.).*)",
   ],
 };

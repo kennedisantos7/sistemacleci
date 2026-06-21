@@ -1,10 +1,11 @@
 "use client";
 
-import { ChevronDown, Home, Search, LayoutGrid, Menu, X, LogIn } from "lucide-react";
+import { ChevronDown, Home, Search, LayoutGrid, Menu, X, LogIn, UserRound } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "../../lib/utils";
+import { useAccount, firstName } from "../../lib/use-account";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
 import { SACOLAS_CATALOG } from "../../data/sacolas";
 import { TAPETES_CATALOG } from "../../data/tapetes";
@@ -96,7 +97,11 @@ const PAINEL_URL = process.env.NEXT_PUBLIC_SISTEMA_URL ?? "http://localhost:3001
 export default function Header() {
   const pathname = usePathname() ?? "";
   const router = useRouter();
+  const account = useAccount();
+  const isLogged = account?.loggedIn === true;
   const loginUrl = `${PAINEL_URL}/login`;
+  const accountUrl = `${PAINEL_URL}${account?.home ?? ""}`;
+  const accountLabel = firstName(account?.name) ?? "Minha conta";
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
   const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
@@ -198,15 +203,27 @@ export default function Header() {
               >
                 <WhatsAppIcon className="w-7 h-7" />
               </a>
-              {/* Acesso ao painel (vendedor/afiliado/admin) */}
-              <a
-                href={loginUrl}
-                aria-label="Entrar no painel"
-                className="inline-flex items-center gap-1.5 rounded-full border border-[#1541FC] px-3 py-1.5 text-xs md:text-sm font-bold hover:bg-[#1541FC] hover:text-white transition-colors"
-              >
-                <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">Entrar</span>
-              </a>
+              {/* Acesso ao painel (vendedor/afiliado/admin). Quando há sessão
+                  ativa no painel, vira um atalho para a conta. */}
+              {isLogged ? (
+                <a
+                  href={accountUrl}
+                  aria-label="Acessar minha conta"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#1541FC] bg-[#1541FC] px-3 py-1.5 text-xs md:text-sm font-bold text-white hover:bg-[#1034D3] transition-colors"
+                >
+                  <UserRound className="h-4 w-4" />
+                  <span className="hidden sm:inline">{accountLabel}</span>
+                </a>
+              ) : (
+                <a
+                  href={loginUrl}
+                  aria-label="Entrar no painel"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#1541FC] px-3 py-1.5 text-xs md:text-sm font-bold hover:bg-[#1541FC] hover:text-white transition-colors"
+                >
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Entrar</span>
+                </a>
+              )}
             </div>
           </div>
 
@@ -341,13 +358,23 @@ export default function Header() {
           </div>
 
           <nav className="p-4 flex flex-col gap-1">
-            <a
-              href={loginUrl}
-              className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-[#1541FC] p-3 font-bold text-white"
-            >
-              <LogIn className="w-5 h-5" />
-              Entrar no painel
-            </a>
+            {isLogged ? (
+              <a
+                href={accountUrl}
+                className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-[#1541FC] p-3 font-bold text-white"
+              >
+                <UserRound className="w-5 h-5" />
+                {accountLabel === "Minha conta" ? "Minha conta" : `Conta de ${accountLabel}`}
+              </a>
+            ) : (
+              <a
+                href={loginUrl}
+                className="mb-2 flex items-center justify-center gap-2 rounded-lg bg-[#1541FC] p-3 font-bold text-white"
+              >
+                <LogIn className="w-5 h-5" />
+                Entrar no painel
+              </a>
+            )}
             <Link
               href="/"
               onClick={toggleMenu}
