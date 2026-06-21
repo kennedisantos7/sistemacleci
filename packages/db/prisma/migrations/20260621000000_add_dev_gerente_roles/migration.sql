@@ -1,0 +1,4 @@
+-- Adiciona os papéis DESENVOLVEDOR e GERENTE ao enum Role.
+-- ALTER TYPE ... ADD VALUE é seguro em PostgreSQL 12+ e idempotente com IF NOT EXISTS.
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'DESENVOLVEDOR';
+ALTER TYPE "Role" ADD VALUE IF NOT EXISTS 'GERENTE';

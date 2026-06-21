@@ -1,5 +1,6 @@
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { getConfig } from "@/server/services/config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,7 @@ import { updateUserRateAction } from "./actions";
 export const dynamic = "force-dynamic";
 
 export default async function AdminComissoesPage() {
-  await requireUser(["ADMIN"]);
+  await requireUser(FULL_ACCESS_ROLES);
 
   const [config, users] = await Promise.all([
     getConfig(),

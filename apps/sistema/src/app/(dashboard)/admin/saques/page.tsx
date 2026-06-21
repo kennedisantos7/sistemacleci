@@ -1,5 +1,6 @@
 import { prisma, CommissionStatus, PayoutStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCents, bpsToPercent } from "@/lib/money";
@@ -9,7 +10,7 @@ import { approvePayoutAction, payPayoutAction, rejectPayoutAction } from "@/serv
 export const dynamic = "force-dynamic";
 
 export default async function AdminSaquesPage() {
-  await requireUser(["ADMIN"]);
+  await requireUser(FULL_ACCESS_ROLES);
 
   const [pendingCommissions, openPayouts, historyPayouts] = await Promise.all([
     prisma.commission.findMany({

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 
 const initial: CreateUserState = {};
 
-export function CreateUserForm() {
+export function CreateUserForm({ canManageStaff = false }: { canManageStaff?: boolean }) {
   const [state, action, pending] = useActionState(createUserAction, initial);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -47,7 +47,13 @@ export function CreateUserForm() {
         >
           <option value="VENDEDOR_FIXO">Vendedor</option>
           <option value="AFILIADO">Afiliado</option>
-          <option value="ADMIN">Admin</option>
+          {canManageStaff && (
+            <>
+              <option value="GERENTE">Gerente</option>
+              <option value="DESENVOLVEDOR">Desenvolvedor</option>
+              <option value="ADMIN">Admin</option>
+            </>
+          )}
         </select>
       </div>
 

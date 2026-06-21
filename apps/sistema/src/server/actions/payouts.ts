@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { requestPayout, approvePayout, payPayout, rejectPayout } from "@/server/services/payouts";
 
 async function audit(actorId: string, action: string, payoutId: string, metadata?: object) {
@@ -31,7 +32,7 @@ export async function requestPayoutAction(
 
 // --- Admin ---
 export async function approvePayoutAction(formData: FormData): Promise<void> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(FULL_ACCESS_ROLES);
   const payoutId = String(formData.get("payoutId") ?? "");
   if (!payoutId) return;
   await approvePayout(payoutId);
@@ -40,7 +41,7 @@ export async function approvePayoutAction(formData: FormData): Promise<void> {
 }
 
 export async function payPayoutAction(formData: FormData): Promise<void> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(FULL_ACCESS_ROLES);
   const payoutId = String(formData.get("payoutId") ?? "");
   if (!payoutId) return;
   await payPayout(payoutId, { method: "pix" });
@@ -49,7 +50,7 @@ export async function payPayoutAction(formData: FormData): Promise<void> {
 }
 
 export async function rejectPayoutAction(formData: FormData): Promise<void> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(FULL_ACCESS_ROLES);
   const payoutId = String(formData.get("payoutId") ?? "");
   if (!payoutId) return;
   const note = String(formData.get("note") ?? "") || undefined;

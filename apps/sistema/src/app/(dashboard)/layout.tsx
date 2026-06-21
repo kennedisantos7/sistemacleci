@@ -7,15 +7,28 @@ import { signOutAction } from "./actions";
 import { SidebarNav } from "./sidebar-nav";
 import type { Role } from "@cleci/db";
 
+const ADMIN_NAV = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/usuarios", label: "Usuários" },
+  { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/metas", label: "Metas" },
+  { href: "/admin/comissoes", label: "Comissões" },
+  { href: "/admin/saques", label: "Saques" },
+];
+
+// Gerente: gestão de vendedores/vendas/metas, sem o financeiro sensível
+// (comissões e saques ficam só para admin/desenvolvedor).
+const GERENTE_NAV = [
+  { href: "/admin", label: "Dashboard" },
+  { href: "/admin/usuarios", label: "Usuários" },
+  { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/metas", label: "Metas" },
+];
+
 const NAV: Record<Role, Array<{ href: string; label: string }>> = {
-  ADMIN: [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/usuarios", label: "Usuários" },
-    { href: "/admin/vendas", label: "Vendas" },
-    { href: "/admin/metas", label: "Metas" },
-    { href: "/admin/comissoes", label: "Comissões" },
-    { href: "/admin/saques", label: "Saques" },
-  ],
+  ADMIN: ADMIN_NAV,
+  DESENVOLVEDOR: ADMIN_NAV,
+  GERENTE: GERENTE_NAV,
   VENDEDOR_FIXO: [
     { href: "/vendedor", label: "Dashboard" },
     { href: "/vendedor/links", label: "Meus Links" },
@@ -29,6 +42,8 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
 
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Administrador",
+  DESENVOLVEDOR: "Desenvolvedor",
+  GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
 };

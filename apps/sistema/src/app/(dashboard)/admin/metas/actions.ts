@@ -3,11 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { STAFF_ROLES } from "@/lib/rbac";
 import { parseReaisToCents } from "@/lib/money";
 import { upsertGoal } from "@/server/services/goals";
 
 export async function setGoalAction(formData: FormData): Promise<void> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(STAFF_ROLES);
 
   const userId = String(formData.get("userId") ?? "");
   const year = Number(formData.get("year"));

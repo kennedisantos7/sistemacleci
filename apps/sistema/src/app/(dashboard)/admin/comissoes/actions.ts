@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { updateConfig } from "@/server/services/config";
 import { parsePercentToBps } from "@/lib/money";
 
@@ -12,7 +13,7 @@ export async function updateConfigAction(
   _prev: ConfigState,
   formData: FormData,
 ): Promise<ConfigState> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(FULL_ACCESS_ROLES);
 
   const bps = parsePercentToBps(String(formData.get("defaultRate") ?? ""));
   if (bps == null) return { error: "Taxa inválida (use 0 a 100)." };
@@ -35,7 +36,7 @@ export async function updateConfigAction(
 }
 
 export async function updateUserRateAction(formData: FormData): Promise<void> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(FULL_ACCESS_ROLES);
   const userId = String(formData.get("userId") ?? "");
   const raw = String(formData.get("rate") ?? "").trim();
   if (!userId) return;

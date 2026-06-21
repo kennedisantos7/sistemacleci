@@ -1,4 +1,5 @@
 import { requireUser } from "@/server/session";
+import { STAFF_ROLES } from "@/lib/rbac";
 import { currentPeriod, listVendedorGoals } from "@/server/services/goals";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ const MES = [
 ];
 
 export default async function AdminMetasPage() {
-  await requireUser(["ADMIN"]);
+  await requireUser(STAFF_ROLES);
 
   const period = currentPeriod();
   const rows = await listVendedorGoals(period);

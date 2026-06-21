@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { SaleOrigin } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { STAFF_ROLES } from "@/lib/rbac";
 import { parseReaisToCents } from "@/lib/money";
 import { createSale, markSalePaid } from "@/server/services/sales";
 import { createPaymentLinkForSale } from "@/server/services/checkout";
@@ -24,7 +25,7 @@ export async function registerManualSaleAction(
   _prev: ManualSaleState,
   formData: FormData,
 ): Promise<ManualSaleState> {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(STAFF_ROLES);
 
   const parsed = schema.safeParse({
     amount: formData.get("amount"),

@@ -1,5 +1,6 @@
 import { prisma, type SaleStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { STAFF_ROLES } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCents } from "@/lib/money";
 import { ManualSaleForm } from "./manual-sale-form";
@@ -14,7 +15,7 @@ const STATUS_STYLE: Record<SaleStatus, string> = {
 };
 
 export default async function AdminVendasPage() {
-  await requireUser(["ADMIN"]);
+  await requireUser(STAFF_ROLES);
 
   const sales = await prisma.sale.findMany({
     orderBy: { createdAt: "desc" },

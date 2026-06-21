@@ -14,8 +14,13 @@ datasource db {
 }
 
 // --------------------------- RBAC ---------------------------
+// Hierarquia: ADMIN e DESENVOLVEDOR têm acesso total; GERENTE administra a
+// operação (vendas, metas, comissões, saques) e os vendedores/afiliados, mas
+// não pode gerenciar contas da equipe (admin/desenvolvedor/gerente).
 enum Role {
   ADMIN
+  DESENVOLVEDOR
+  GERENTE
   VENDEDOR_FIXO
   AFILIADO
 }

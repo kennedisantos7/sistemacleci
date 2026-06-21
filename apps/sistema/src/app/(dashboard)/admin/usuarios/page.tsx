@@ -1,5 +1,6 @@
 import { prisma, UserStatus, type Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { STAFF_ROLES, SELLER_ROLES, isFullAccess } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<Role, string> = {
   ADMIN: "Admin",
+  DESENVOLVEDOR: "Desenvolvedor",
+  GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
 };
@@ -27,7 +30,8 @@ const STATUS_STYLE: Record<UserStatus, string> = {
 };
 
 export default async function AdminUsersPage() {
-  const admin = await requireUser(["ADMIN"]);
+  const admin = await requireUser(STAFF_ROLES);
+  const canManageStaff = isFullAccess(admin.role);
 
   const users = await prisma.user.findMany({
     orderBy: [{ status: "asc" }, { createdAt: "desc" }],
@@ -52,12 +56,13 @@ export default async function AdminUsersPage() {
         <CardHeader>
           <CardTitle>Criar login</CardTitle>
           <CardDescription>
-            Crie contas de vendedor (ou admin/afiliado) diretamente. Já entram ativas — o cadastro
-            público é apenas para afiliados.
+            {canManageStaff
+              ? "Crie contas da equipe (admin, desenvolvedor, gerente) ou de vendedor/afiliado. Já entram ativas — o cadastro público é apenas para afiliados."
+              : "Crie contas de vendedor ou afiliado. Já entram ativas — o cadastro público é apenas para afiliados."}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <CreateUserForm />
+          <CreateUserForm canManageStaff={canManageStaff} />
         </CardContent>
       </Card>
 
@@ -67,84 +72,98 @@ export default async function AdminUsersPage() {
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-border">
-            {users.map((u) => (
-              <div
-                key={u.id}
-                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{u.name ?? u.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {u.email} · {ROLE_LABEL[u.role]}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[u.status]}`}
-                  >
-                    {u.status}
-                  </span>
+            {users.map((u) => {
+              const targetIsStaff = !SELLER_ROLES.includes(u.role);
+              // Gerente não gerencia contas da equipe.
+              const canManage = canManageStaff || !targetIsStaff;
 
-                  {u.id === admin.id ? (
-                    <span className="text-xs text-muted-foreground">(você)</span>
-                  ) : (
-                    <>
-                      <form action={updateUserRoleAction} className="flex items-center gap-1">
-                        <input type="hidden" name="userId" value={u.id} />
-                        <select
-                          name="role"
-                          defaultValue={u.role}
-                          className="h-9 rounded-md border border-border bg-background px-2 text-xs"
-                        >
-                          <option value="AFILIADO">Afiliado</option>
-                          <option value="VENDEDOR_FIXO">Vendedor</option>
-                          <option value="ADMIN">Admin</option>
-                        </select>
-                        <Button size="sm" variant="outline" type="submit">
-                          Papel
-                        </Button>
-                      </form>
-                      {u.status === UserStatus.PENDENTE && (
-                        <form action={approveUserAction}>
+              return (
+                <div
+                  key={u.id}
+                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{u.name ?? u.email}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {u.email} · {ROLE_LABEL[u.role]}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[u.status]}`}
+                    >
+                      {u.status}
+                    </span>
+
+                    {u.id === admin.id ? (
+                      <span className="text-xs text-muted-foreground">(você)</span>
+                    ) : !canManage ? (
+                      <span className="text-xs text-muted-foreground">(equipe)</span>
+                    ) : (
+                      <>
+                        <form action={updateUserRoleAction} className="flex items-center gap-1">
                           <input type="hidden" name="userId" value={u.id} />
-                          <Button size="sm" type="submit">
-                            Aprovar
-                          </Button>
-                        </form>
-                      )}
-                      {u.status === UserStatus.ATIVO && (
-                        <form action={blockUserAction}>
-                          <input type="hidden" name="userId" value={u.id} />
-                          <Button size="sm" variant="destructive" type="submit">
-                            Bloquear
-                          </Button>
-                        </form>
-                      )}
-                      {u.status === UserStatus.BLOQUEADO && (
-                        <form action={unblockUserAction}>
-                          <input type="hidden" name="userId" value={u.id} />
+                          <select
+                            name="role"
+                            defaultValue={u.role}
+                            className="h-9 rounded-md border border-border bg-background px-2 text-xs"
+                          >
+                            <option value="AFILIADO">Afiliado</option>
+                            <option value="VENDEDOR_FIXO">Vendedor</option>
+                            {canManageStaff && (
+                              <>
+                                <option value="GERENTE">Gerente</option>
+                                <option value="DESENVOLVEDOR">Desenvolvedor</option>
+                                <option value="ADMIN">Admin</option>
+                              </>
+                            )}
+                          </select>
                           <Button size="sm" variant="outline" type="submit">
-                            Desbloquear
+                            Papel
                           </Button>
                         </form>
-                      )}
-                      <form action={resetPasswordAction} className="flex items-center gap-1">
-                        <input type="hidden" name="userId" value={u.id} />
-                        <Input
-                          name="password"
-                          type="text"
-                          placeholder="nova senha"
-                          className="h-9 w-32 text-xs"
-                        />
-                        <Button size="sm" variant="outline" type="submit">
-                          Resetar
-                        </Button>
-                      </form>
-                    </>
-                  )}
+                        {u.status === UserStatus.PENDENTE && (
+                          <form action={approveUserAction}>
+                            <input type="hidden" name="userId" value={u.id} />
+                            <Button size="sm" type="submit">
+                              Aprovar
+                            </Button>
+                          </form>
+                        )}
+                        {u.status === UserStatus.ATIVO && (
+                          <form action={blockUserAction}>
+                            <input type="hidden" name="userId" value={u.id} />
+                            <Button size="sm" variant="destructive" type="submit">
+                              Bloquear
+                            </Button>
+                          </form>
+                        )}
+                        {u.status === UserStatus.BLOQUEADO && (
+                          <form action={unblockUserAction}>
+                            <input type="hidden" name="userId" value={u.id} />
+                            <Button size="sm" variant="outline" type="submit">
+                              Desbloquear
+                            </Button>
+                          </form>
+                        )}
+                        <form action={resetPasswordAction} className="flex items-center gap-1">
+                          <input type="hidden" name="userId" value={u.id} />
+                          <Input
+                            name="password"
+                            type="text"
+                            placeholder="nova senha"
+                            className="h-9 w-32 text-xs"
+                          />
+                          <Button size="sm" variant="outline" type="submit">
+                            Resetar
+                          </Button>
+                        </form>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
