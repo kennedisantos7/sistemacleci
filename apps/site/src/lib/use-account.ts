@@ -9,7 +9,27 @@ export type Account = {
   loggedIn: boolean;
   name?: string | null;
   home?: string;
+  affiliateCode?: string | null;
 };
+
+// Cache em escopo de módulo: vários componentes (Header, sync do modo afiliado)
+// usam o mesmo resultado e disparam apenas um fetch por carregamento de página.
+let cached: Account | null = null;
+let promise: Promise<Account> | null = null;
+
+function fetchMe(): Promise<Account> {
+  if (cached) return Promise.resolve(cached);
+  if (!promise) {
+    promise = fetch(`${PAINEL_URL}/api/me`, { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : { loggedIn: false }))
+      .catch(() => ({ loggedIn: false }) as Account)
+      .then((data: Account) => {
+        cached = data;
+        return data;
+      });
+  }
+  return promise;
+}
 
 /**
  * Consulta o painel (/api/me) para saber se o usuário tem sessão ativa.
@@ -19,18 +39,13 @@ export type Account = {
  * Retorna `null` enquanto carrega (tratado como deslogado na UI).
  */
 export function useAccount(): Account | null {
-  const [account, setAccount] = useState<Account | null>(null);
+  const [account, setAccount] = useState<Account | null>(cached);
 
   useEffect(() => {
     let alive = true;
-    fetch(`${PAINEL_URL}/api/me`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { loggedIn: false }))
-      .then((data: Account) => {
-        if (alive) setAccount(data);
-      })
-      .catch(() => {
-        if (alive) setAccount({ loggedIn: false });
-      });
+    fetchMe().then((data) => {
+      if (alive) setAccount(data);
+    });
     return () => {
       alive = false;
     };

@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth } from "@/auth";
 import { env } from "@/env";
-import { ROLE_HOME } from "@/lib/rbac";
+import { ROLE_HOME, SELLER_ROLES } from "@/lib/rbac";
+import { ensureAffiliateCode } from "@/server/services/affiliate-code";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,12 +37,19 @@ export async function GET(_req: NextRequest) {
     return withCors(NextResponse.json({ loggedIn: false }));
   }
 
+  // Modo afiliado automático: só vendedores e afiliados recebem o código
+  // pessoal (garante a existência sob demanda). Equipe (admin/dev/gerente) não.
+  const affiliateCode = SELLER_ROLES.includes(user.role)
+    ? await ensureAffiliateCode(user.id)
+    : null;
+
   return withCors(
     NextResponse.json({
       loggedIn: true,
       name: user.name ?? null,
       role: user.role,
       home: ROLE_HOME[user.role],
+      affiliateCode,
     }),
   );
 }

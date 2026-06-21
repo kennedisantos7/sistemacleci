@@ -61,6 +61,13 @@ export function captureAffiliateMode(): void {
   }
 }
 
+/** Ativa o modo afiliado com um código específico (ex.: vindo da sessão). */
+export function setAffiliateMode(code: string): void {
+  if (typeof window === "undefined" || !CODE_RE.test(code)) return;
+  localStorage.setItem(AFF_KEY, code);
+  window.dispatchEvent(new Event(AFF_EVENT));
+}
+
 /** Código do modo afiliado ativo (ou null). */
 export function getAffiliateCode(): string | null {
   if (typeof window === "undefined") return null;
