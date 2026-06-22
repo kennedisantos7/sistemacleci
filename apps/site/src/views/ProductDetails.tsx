@@ -36,10 +36,17 @@ export default function ProductDetails() {
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
   const [withInstallation, setWithInstallation] = useState(false);
   const [selectedBorder, setSelectedBorder] = useState<BorderOption | null>(null);
+  // Pagamento online só fica disponível quando o cliente chega pelo link de
+  // pagamento do afiliado (?pagar=1). No site normal, o fechamento é via WhatsApp.
+  const [pagar, setPagar] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
+
+  useEffect(() => {
+    setPagar(new URLSearchParams(window.location.search).get("pagar") === "1");
+  }, []);
 
   useEffect(() => {
     if (product?.borders && product.borders.length > 0) {
@@ -273,8 +280,9 @@ export default function ProductDetails() {
 
             {/* Actions Section */}
             <div className="flex flex-col gap-6 mt-auto">
-              {/* Compra online (quando o produto tem preço definido) */}
-              {product.priceCents ? (
+              {/* Compra online: só via link de pagamento do afiliado (?pagar=1)
+                  e quando o produto tem preço definido. */}
+              {product.priceCents && pagar ? (
                 <div className="flex flex-col gap-3 border-b border-outline-variant/30 pb-6">
                   <div className="flex items-baseline gap-2">
                     <span className="font-headline-md text-3xl text-on-background font-bold">
