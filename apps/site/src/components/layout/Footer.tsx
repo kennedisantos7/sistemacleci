@@ -109,7 +109,7 @@ export default function Footer() {
             <div className="flex flex-col gap-1">
               <span className="font-medium text-[#1e3d59] text-[15px]">CLECI PERSONALIZA LTDA</span>
               <span>CNPJ: 28.402.051/0001-69</span>
-              <span className="max-w-md">AVENIDA JOAQUIM AIRES, QD60 LOTE14, SETOR VILA NOVA, PORTO NACIONAL - TO, CEP 77500-000</span>
+              <span className="max-w-md">RUA BELMIRO DA SILVA PRADO, QD 20 LT 02, NOVA CAPITAL, PORTO NACIONAL - TO, CEP 77501-388</span>
             </div>
           </div>
 
