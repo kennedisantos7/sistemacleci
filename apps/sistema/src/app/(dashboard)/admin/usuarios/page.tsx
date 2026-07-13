@@ -88,7 +88,7 @@ export default async function AdminUsersPage() {
                       {u.email} · {ROLE_LABEL[u.role]}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[u.status]}`}
                     >

@@ -6,7 +6,14 @@ import { cn } from "@/lib/utils";
 
 type Item = { href: string; label: string };
 
-export function SidebarNav({ items }: { items: Item[] }) {
+export function SidebarNav({
+  items,
+  onNavigate,
+}: {
+  items: Item[];
+  /** Chamado ao clicar num link (fecha o drawer no mobile). */
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname() ?? "";
 
   return (
@@ -19,6 +26,7 @@ export function SidebarNav({ items }: { items: Item[] }) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={onNavigate}
             className={cn(
               "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
               active

@@ -1,10 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LogOut, UserCog } from "lucide-react";
 import { auth } from "@/auth";
-import { Button } from "@/components/ui/button";
-import { signOutAction } from "./actions";
-import { SidebarNav } from "./sidebar-nav";
+import { DashboardShell } from "./dashboard-shell";
 import type { Role } from "@cleci/db";
 
 const ADMIN_NAV = [
@@ -53,34 +49,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!session?.user?.role) redirect("/login");
 
   const role = session.user.role;
-  const items = NAV[role];
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="flex w-64 flex-col border-r border-border bg-card">
-        <div className="flex items-center gap-2 px-6 py-5">
-          <span className="text-xl font-heading font-extrabold text-primary">
-            Cleci<span className="text-secondary">.</span>
-          </span>
-        </div>
-        <SidebarNav items={items} />
-        <div className="border-t border-border p-4">
-          <p className="mb-1 text-sm font-medium">{session.user.name ?? session.user.email}</p>
-          <p className="mb-3 text-xs text-muted-foreground">{ROLE_LABEL[role]}</p>
-          <Link
-            href="/conta"
-            className="mb-2 flex items-center gap-2 rounded-md px-1 text-sm text-foreground/70 hover:text-foreground"
-          >
-            <UserCog className="h-4 w-4" /> Minha conta
-          </Link>
-          <form action={signOutAction}>
-            <Button variant="outline" size="sm" className="w-full" type="submit">
-              <LogOut className="h-4 w-4" /> Sair
-            </Button>
-          </form>
-        </div>
-      </aside>
-      <main className="flex-1 bg-muted/30 p-8">{children}</main>
-    </div>
+    <DashboardShell
+      items={NAV[role]}
+      userName={session.user.name ?? session.user.email ?? ""}
+      roleLabel={ROLE_LABEL[role]}
+    >
+      {children}
+    </DashboardShell>
   );
 }
