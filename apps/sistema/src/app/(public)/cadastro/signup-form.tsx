@@ -57,6 +57,18 @@ export function SignupForm() {
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? "Enviando..." : "Criar conta de afiliado"}
       </Button>
+      <p className="text-center text-xs text-muted-foreground">
+        Ao criar a conta, você concorda com a nossa{" "}
+        <a
+          href={`${process.env.NEXT_PUBLIC_SITE_URL ?? "https://cleci.com.br"}/privacidade`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary underline"
+        >
+          Política de Privacidade
+        </a>
+        .
+      </p>
       <p className="text-center text-sm text-muted-foreground">
         Já tem conta?{" "}
         <Link href="/login" className="text-primary underline">

@@ -11,12 +11,20 @@ export function buildShareUrl(ref: string): string {
 export function normalizeSlug(slug?: string | null): string {
   const s = (slug ?? "").trim();
   if (!s) return "/";
-  return s.startsWith("/") ? s : `/${s}`;
+  const path = s.startsWith("/") ? s : `/${s}`;
+  // "//host" é URL protocol-relative e "\" vira "//" em parsers — ambos
+  // permitiriam redirect para domínio externo via /go/[ref] (open redirect).
+  if (path.startsWith("//") || path.includes("\\")) return "/";
+  return path;
 }
 
 /** Monta a URL de destino (no site) a partir de um caminho. */
 export function buildDestination(path: string): string {
-  return new URL(path, env.SITE_URL).toString();
+  const base = new URL(env.SITE_URL);
+  const url = new URL(path, base);
+  // Defesa em profundidade: o destino DEVE ficar no domínio do site.
+  if (url.origin !== base.origin) return base.toString();
+  return url.toString();
 }
 
 export type CreateLinkInput = {

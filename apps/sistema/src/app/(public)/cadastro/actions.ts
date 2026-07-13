@@ -1,8 +1,10 @@
 "use server";
 
+import { headers } from "next/headers";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma, Role, UserStatus } from "@cleci/db";
+import { rateLimit } from "@/server/security";
 
 const schema = z
   .object({
@@ -19,6 +21,13 @@ const schema = z
 export type SignupState = { error?: string; success?: boolean };
 
 export async function signupAction(_prev: SignupState, formData: FormData): Promise<SignupState> {
+  // Anti-spam de contas: 5 cadastros a cada 10 min por IP.
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (!rateLimit(`signup:${ip}`, 5, 600_000)) {
+    return { error: "Muitas tentativas. Tente novamente em alguns minutos." };
+  }
+
   const parsed = schema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),

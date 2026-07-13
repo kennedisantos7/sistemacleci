@@ -13,6 +13,7 @@ const STATIC_ROUTES = [
   "/mesas-e-freezers",
   "/seguranca",
   "/comunicacao-visual",
+  "/privacidade",
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

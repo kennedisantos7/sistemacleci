@@ -23,6 +23,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ ref: strin
     .catch(() => {});
 
   const url = new URL(link.destination);
+  // Nunca redireciona para fora do site (anti open-redirect, cobre links legados).
+  if (url.origin !== new URL(env.SITE_URL).origin) {
+    return NextResponse.redirect(env.SITE_URL, { status: 302 });
+  }
   url.searchParams.set("ref", link.ref);
   if (link.utmSource) url.searchParams.set("utm_source", link.utmSource);
   if (link.utmMedium) url.searchParams.set("utm_medium", link.utmMedium);
