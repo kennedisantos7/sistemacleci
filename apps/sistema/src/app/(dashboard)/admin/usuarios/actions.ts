@@ -17,6 +17,18 @@ function canManageTarget(actorRole: Role, targetRole: Role): boolean {
   return SELLER_ROLES.includes(targetRole); // gerente: só vendedor/afiliado
 }
 
+// Só existe 1 conta de ADMIN e 1 de DESENVOLVEDOR no sistema.
+const SINGLETON_ROLES: Role[] = [Role.ADMIN, Role.DESENVOLVEDOR];
+
+/** Já existe uma conta com esse papel (diferente de `excludeUserId`)? */
+async function singletonRoleTaken(role: Role, excludeUserId?: string): Promise<boolean> {
+  if (!SINGLETON_ROLES.includes(role)) return false;
+  const count = await prisma.user.count({
+    where: { role, ...(excludeUserId ? { id: { not: excludeUserId } } : {}) },
+  });
+  return count > 0;
+}
+
 async function setUserStatus(targetId: string, status: UserStatus, action: string) {
   const admin = await requireUser(STAFF_ROLES);
   if (targetId === admin.id) return; // admin não altera o próprio status
@@ -93,6 +105,11 @@ export async function createUserAction(
     return { error: "Você só pode criar contas de vendedor ou afiliado." };
   }
 
+  // Só pode existir 1 conta de ADMIN e 1 de DESENVOLVEDOR.
+  if (await singletonRoleTaken(role)) {
+    return { error: `Já existe uma conta de ${role === Role.ADMIN ? "admin" : "desenvolvedor"}.` };
+  }
+
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return { error: "Já existe uma conta com este e-mail." };
 
@@ -148,6 +165,9 @@ export async function updateUserRoleAction(formData: FormData) {
   if (!isFullAccess(admin.role)) {
     if (!SELLER_ROLES.includes(target.role) || !SELLER_ROLES.includes(role)) return;
   }
+
+  // Só pode existir 1 conta de ADMIN e 1 de DESENVOLVEDOR.
+  if (await singletonRoleTaken(role, targetId)) return;
 
   await prisma.$transaction([
     prisma.user.update({ where: { id: targetId }, data: { role } }),
