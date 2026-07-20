@@ -161,6 +161,63 @@ export async function resetPasswordAction(
   return { success: "Senha atualizada." };
 }
 
+export type DeleteUserState = { error?: string };
+
+/**
+ * Exclui permanentemente uma conta. Nunca exclui quem já tem vendas,
+ * comissões ou saques registrados — isso apagaria o rastro financeiro.
+ * Nesses casos, oriente a bloquear a conta em vez de excluir.
+ */
+export async function deleteUserAction(
+  _prev: DeleteUserState,
+  formData: FormData,
+): Promise<DeleteUserState> {
+  const admin = await requireUser(STAFF_ROLES);
+  const targetId = String(formData.get("userId") ?? "");
+  if (!targetId) return { error: "Usuário inválido." };
+  if (targetId === admin.id) return { error: "Você não pode excluir sua própria conta." };
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { role: true, email: true },
+  });
+  if (!target) return { error: "Conta não encontrada." };
+  if (!canManageTarget(admin.role, target.role)) {
+    return { error: "Você não pode gerenciar esta conta." };
+  }
+
+  const [saleCount, commissionCount, payoutCount] = await Promise.all([
+    prisma.sale.count({ where: { userId: targetId } }),
+    prisma.commission.count({ where: { userId: targetId } }),
+    prisma.payout.count({ where: { userId: targetId } }),
+  ]);
+  if (saleCount > 0 || commissionCount > 0 || payoutCount > 0) {
+    return {
+      error:
+        "Esta conta já tem vendas, comissões ou saques registrados — não pode ser excluída. Bloqueie o acesso em vez disso.",
+    };
+  }
+
+  await prisma.$transaction([
+    // Preserva o histórico de auditoria (ação/metadados); só solta o vínculo
+    // com a conta que será excluída.
+    prisma.auditLog.updateMany({ where: { actorId: targetId }, data: { actorId: null } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: "USER_DELETED",
+        entity: "User",
+        entityId: targetId,
+        metadata: { email: target.email, role: target.role },
+      },
+    }),
+    prisma.user.delete({ where: { id: targetId } }),
+  ]);
+
+  revalidatePath("/admin/usuarios");
+  return {};
+}
+
 export async function updateUserRoleAction(formData: FormData) {
   const admin = await requireUser(STAFF_ROLES);
   const targetId = String(formData.get("userId") ?? "");

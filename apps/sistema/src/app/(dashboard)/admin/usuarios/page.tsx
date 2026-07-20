@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CreateUserForm } from "./create-user-form";
 import { ResetPasswordForm } from "./reset-password-form";
 import { ConfirmSubmitButton } from "./confirm-submit-button";
+import { DeleteUserButton } from "./delete-user-button";
 import { approveUserAction, blockUserAction, unblockUserAction, updateUserRoleAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -144,6 +145,7 @@ export default async function AdminUsersPage() {
                           </form>
                         )}
                         <ResetPasswordForm userId={u.id} userLabel={u.name ?? u.email} />
+                        <DeleteUserButton userId={u.id} userLabel={u.name ?? u.email} />
                       </>
                     )}
                   </div>
