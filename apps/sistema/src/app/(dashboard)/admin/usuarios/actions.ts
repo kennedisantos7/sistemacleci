@@ -131,15 +131,24 @@ export async function createUserAction(
   return { success: `Login criado para ${email} (${role}).` };
 }
 
-export async function resetPasswordAction(formData: FormData) {
+export type ResetPasswordState = { error?: string; success?: string };
+
+export async function resetPasswordAction(
+  _prev: ResetPasswordState,
+  formData: FormData,
+): Promise<ResetPasswordState> {
   const admin = await requireUser(STAFF_ROLES);
   const userId = String(formData.get("userId") ?? "");
   const password = String(formData.get("password") ?? "");
-  if (!userId || password.length < 8) return;
-  if (userId === admin.id) return; // admin troca a própria senha em /conta
+
+  if (!userId) return { error: "Usuário inválido." };
+  if (password.length < 8) return { error: "A senha deve ter ao menos 8 caracteres." };
+  if (userId === admin.id) return { error: "Troque sua própria senha em Minha conta." };
 
   const target = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
-  if (!target || !canManageTarget(admin.role, target.role)) return;
+  if (!target || !canManageTarget(admin.role, target.role)) {
+    return { error: "Você não pode gerenciar esta conta." };
+  }
 
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.$transaction([
@@ -149,6 +158,7 @@ export async function resetPasswordAction(formData: FormData) {
     }),
   ]);
   revalidatePath("/admin/usuarios");
+  return { success: "Senha atualizada." };
 }
 
 export async function updateUserRoleAction(formData: FormData) {

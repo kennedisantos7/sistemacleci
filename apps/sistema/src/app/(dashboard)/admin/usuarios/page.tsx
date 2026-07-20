@@ -3,15 +3,10 @@ import { requireUser } from "@/server/session";
 import { STAFF_ROLES, SELLER_ROLES, isFullAccess } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CreateUserForm } from "./create-user-form";
-import {
-  approveUserAction,
-  blockUserAction,
-  unblockUserAction,
-  updateUserRoleAction,
-  resetPasswordAction,
-} from "./actions";
+import { ResetPasswordForm } from "./reset-password-form";
+import { ConfirmSubmitButton } from "./confirm-submit-button";
+import { approveUserAction, blockUserAction, unblockUserAction, updateUserRoleAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -131,12 +126,14 @@ export default async function AdminUsersPage() {
                           </form>
                         )}
                         {u.status === UserStatus.ATIVO && (
-                          <form action={blockUserAction}>
-                            <input type="hidden" name="userId" value={u.id} />
-                            <Button size="sm" variant="destructive" type="submit">
-                              Bloquear
-                            </Button>
-                          </form>
+                          <ConfirmSubmitButton
+                            action={blockUserAction}
+                            hidden={{ userId: u.id }}
+                            label="Bloquear"
+                            pendingLabel="Bloqueando..."
+                            variant="destructive"
+                            confirmMessage={`Bloquear o acesso de ${u.name ?? u.email}? A conta não conseguirá mais entrar no painel.`}
+                          />
                         )}
                         {u.status === UserStatus.BLOQUEADO && (
                           <form action={unblockUserAction}>
@@ -146,18 +143,7 @@ export default async function AdminUsersPage() {
                             </Button>
                           </form>
                         )}
-                        <form action={resetPasswordAction} className="flex items-center gap-1">
-                          <input type="hidden" name="userId" value={u.id} />
-                          <Input
-                            name="password"
-                            type="text"
-                            placeholder="nova senha"
-                            className="h-9 w-32 text-xs"
-                          />
-                          <Button size="sm" variant="outline" type="submit">
-                            Resetar
-                          </Button>
-                        </form>
+                        <ResetPasswordForm userId={u.id} userLabel={u.name ?? u.email} />
                       </>
                     )}
                   </div>
