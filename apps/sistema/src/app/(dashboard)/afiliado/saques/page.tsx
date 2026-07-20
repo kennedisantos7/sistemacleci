@@ -1,5 +1,6 @@
 import { prisma, type PayoutStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { EARNER_ROLES } from "@/lib/rbac";
 import { getBalance } from "@/server/services/balance";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ const PAYOUT_LABEL: Record<PayoutStatus, string> = {
 };
 
 export default async function AfiliadoSaquesPage() {
-  const user = await requireUser(["AFILIADO"]);
+  const user = await requireUser(EARNER_ROLES);
 
   const [balance, info, payouts] = await Promise.all([
     getBalance(user.id),

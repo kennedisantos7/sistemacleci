@@ -3,13 +3,20 @@ import { auth } from "@/auth";
 import { DashboardShell } from "./dashboard-shell";
 import type { Role } from "@cleci/db";
 
+// Admin: opera tudo, menos as taxas (fixas, só o desenvolvedor altera).
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/metas", label: "Metas" },
-  { href: "/admin/comissoes", label: "Comissões" },
   { href: "/admin/saques", label: "Saques" },
+];
+
+// Desenvolvedor: tudo do admin + taxas do programa + saque da própria parte.
+const DEV_NAV = [
+  ...ADMIN_NAV,
+  { href: "/admin/comissoes", label: "Comissões" },
+  { href: "/afiliado/saques", label: "Meus saques" },
 ];
 
 // Gerente: gestão de vendedores/vendas/metas, sem o financeiro sensível
@@ -23,7 +30,7 @@ const GERENTE_NAV = [
 
 const NAV: Record<Role, Array<{ href: string; label: string }>> = {
   ADMIN: ADMIN_NAV,
-  DESENVOLVEDOR: ADMIN_NAV,
+  DESENVOLVEDOR: DEV_NAV,
   GERENTE: GERENTE_NAV,
   VENDEDOR_FIXO: [
     { href: "/vendedor", label: "Dashboard" },

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
+import { EARNER_ROLES } from "@/lib/rbac";
 
 const schema = z.object({
   pixKey: z.string().max(140).optional(),
@@ -17,7 +18,7 @@ export async function updatePaymentInfoAction(
   _prev: PaymentInfoState,
   formData: FormData,
 ): Promise<PaymentInfoState> {
-  const user = await requireUser(["AFILIADO", "VENDEDOR_FIXO"]);
+  const user = await requireUser([...EARNER_ROLES, "VENDEDOR_FIXO"]);
 
   const parsed = schema.safeParse({
     pixKey: formData.get("pixKey") || undefined,

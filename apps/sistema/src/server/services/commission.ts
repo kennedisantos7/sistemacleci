@@ -1,47 +1,100 @@
-import { prisma, CommissionStatus, type Sale } from "@cleci/db";
+import {
+  prisma,
+  CommissionStatus,
+  Role,
+  SaleOrigin,
+  UserStatus,
+  type Commission,
+  type Sale,
+} from "@cleci/db";
 import { commissionFromBps } from "@/lib/money";
 import { getConfig } from "./config";
 
 /**
- * Resolve a taxa de comissão (bps) de um usuário: taxa individual quando
- * definida, senão a taxa global padrão.
+ * Taxa do afiliado (bps) conforme o canal da venda:
+ *  - CHECKOUT (link de pagamento / gateway) => venda fechada, taxa maior;
+ *  - WHATSAPP_MANUAL (link de WhatsApp)     => apenas indicação, taxa menor.
+ * As taxas são FIXAS e só o DESENVOLVEDOR pode alterá-las.
  */
-export async function resolveRateBps(userId: string): Promise<number> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { commissionRateBps: true },
-  });
-  if (user?.commissionRateBps != null) return user.commissionRateBps;
+export async function resolveAffiliateRateBps(origin: SaleOrigin): Promise<number> {
   const config = await getConfig();
-  return config.defaultRateBps;
+  return origin === SaleOrigin.CHECKOUT ? config.afiliadoVendaBps : config.afiliadoIndicacaoBps;
+}
+
+/** Conta que recebe a participação do desenvolvedor (a mais antiga ativa). */
+async function getDeveloperUserId(): Promise<string | null> {
+  const dev = await prisma.user.findFirst({
+    where: { role: Role.DESENVOLVEDOR, status: UserStatus.ATIVO },
+    orderBy: { createdAt: "asc" },
+    select: { id: true },
+  });
+  return dev?.id ?? null;
+}
+
+/** Cria a comissão de um beneficiário na venda (idempotente e anti-corrida). */
+async function upsertCommission(
+  sale: Sale,
+  userId: string,
+  rateBps: number,
+): Promise<Commission> {
+  const key = { saleId_userId: { saleId: sale.id, userId } };
+
+  const existing = await prisma.commission.findUnique({ where: key });
+  if (existing) return existing;
+
+  try {
+    return await prisma.commission.create({
+      data: {
+        saleId: sale.id,
+        userId,
+        rateBps,
+        amountCents: commissionFromBps(sale.amountCents, rateBps),
+        status: CommissionStatus.PENDENTE,
+      },
+    });
+  } catch {
+    // Corrida: outro processo criou primeiro — relê e devolve.
+    const again = await prisma.commission.findUnique({ where: key });
+    if (again) return again;
+    throw new Error("Falha ao registrar a comissão.");
+  }
 }
 
 /**
- * Cria a comissão de uma venda paga, com SNAPSHOT da taxa. Idempotente:
- * se a venda não tem afiliado ou já possui comissão, não faz nada.
+ * Gera as comissões de uma venda paga, com SNAPSHOT das taxas. Idempotente.
+ *
+ * Regras:
+ *  - Só vendas atribuídas a um AFILIADO geram comissão. Vendedor fixo é
+ *    comissionado fora da plataforma (por enquanto).
+ *  - Afiliado recebe a taxa do canal (venda no gateway x indicação WhatsApp).
+ *  - Desenvolvedor recebe sua participação sobre a mesma venda.
  */
 export async function createCommissionForSale(sale: Sale) {
   if (!sale.userId) return null;
 
-  const existing = await prisma.commission.findUnique({ where: { saleId: sale.id } });
-  if (existing) return existing;
-
-  const rateBps = await resolveRateBps(sale.userId);
-  const amountCents = commissionFromBps(sale.amountCents, rateBps);
-
-  return prisma.commission.create({
-    data: {
-      saleId: sale.id,
-      userId: sale.userId,
-      rateBps,
-      amountCents,
-      status: CommissionStatus.PENDENTE,
-    },
+  const user = await prisma.user.findUnique({
+    where: { id: sale.userId },
+    select: { role: true },
   });
+  if (user?.role !== Role.AFILIADO) return null;
+
+  const config = await getConfig();
+  const rateBps =
+    sale.origin === SaleOrigin.CHECKOUT ? config.afiliadoVendaBps : config.afiliadoIndicacaoBps;
+
+  const affiliateCommission = await upsertCommission(sale, sale.userId, rateBps);
+
+  // Participação do desenvolvedor sobre a mesma venda.
+  const devUserId = await getDeveloperUserId();
+  if (devUserId && devUserId !== sale.userId) {
+    await upsertCommission(sale, devUserId, config.desenvolvedorBps);
+  }
+
+  return affiliateCommission;
 }
 
 /**
- * Cancela a comissão de uma venda (reembolso/recusa). Não mexe em comissões
+ * Cancela as comissões de uma venda (reembolso/recusa). Não mexe em comissões
  * já LIBERADAS (pagas via saque) — esse caso vira ajuste manual pelo admin.
  */
 export async function cancelCommissionForSale(saleId: string) {

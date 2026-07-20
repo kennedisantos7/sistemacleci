@@ -101,12 +101,21 @@ model VerificationToken {
 }
 
 // --------------- Configuração global do sistema -------------
+// Taxas FIXAS do programa. Alteráveis somente no login DESENVOLVEDOR.
 model CommissionConfig {
-  id                 String   @id @default(cuid())
-  defaultRateBps     Int      @default(1000) // 10% padrão
-  cookieDurationDays Int      @default(30) // 30 | 60 | 90
-  singletonKey       String   @unique @default("global") // garante 1 linha só
-  updatedAt          DateTime @updatedAt
+  id                 String @id @default(cuid())
+  defaultRateBps     Int    @default(1000) // legado: não usado no cálculo atual
+  cookieDurationDays Int    @default(30) // 30 | 60 | 90
+
+  // Afiliado: venda fechada no gateway (link de pagamento).
+  afiliadoVendaBps Int @default(800) // 8%
+  // Afiliado: apenas indicação/lead (link de WhatsApp).
+  afiliadoIndicacaoBps Int @default(300) // 3%
+  // Participação do desenvolvedor sobre vendas com afiliado (relatório).
+  desenvolvedorBps Int @default(1000) // 10%
+
+  singletonKey String   @unique @default("global") // garante 1 linha só
+  updatedAt    DateTime @updatedAt
 }
 
 // ----------------- Links de afiliado/vendedor ---------------
@@ -165,7 +174,8 @@ model Sale {
   customerName  String?
   note          String?
 
-  commission Commission?
+  // Uma venda pode gerar mais de uma comissão (afiliado + desenvolvedor).
+  commissions Commission[]
 
   createdAt  DateTime  @default(now())
   paidAt     DateTime?
@@ -185,7 +195,7 @@ enum CommissionStatus {
 
 model Commission {
   id     String @id @default(cuid())
-  saleId String @unique
+  saleId String
   sale   Sale   @relation(fields: [saleId], references: [id], onDelete: Cascade)
   userId String
   user   User   @relation(fields: [userId], references: [id])
@@ -200,6 +210,9 @@ model Commission {
   createdAt  DateTime  @default(now())
   approvedAt DateTime?
 
+  // Uma comissão por (venda, beneficiário): garante idempotência com dois
+  // beneficiários na mesma venda (afiliado e desenvolvedor).
+  @@unique([saleId, userId])
   @@index([userId, status])
 }
 

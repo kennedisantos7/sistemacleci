@@ -1,45 +1,39 @@
-import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { getConfig } from "@/server/services/config";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { bpsToPercent } from "@/lib/money";
 import { ConfigForm } from "./config-form";
-import { updateUserRateAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminComissoesPage() {
-  await requireUser(FULL_ACCESS_ROLES);
+  // Taxas são fixas: apenas o DESENVOLVEDOR pode alterá-las.
+  await requireUser(["DESENVOLVEDOR"]);
 
-  const [config, users] = await Promise.all([
-    getConfig(),
-    prisma.user.findMany({
-      where: { role: { in: ["AFILIADO", "VENDEDOR_FIXO"] } },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true, email: true, role: true, commissionRateBps: true },
-    }),
-  ]);
-
-  const defaultRatePercent = (config.defaultRateBps / 100).toString();
+  const config = await getConfig();
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Comissões</h1>
-        <p className="text-muted-foreground">Defina a taxa padrão, o cookie e taxas individuais.</p>
+        <p className="text-muted-foreground">
+          Taxas fixas do programa. Apenas o desenvolvedor pode alterá-las.
+        </p>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>Configuração global</CardTitle>
-          <CardDescription>Aplica-se a quem não tem taxa individual definida.</CardDescription>
+          <CardTitle>Taxas do programa</CardTitle>
+          <CardDescription>
+            Aplicadas no momento da venda e congeladas na comissão (snapshot) — alterações
+            valem apenas para vendas futuras.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ConfigForm
-            defaultRatePercent={defaultRatePercent}
+            afiliadoVendaPercent={(config.afiliadoVendaBps / 100).toString()}
+            afiliadoIndicacaoPercent={(config.afiliadoIndicacaoBps / 100).toString()}
+            desenvolvedorPercent={(config.desenvolvedorBps / 100).toString()}
             cookieDays={config.cookieDurationDays}
           />
         </CardContent>
@@ -47,45 +41,33 @@ export default async function AdminComissoesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Taxas individuais</CardTitle>
-          <CardDescription>
-            Deixe em branco para usar a taxa global ({bpsToPercent(config.defaultRateBps)}).
-          </CardDescription>
+          <CardTitle>Como é calculado</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="divide-y divide-border">
-            {users.map((u) => (
-              <form
-                key={u.id}
-                action={updateUserRateAction}
-                className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <input type="hidden" name="userId" value={u.id} />
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{u.name ?? u.email}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {u.role === "AFILIADO" ? "Afiliado" : "Vendedor"}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <Input
-                    name="rate"
-                    defaultValue={u.commissionRateBps != null ? u.commissionRateBps / 100 : ""}
-                    placeholder="global"
-                    className="w-28"
-                    inputMode="decimal"
-                  />
-                  <span className="text-sm text-muted-foreground">%</span>
-                  <Button type="submit" size="sm" variant="outline">
-                    Salvar
-                  </Button>
-                </div>
-              </form>
-            ))}
-            {users.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum afiliado/vendedor cadastrado.</p>
-            ) : null}
-          </div>
+          <ul className="space-y-2 text-sm text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Venda pelo link de pagamento</strong> (gateway):
+              afiliado recebe {bpsToPercent(config.afiliadoVendaBps)} e o desenvolvedor{" "}
+              {bpsToPercent(config.desenvolvedorBps)}.
+            </li>
+            <li>
+              <strong className="text-foreground">Indicação pelo link de WhatsApp</strong> (lead):
+              afiliado recebe {bpsToPercent(config.afiliadoIndicacaoBps)} e o desenvolvedor{" "}
+              {bpsToPercent(config.desenvolvedorBps)}.
+            </li>
+            <li>
+              A participação do desenvolvedor só incide sobre vendas atribuídas a um afiliado.
+            </li>
+            <li>
+              <strong className="text-foreground">Vendedores fixos</strong> não geram comissão na
+              plataforma — o acerto é feito fora do sistema.
+            </li>
+            <li>
+              O saldo acumula no painel; afiliado e desenvolvedor solicitam o saque em{" "}
+              <strong className="text-foreground">Meus saques</strong> e o admin paga manualmente
+              via Pix.
+            </li>
+          </ul>
         </CardContent>
       </Card>
     </div>

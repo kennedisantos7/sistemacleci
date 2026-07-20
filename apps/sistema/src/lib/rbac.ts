@@ -7,6 +7,8 @@ export const FULL_ACCESS_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR"];
 export const STAFF_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE"];
 /** Papéis de venda (painéis próprios, sem acesso administrativo). */
 export const SELLER_ROLES: Role[] = ["VENDEDOR_FIXO", "AFILIADO"];
+/** Quem acumula comissão e pode solicitar saque (afiliado e desenvolvedor). */
+export const EARNER_ROLES: Role[] = ["AFILIADO", "DESENVOLVEDOR"];
 
 /** Acesso irrestrito (admin/desenvolvedor). */
 export function isFullAccess(role: Role | undefined): boolean {
@@ -21,7 +23,8 @@ export function isStaff(role: Role | undefined): boolean {
 export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
-  { prefix: "/afiliado", roles: ["AFILIADO"] },
+  // O desenvolvedor usa /afiliado/saques para sacar a própria participação.
+  { prefix: "/afiliado", roles: EARNER_ROLES },
 ];
 
 /** Home de cada role após login. */

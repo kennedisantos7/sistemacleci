@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import { FULL_ACCESS_ROLES, EARNER_ROLES } from "@/lib/rbac";
 import { requestPayout, approvePayout, payPayout, rejectPayout } from "@/server/services/payouts";
 
 async function audit(actorId: string, action: string, payoutId: string, metadata?: object) {
@@ -19,7 +19,7 @@ export async function requestPayoutAction(
   _prev: PayoutRequestState,
   _formData: FormData,
 ): Promise<PayoutRequestState> {
-  const user = await requireUser(["AFILIADO", "VENDEDOR_FIXO"]);
+  const user = await requireUser(EARNER_ROLES);
   try {
     const payout = await requestPayout(user.id);
     await audit(user.id, "PAYOUT_REQUESTED", payout.id, { amountCents: payout.amountCents });
