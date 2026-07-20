@@ -3,8 +3,8 @@ import { z } from "zod";
 import { SaleOrigin } from "@cleci/db";
 import { createSale } from "@/server/services/sales";
 import { createCheckoutSession } from "@/server/services/checkout";
-import { isStripeConfigured } from "@/server/stripe";
 import { isValidIngestKey, rateLimit } from "@/server/security";
+import { isMercadoPagoConfigured } from "@/server/mercadopago";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -55,11 +55,11 @@ export async function POST(req: NextRequest) {
     ref: data.ref,
     note: data.note,
     origin: SaleOrigin.CHECKOUT,
-    gateway: "stripe",
+    gateway: "mercadopago",
   });
 
-  // Opcionalmente já cria o checkout do Stripe e devolve a URL de pagamento.
-  if (data.createCheckout && isStripeConfigured()) {
+  // Opcionalmente já cria o checkout do Mercado Pago e devolve a URL de pagamento.
+  if (data.createCheckout && isMercadoPagoConfigured()) {
     try {
       const checkoutUrl = await createCheckoutSession(sale, {
         ref: data.ref,

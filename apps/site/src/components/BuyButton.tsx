@@ -28,7 +28,7 @@ export default function BuyButton({
         setLoading(false);
         return;
       }
-      // Redireciona para o checkout do Stripe.
+      // Redireciona para o checkout do Mercado Pago.
       window.location.href = data.checkoutUrl;
     } catch {
       setError("Falha de conexão. Tente novamente.");

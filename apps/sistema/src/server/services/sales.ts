@@ -61,10 +61,6 @@ export async function createSale(input: CreateSaleInput): Promise<Sale> {
   });
 }
 
-export function findSaleByGatewayOrderId(gatewayOrderId: string) {
-  return prisma.sale.findUnique({ where: { gatewayOrderId } });
-}
-
 /**
  * Marca uma venda como paga e gera a comissão (snapshot da taxa). Idempotente:
  * se já estava paga, não duplica a comissão.

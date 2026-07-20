@@ -4,7 +4,7 @@ const IMG = "https://i.imgur.com/YfUU19K.png";
 
 // Para habilitar o checkout online (botão "Comprar agora") em um produto,
 // adicione `priceCents` ao objeto (ex.: priceCents: 8990 => R$ 89,90).
-// Requer Stripe configurado no sistema. Sem isso, o produto fica só com orçamento.
+// Requer Mercado Pago configurado no sistema. Sem isso, o produto fica só com orçamento.
 
 // ---------------------------------------------------------------------------
 // Slugs para cada categoria de gráfica (usados na URL)

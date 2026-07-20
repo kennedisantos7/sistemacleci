@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 /**
  * Proxy server-side para o checkout. Mantém a INGEST_API_KEY fora do navegador:
  * o cliente chama esta rota, que chama o /api/sales/ingest do sistema e devolve
- * a URL do Stripe. O ref de afiliado vem do cookie first-party (cleci_ref).
+ * a URL do Mercado Pago. O ref de afiliado vem do cookie first-party (cleci_ref).
  */
 export async function POST(req: NextRequest) {
   let body: { productId?: unknown };

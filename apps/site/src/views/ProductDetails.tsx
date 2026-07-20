@@ -292,7 +292,7 @@ export default function ProductDetails() {
                   </div>
                   <BuyButton productId={product.id} />
                   <p className="text-xs text-on-surface-variant text-center">
-                    Pagamento seguro via Stripe. Ou solicite um orçamento abaixo.
+                    Pagamento seguro via Mercado Pago. Ou solicite um orçamento abaixo.
                   </p>
                 </div>
               ) : null}

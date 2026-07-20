@@ -2,13 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { SaleOrigin } from "@cleci/db";
+import { prisma, SaleOrigin, SaleStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
 import { parseReaisToCents } from "@/lib/money";
 import { createSale, markSalePaid } from "@/server/services/sales";
 import { createPaymentLinkForSale } from "@/server/services/checkout";
-import { isStripeConfigured } from "@/server/stripe";
+import { isMercadoPagoConfigured } from "@/server/mercadopago";
 
 const schema = z.object({
   amount: z.string().min(1),
@@ -47,19 +47,19 @@ export async function registerManualSaleAction(
     ref: parsed.data.ref || undefined,
     note: parsed.data.note,
     origin: SaleOrigin.WHATSAPP_MANUAL,
-    gateway: parsed.data.action === "payment_link" ? "stripe" : null,
+    gateway: parsed.data.action === "payment_link" ? "mercadopago" : null,
   });
 
   try {
     if (parsed.data.action === "mark_paid") {
-      // Confirmação manual: marca paga e já gera a comissão (snapshot da taxa).
+      // Confirmação manual: marca paga e já gera as comissões (snapshot da taxa).
       await markSalePaid(sale);
       revalidatePath("/admin/vendas");
       return { success: "Venda registrada e marcada como paga." };
     }
 
     if (parsed.data.action === "payment_link") {
-      if (!isStripeConfigured()) return { error: "Stripe não configurado para gerar link." };
+      if (!isMercadoPagoConfigured()) return { error: "Mercado Pago não configurado para gerar link." };
       const url = await createPaymentLinkForSale(sale, {
         productName: parsed.data.customerName
           ? `Pedido de ${parsed.data.customerName}`
@@ -76,4 +76,21 @@ export async function registerManualSaleAction(
   } finally {
     void admin;
   }
+}
+
+/**
+ * Confirma manualmente uma venda PENDENTE (ex.: indicação/WhatsApp em que o
+ * cliente pagou fora do sistema). É o "confirmar a venda" que libera as
+ * comissões — sem essa ação, nenhuma comissão é gerada para a venda.
+ */
+export async function confirmManualSalePaidAction(formData: FormData): Promise<void> {
+  await requireUser(STAFF_ROLES);
+  const saleId = String(formData.get("saleId") ?? "");
+  if (!saleId) return;
+
+  const sale = await prisma.sale.findUnique({ where: { id: saleId } });
+  if (!sale || sale.status !== SaleStatus.PENDENTE) return;
+
+  await markSalePaid(sale);
+  revalidatePath("/admin/vendas");
 }

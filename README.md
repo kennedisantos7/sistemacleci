@@ -20,9 +20,9 @@ cleci/
 
 - **Next.js (App Router)** — front + back do sistema
 - **PostgreSQL** (Coolify) + **Prisma** (ORM)
-- **Auth.js (NextAuth)** com RBAC (ADMIN / VENDEDOR_FIXO / AFILIADO)
+- **Auth.js (NextAuth)** com RBAC (ADMIN / DESENVOLVEDOR / GERENTE / VENDEDOR_FIXO / AFILIADO)
 - **Tailwind CSS + Shadcn/UI**
-- **Stripe** (checkout + webhooks); comissão via saldo virtual + saque manual
+- **Mercado Pago** (checkout + webhooks); comissão via saldo virtual + saque manual
 
 ## Como rodar (dev)
 

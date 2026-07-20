@@ -32,8 +32,8 @@ AUTH_SECRET=<openssl rand -base64 32>
 NEXTAUTH_URL=https://sistema.clecipersonalizados.com.br
 SITE_URL=https://clecipersonalizados.com.br
 SISTEMA_URL=https://sistema.clecipersonalizados.com.br
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+MP_ACCESS_TOKEN=APP_USR-...
+MP_WEBHOOK_SECRET=<assinatura secreta do webhook>
 INGEST_API_KEY=<chave aleatória forte>
 ```
 
@@ -51,13 +51,13 @@ pnpm db:seed
 
 > Troque a senha do admin no primeiro acesso.
 
-### Webhook do Stripe
+### Webhook do Mercado Pago
 
-No painel do Stripe, aponte o endpoint para
-`https://sistema.clecipersonalizados.com.br/api/webhooks/stripe` e assine os
-eventos: `checkout.session.completed`, `payment_intent.succeeded`,
-`payment_intent.payment_failed`, `charge.refunded`. Copie o `whsec_...` para
-`STRIPE_WEBHOOK_SECRET`.
+No painel de desenvolvedores do Mercado Pago (Suas integrações → aplicação →
+Webhooks), aponte o endpoint para
+`https://sistema.clecipersonalizados.com.br/api/webhooks/mercadopago` e
+assine o evento `payment`. Copie a "Assinatura secreta" exibida na mesma tela
+para `MP_WEBHOOK_SECRET`.
 
 ## 3. Serviço `cleci-site`
 
@@ -86,8 +86,9 @@ O botão **Comprar agora** (produtos com `priceCents`) chama a rota server-side
 `POST /api/checkout` do **site**, que lê o cookie `cleci_ref` e repassa para
 `POST /api/sales/ingest` do **sistema** com `x-api-key: <INGEST_API_KEY>` e
 `createCheckout: true`. O sistema cria a venda (atribuída ao afiliado), gera a
-Checkout Session do Stripe e devolve a `checkoutUrl`; o navegador é redirecionado
-ao Stripe e volta para `/sucesso` ou `/cancelado`.
+Preference (Checkout Pro) do Mercado Pago e devolve a `checkoutUrl`; o
+navegador é redirecionado ao Mercado Pago e volta para `/sucesso` ou
+`/cancelado`.
 
 - A chave **nunca** vai para o bundle do navegador (fica na route do site).
 - Mantenha `INGEST_API_KEY` idêntica nos dois serviços.
@@ -97,10 +98,10 @@ ao Stripe e volta para `/sucesso` ou `/cancelado`.
 
 - [ ] PgBouncer ativo e `DATABASE_URL` com `?pgbouncer=true`
 - [ ] `AUTH_SECRET` forte e único
-- [ ] Webhook do Stripe assinado e testado (evento de teste → 200)
+- [ ] Webhook do Mercado Pago assinado e testado (simulador → 200)
 - [ ] `INGEST_API_KEY` igual nos dois lados, fora do bundle do navegador
 - [ ] Site com `SISTEMA_URL` + `INGEST_API_KEY` (runtime) e `NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS` (build)
-- [ ] Checkout testado de ponta a ponta: comprar → Stripe → `/sucesso` → venda PAGO + comissão
+- [ ] Checkout testado de ponta a ponta: comprar → Mercado Pago → `/sucesso` → venda PAGO + comissão
 - [ ] `cookieDurationDays` (Admin › Comissões) batendo com `NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS`
 - [ ] Seed do admin executado e senha trocada
 - [ ] Domínios/HTTPS configurados (HSTS já é enviado pelo app)
