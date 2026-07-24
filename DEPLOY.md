@@ -54,13 +54,36 @@ pnpm db:seed
 ### Migração do catálogo (uma vez)
 
 Importa as 7 categorias + subtipos + os 66 produtos atuais (com as imagens
-imgur) para o banco. Idempotente (pode rodar de novo sem duplicar). Rode a
-partir de uma máquina/CI com o repositório, apontando para o banco de produção:
+imgur) para o banco. Idempotente (pode rodar de novo sem duplicar).
 
-```
-DATABASE_URL=postgresql://...@host:5432/cleci \
+> **Este seed NÃO roda no terminal da instância (container Coolify).** O
+> container standalone não tem `tsx`, nem os fontes `apps/site/src/data/*.ts`,
+> nem o workspace do pnpm. Rode da **sua máquina** (repositório completo),
+> apontando para o banco de produção. O _schema_ (tabelas) já é criado no boot
+> pelo `prisma migrate deploy` — este seed é só a carga inicial dos dados.
+
+**Como abrir o acesso ao banco (produção na AWS EC2 + Coolify):**
+
+1. **Coolify** → recurso Postgres → **Proxy**: preencha **Public Port** (ex.:
+   `5432`), marque **"Make it publicly available"**, salve e **reinicie** o
+   Postgres. Sem o restart a porta não é publicada.
+2. **AWS Security Group** da instância → **Regras de entrada** → adicione
+   `PostgreSQL` (TCP 5432) com origem **Meu IP** (nunca `0.0.0.0/0`).
+3. O **host** da URL é o **IP público do servidor** (o mesmo do painel Coolify;
+   se usar Elastic IP, é o IP elástico) — **não** o hostname interno
+   `xxxxx:5432`. Use a porta 5432 **direta**, sem PgBouncer.
+
+```powershell
+# PowerShell, na raiz do repositório:
+Test-NetConnection -ComputerName IP_DO_SERVIDOR -Port 5432   # deve dar True
+$env:DATABASE_URL = "postgres://postgres:SENHA@IP_DO_SERVIDOR:5432/cleci"
 pnpm --filter @cleci/db seed:catalog
+# esperado: "✅ Catálogo migrado: 7 categorias, 66 produtos."
 ```
+
+**Depois de rodar, FECHE o acesso** (segurança): remova a regra 5432 do
+Security Group e desmarque "Make it publicly available" no Coolify. Se a senha
+do banco foi exposta, rotacione-a e atualize `DATABASE_URL`/`DIRECT_URL`.
 
 ### Upload de imagens de produto (Cloudflare R2 / S3)
 
