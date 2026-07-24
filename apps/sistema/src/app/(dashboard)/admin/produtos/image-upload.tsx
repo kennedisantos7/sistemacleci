@@ -1,8 +1,21 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ImagePlus, Loader2, X } from "lucide-react";
+import { ImagePlus, Link2, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
+function normalizeUrl(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return null;
+  try {
+    const u = new URL(v);
+    if (u.protocol !== "http:" && u.protocol !== "https:") return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
 
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
@@ -18,7 +31,19 @@ export function MainImageUpload({ defaultUrl }: { defaultUrl?: string }) {
   const [url, setUrl] = useState(defaultUrl ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function applyLink() {
+    const normalized = normalizeUrl(link);
+    if (!normalized) {
+      setError("Link inválido. Cole uma URL http(s) completa.");
+      return;
+    }
+    setError(null);
+    setUrl(normalized);
+    setLink("");
+  }
 
   async function onPick(file: File) {
     setBusy(true);
@@ -60,6 +85,23 @@ export function MainImageUpload({ defaultUrl }: { defaultUrl?: string }) {
           ) : null}
         </div>
       </div>
+      <div className="flex gap-2">
+        <Input
+          value={link}
+          placeholder="ou cole um link (https://...)"
+          onChange={(e) => setLink(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              applyLink();
+            }
+          }}
+        />
+        <Button type="button" variant="outline" onClick={applyLink} disabled={!link.trim()}>
+          <Link2 className="h-4 w-4" />
+          Usar link
+        </Button>
+      </div>
       <input
         ref={inputRef}
         type="file"
@@ -81,7 +123,19 @@ export function GalleryUpload({ defaultUrls }: { defaultUrls?: string[] }) {
   const [urls, setUrls] = useState<string[]>(defaultUrls ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [link, setLink] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  function applyLink() {
+    const normalized = normalizeUrl(link);
+    if (!normalized) {
+      setError("Link inválido. Cole uma URL http(s) completa.");
+      return;
+    }
+    setError(null);
+    setUrls((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]));
+    setLink("");
+  }
 
   async function onPick(files: FileList) {
     setBusy(true);
@@ -122,6 +176,23 @@ export function GalleryUpload({ defaultUrls }: { defaultUrls?: string[] }) {
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
         {busy ? "Enviando..." : "Adicionar à galeria"}
       </Button>
+      <div className="flex gap-2">
+        <Input
+          value={link}
+          placeholder="ou cole um link (https://...)"
+          onChange={(e) => setLink(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              applyLink();
+            }
+          }}
+        />
+        <Button type="button" variant="outline" onClick={applyLink} disabled={!link.trim()}>
+          <Link2 className="h-4 w-4" />
+          Adicionar link
+        </Button>
+      </div>
       <input
         ref={inputRef}
         type="file"
