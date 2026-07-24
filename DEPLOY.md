@@ -51,6 +51,25 @@ pnpm db:seed
 
 > Troque a senha do admin no primeiro acesso.
 
+### Migração do catálogo (uma vez)
+
+Importa as 7 categorias + subtipos + os 66 produtos atuais (com as imagens
+imgur) para o banco. Idempotente (pode rodar de novo sem duplicar). Rode a
+partir de uma máquina/CI com o repositório, apontando para o banco de produção:
+
+```
+DATABASE_URL=postgresql://...@host:5432/cleci \
+pnpm --filter @cleci/db seed:catalog
+```
+
+### Upload de imagens de produto (Cloudflare R2 / S3)
+
+O cadastro de produtos faz upload das imagens para um bucket S3-compatível.
+Configure no serviço `cleci-sistema` (runtime): `S3_ENDPOINT`, `S3_REGION`
+(no R2 use `auto`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
+`S3_PUBLIC_URL` (base pública do bucket). Sem essas variáveis, o upload
+responde erro claro — o resto do sistema segue normal.
+
 ### Webhook do Mercado Pago
 
 No painel de desenvolvedores do Mercado Pago (Suas integrações → aplicação →

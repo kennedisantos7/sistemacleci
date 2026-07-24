@@ -6,5 +6,7 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "prisma/**/*.ts"]
+  "include": ["src/**/*.ts", "prisma/**/*.ts"],
+  "comment": "seed-catalog.ts importa arquivos do app 'site' (JSX/React) só para migração one-off via tsx; fora do typecheck do pacote.",
+  "exclude": ["prisma/seed-catalog.ts"]
 }

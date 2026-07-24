@@ -12,6 +12,14 @@ const envSchema = z.object({
   SITE_URL: z.string().url().default("http://localhost:3000"),
   SISTEMA_URL: z.string().url().default("http://localhost:3001"),
   INGEST_API_KEY: z.string().min(16).optional(),
+  // Armazenamento de imagens (S3-compatível / Cloudflare R2). Opcional:
+  // sem isso, o upload responde erro claro em vez de quebrar o boot.
+  S3_ENDPOINT: z.string().url().optional(),
+  S3_REGION: z.string().default("auto"),
+  S3_BUCKET: z.string().optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional(),
+  S3_PUBLIC_URL: z.string().url().optional(),
 });
 
 const raw = {
@@ -25,6 +33,12 @@ const raw = {
   SITE_URL: process.env.SITE_URL,
   SISTEMA_URL: process.env.SISTEMA_URL,
   INGEST_API_KEY: process.env.INGEST_API_KEY,
+  S3_ENDPOINT: process.env.S3_ENDPOINT,
+  S3_REGION: process.env.S3_REGION,
+  S3_BUCKET: process.env.S3_BUCKET,
+  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
+  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
+  S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
 };
 
 type Env = z.infer<typeof envSchema>;

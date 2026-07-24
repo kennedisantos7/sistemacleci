@@ -272,6 +272,71 @@ model WebhookEvent {
   @@unique([gateway, eventId])
 }
 
+// ----------------- Catálogo de produtos ---------------------
+// Categorias e subtipos são semeados a partir do catálogo atual (fixos);
+// o admin/gerente apenas seleciona ao cadastrar um produto.
+model Category {
+  id       String @id @default(cuid())
+  name     String // ex.: "Tapetes"
+  slug     String @unique // ex.: "tapetes"
+  path     String // rota no site, ex.: "/tapetes"
+  position Int    @default(0)
+
+  subcategories Subcategory[]
+  products      Product[]
+
+  @@index([position])
+}
+
+model Subcategory {
+  id         String   @id @default(cuid())
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  name     String // rótulo exibido, ex.: "MASTER"
+  slug     String // usado no ?tipo=, ex.: "master"
+  position Int    @default(0)
+
+  products Product[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+}
+
+model Product {
+  id String @id @default(cuid())
+
+  categoryId    String
+  category      Category     @relation(fields: [categoryId], references: [id])
+  subcategoryId String?
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id])
+
+  title       String
+  description String?
+  priceCents  Int? // opcional (habilita checkout online no futuro)
+
+  imageUrl String // imagem principal (URL — imgur migrado ou upload R2)
+  gallery  String[] @default([]) // galeria
+
+  sizes   String[] @default([]) // tamanhos (texto livre)
+  codes   String[] @default([]) // códigos por tamanho
+  borders Json? // bordas (tapetes): {name,image,code}[]
+
+  badge      String?
+  badgeColor String?
+  code       String? // código de referência principal
+
+  active   Boolean @default(true)
+  position Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, active])
+  @@index([subcategoryId])
+  @@index([active, position])
+}
+
 // ----------- Clientes do vendedor (carteira própria) --------
 model Client {
   id         String @id @default(cuid())

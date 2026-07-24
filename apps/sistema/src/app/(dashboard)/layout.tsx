@@ -7,6 +7,7 @@ import type { Role } from "@cleci/db";
 const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
+  { href: "/admin/produtos", label: "Produtos" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/metas", label: "Metas" },
   { href: "/admin/saques", label: "Saques" },
@@ -24,6 +25,7 @@ const DEV_NAV = [
 const GERENTE_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
+  { href: "/admin/produtos", label: "Produtos" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/metas", label: "Metas" },
 ];
