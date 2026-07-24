@@ -59,6 +59,8 @@ model User {
   paymentInfo    PaymentInfo?
   salesGoals     SalesGoal[]
   auditLogs      AuditLog[]      @relation("ActorLogs")
+  clients        Client[]
+  budgets        Budget[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -149,8 +151,9 @@ enum SaleStatus {
 }
 
 enum SaleOrigin {
-  CHECKOUT // pagamento online (Stripe)
+  CHECKOUT // pagamento online (gateway)
   WHATSAPP_MANUAL // venda registrada manualmente
+  ORCAMENTO // venda originada de um orçamento aceito (vendedor)
 }
 
 model Sale {
@@ -176,6 +179,9 @@ model Sale {
 
   // Uma venda pode gerar mais de uma comissão (afiliado + desenvolvedor).
   commissions Commission[]
+
+  // Orçamento que originou esta venda (quando origin = ORCAMENTO).
+  budget Budget?
 
   createdAt  DateTime  @default(now())
   paidAt     DateTime?
@@ -264,6 +270,87 @@ model WebhookEvent {
   receivedAt DateTime @default(now())
 
   @@unique([gateway, eventId])
+}
+
+// ----------- Clientes do vendedor (carteira própria) --------
+model Client {
+  id         String @id @default(cuid())
+  vendedorId String
+  vendedor   User   @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+
+  name        String // nome do contato / razão social
+  companyName String? // empresa / nome fantasia
+  document    String? // CPF/CNPJ
+  email       String?
+  phone       String? // WhatsApp
+  note        String?
+
+  budgets Budget[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendedorId, name])
+}
+
+// ----------------- Orçamentos (Vendedor Fixo) ---------------
+enum BudgetStatus {
+  RASCUNHO
+  ENVIADO
+  ACEITO
+  RECUSADO
+  EXPIRADO
+}
+
+model Budget {
+  id     String @id @default(cuid())
+  number Int    @unique @default(autoincrement()) // nº do orçamento (humano)
+
+  vendedorId String
+  vendedor   User   @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+  clientId   String
+  client     Client @relation(fields: [clientId], references: [id]) // sem cascade: protege o histórico
+
+  status BudgetStatus @default(RASCUNHO)
+
+  title      String? // ex.: "Orçamento — Fachada Loja X"
+  note       String? // observações impressas no PDF
+  validUntil DateTime?
+
+  // Denormalizados para listagem barata; SEMPRE recalculados no servidor.
+  subtotalCents Int @default(0)
+  totalCents    Int @default(0)
+
+  items BudgetItem[]
+
+  // Venda gerada quando o orçamento é ACEITO (1:1).
+  saleId String? @unique
+  sale   Sale?   @relation(fields: [saleId], references: [id])
+
+  sentAt      DateTime?
+  respondedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendedorId, status])
+  @@index([clientId])
+}
+
+model BudgetItem {
+  id       String @id @default(cuid())
+  budgetId String
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  position       Int // ordem de exibição
+  description    String
+  quantity       Decimal @default(1) @db.Decimal(10, 2) // permite fração (ex.: metros)
+  unitPriceCents Int
+  totalCents     Int // persistido: PDF/histórico estável
+
+  createdAt DateTime @default(now())
+
+  @@index([budgetId, position])
 }
 
 // ----------- Metas de venda (Vendedor Fixo) -----------------

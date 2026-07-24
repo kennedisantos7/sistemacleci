@@ -37,6 +37,22 @@ export function parseReaisToCents(input: string): number | null {
   return Math.round(value * 100);
 }
 
+/**
+ * Converte uma quantidade digitada ("2", "2,5" ou "2.5") em número com até
+ * 2 casas decimais. Retorna null se inválido/não-positivo.
+ */
+export function parseQuantity(input: string): number | null {
+  const normalized = input.trim().replace(",", ".");
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value <= 0 || value > 100_000) return null;
+  return Math.round(value * 100) / 100;
+}
+
+/** Formata uma quantidade para exibição (pt-BR, até 2 casas). */
+export function formatQuantity(quantity: number): string {
+  return quantity.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
+}
+
 /** Converte percentual ("15" ou "15,5") em bps. Retorna null se inválido. */
 export function parsePercentToBps(input: string): number | null {
   const normalized = input.trim().replace(",", ".");

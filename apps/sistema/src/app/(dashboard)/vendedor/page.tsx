@@ -1,4 +1,5 @@
-import { prisma, SaleStatus } from "@cleci/db";
+import Link from "next/link";
+import { prisma, BudgetStatus, SaleStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { getGoalProgress } from "@/server/services/goals";
 import { StatCard } from "@/components/stat-card";
@@ -12,14 +13,15 @@ export default async function VendedorDashboard() {
   const user = await requireUser(["VENDEDOR_FIXO"]);
   const userId = user.id;
 
-  const [paid, pending, linkCount, goal] = await Promise.all([
+  const [paid, pending, budgetsSent, budgetsAccepted, goal] = await Promise.all([
     prisma.sale.aggregate({
       where: { userId, status: SaleStatus.PAGO },
       _sum: { amountCents: true },
       _count: true,
     }),
     prisma.sale.count({ where: { userId, status: SaleStatus.PENDENTE } }),
-    prisma.affiliateLink.count({ where: { userId } }),
+    prisma.budget.count({ where: { vendedorId: userId, status: BudgetStatus.ENVIADO } }),
+    prisma.budget.count({ where: { vendedorId: userId, status: BudgetStatus.ACEITO } }),
     getGoalProgress(userId),
   ]);
 
@@ -32,15 +34,22 @@ export default async function VendedorDashboard() {
         <p className="text-muted-foreground">Acompanhe sua conversão e metas.</p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Vendas pagas"
+          title="Vendas finalizadas"
           value={formatCents(paid._sum.amountCents ?? 0)}
           hint={`${paid._count} pedidos`}
         />
-        <StatCard title="Pedidos pendentes" value={String(pending)} />
-        <StatCard title="Links ativos" value={String(linkCount)} />
+        <StatCard title="Vendas pendentes" value={String(pending)} hint="Aguardando finalização" />
+        <StatCard title="Orçamentos enviados" value={String(budgetsSent)} hint="Aguardando resposta" />
+        <StatCard title="Orçamentos aceitos" value={String(budgetsAccepted)} />
       </div>
+
+      <p className="text-sm">
+        <Link href="/vendedor/orcamentos" className="text-primary hover:underline">
+          Ver todos os orçamentos →
+        </Link>
+      </p>
 
       <Card>
         <CardHeader>

@@ -15,6 +15,7 @@
     "@auth/prisma-adapter": "^2.7.4",
     "@cleci/db": "workspace:*",
     "@hookform/resolvers": "^3.10.0",
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

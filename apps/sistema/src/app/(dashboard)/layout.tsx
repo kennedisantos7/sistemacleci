@@ -34,6 +34,8 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
   GERENTE: GERENTE_NAV,
   VENDEDOR_FIXO: [
     { href: "/vendedor", label: "Dashboard" },
+    { href: "/vendedor/orcamentos", label: "Orçamentos" },
+    { href: "/vendedor/clientes", label: "Clientes" },
     { href: "/vendedor/links", label: "Meus Links" },
   ],
   AFILIADO: [
