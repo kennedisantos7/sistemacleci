@@ -17,6 +17,35 @@ function normalizeUrl(raw: string): string | null {
   }
 }
 
+type LinkCheck =
+  | { ok: true; url: string }
+  | { ok: false; reason: string; suggestion?: string };
+
+/**
+ * Confere no servidor se o link entrega mesmo imagem/vídeo — link de *página*
+ * (ex.: imgur.com/AbCdEfG) salva sem erro e depois aparece quebrado no site.
+ */
+async function checkLink(url: string): Promise<LinkCheck> {
+  try {
+    const res = await fetch(`/api/admin/media-check?url=${encodeURIComponent(url)}`);
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      reason?: string;
+      suggestion?: string;
+      url?: string;
+    };
+    if (data.ok && data.url) return { ok: true, url: data.url };
+    return {
+      ok: false,
+      reason: data.reason ?? "Não consegui verificar o link.",
+      suggestion: data.suggestion,
+    };
+  } catch {
+    // Sem rede para verificar: aceita o link em vez de travar o cadastro.
+    return { ok: true, url };
+  }
+}
+
 async function uploadFile(file: File): Promise<string> {
   const fd = new FormData();
   fd.append("file", file);
@@ -63,16 +92,27 @@ export function SingleImagePicker({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [fix, setFix] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function applyLink() {
-    const normalized = normalizeUrl(link);
+  async function applyLink(raw?: string) {
+    const normalized = normalizeUrl(raw ?? link);
     if (!normalized) {
       setError("Link inválido. Cole uma URL http(s) completa.");
       return;
     }
+    setChecking(true);
     setError(null);
-    setUrl(normalized);
+    setFix(null);
+    const result = await checkLink(normalized);
+    setChecking(false);
+    if (!result.ok) {
+      setError(result.reason);
+      setFix(result.suggestion ?? null);
+      return;
+    }
+    setUrl(result.url);
     setLink("");
   }
 
@@ -127,13 +167,18 @@ export function SingleImagePicker({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              applyLink();
+              void applyLink();
             }
           }}
         />
-        <Button type="button" variant="outline" onClick={applyLink} disabled={!link.trim()}>
-          <Link2 className="h-4 w-4" />
-          Usar link
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void applyLink()}
+          disabled={!link.trim() || checking}
+        >
+          {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+          {checking ? "Conferindo..." : "Usar link"}
         </Button>
       </div>
       {uploadEnabled ? (
@@ -150,6 +195,15 @@ export function SingleImagePicker({
         />
       ) : null}
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {fix ? (
+        <button
+          type="button"
+          onClick={() => void applyLink(fix)}
+          className="text-xs font-medium text-primary underline"
+        >
+          Usar o link do arquivo: {fix}
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -176,16 +230,27 @@ export function GalleryUpload({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [link, setLink] = useState("");
+  const [checking, setChecking] = useState(false);
+  const [fix, setFix] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  function applyLink() {
-    const normalized = normalizeUrl(link);
+  async function applyLink(raw?: string) {
+    const normalized = normalizeUrl(raw ?? link);
     if (!normalized) {
       setError("Link inválido. Cole uma URL http(s) completa.");
       return;
     }
+    setChecking(true);
     setError(null);
-    setUrls((prev) => (prev.includes(normalized) ? prev : [...prev, normalized]));
+    setFix(null);
+    const result = await checkLink(normalized);
+    setChecking(false);
+    if (!result.ok) {
+      setError(result.reason);
+      setFix(result.suggestion ?? null);
+      return;
+    }
+    setUrls((prev) => (prev.includes(result.url) ? prev : [...prev, result.url]));
     setLink("");
   }
 
@@ -293,15 +358,29 @@ export function GalleryUpload({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              applyLink();
+              void applyLink();
             }
           }}
         />
-        <Button type="button" variant="outline" onClick={applyLink} disabled={!link.trim()}>
-          <Link2 className="h-4 w-4" />
-          Adicionar link
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void applyLink()}
+          disabled={!link.trim() || checking}
+        >
+          {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+          {checking ? "Conferindo..." : "Adicionar link"}
         </Button>
       </div>
+      {fix ? (
+        <button
+          type="button"
+          onClick={() => void applyLink(fix)}
+          className="text-xs font-medium text-primary underline"
+        >
+          Usar o link do arquivo: {fix}
+        </button>
+      ) : null}
       {uploadEnabled ? (
         <input
           ref={inputRef}
