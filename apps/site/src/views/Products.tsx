@@ -4,35 +4,31 @@ import { ChevronDown, ChevronLeft, ChevronRight, Package, Search, X } from "luci
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
-import ProductCard from "../components/ui/ProductCard";
-import { TAPETES_CATALOG } from "../data/tapetes";
-import { GRAFICA_CATALOG } from "../data/grafica";
-import { SACOLAS_CATALOG } from "../data/sacolas";
-import { PLAYGROUND_CATALOG } from "../data/playground";
-import { MESAS_FREEZERS_CATALOG } from "../data/mesas-freezers";
-import { SEGURANCA_CATALOG } from "../data/seguranca";
-import { COMUNICACAO_VISUAL_CATALOG } from "../data/comunicacao-visual";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
+import { ALL_PRODUCTS as FALLBACK_PRODUCTS } from "../lib/catalog";
 import { fuzzySearchProducts } from "../lib/fuzzySearch";
 
-// ---------------------------------------------------------------------------
-// All products pool
-// ---------------------------------------------------------------------------
-const ALL_PRODUCTS = [
-  ...TAPETES_CATALOG,
-  ...GRAFICA_CATALOG,
-  ...SACOLAS_CATALOG,
-  ...PLAYGROUND_CATALOG,
-  ...MESAS_FREEZERS_CATALOG,
-  ...SEGURANCA_CATALOG,
-  ...COMUNICACAO_VISUAL_CATALOG,
-];
-
 const PAGE_SIZE = 24;
+
+// Contagem de cada categoria sai do próprio catálogo carregado (banco ou estático).
+const CATEGORY_LINKS = [
+  { label: "Tapetes", path: "/tapetes" },
+  { label: "Gráfica", path: "/grafica" },
+  { label: "Sacolas", path: "/sacolas" },
+  { label: "Playground", path: "/playground" },
+  { label: "MESAS", path: "/mesas-e-freezers" },
+  { label: "Segurança", path: "/seguranca" },
+  { label: "Comunicação Visual", path: "/comunicacao-visual" },
+];
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
-export default function Products() {
+export default function Products({
+  products: ALL_PRODUCTS = FALLBACK_PRODUCTS,
+}: {
+  products?: Product[];
+}) {
   const { searchParams, setQuery } = useQueryParams();
   const queryParam = searchParams.get("q") ?? "";
 
@@ -146,22 +142,16 @@ export default function Products() {
             
             <div className={`transition-all duration-300 ease-in-out ${isCategoriesOpen ? "max-h-[1000px] opacity-100" : "max-h-0 opacity-0"} overflow-hidden`}>
               <ul className="p-2 space-y-1">
-                {[
-                  { label: "Tapetes", path: "/tapetes", count: TAPETES_CATALOG.length },
-                  { label: "Gráfica", path: "/grafica", count: GRAFICA_CATALOG.length },
-                  { label: "Sacolas", path: "/sacolas", count: SACOLAS_CATALOG.length },
-                  { label: "Playground", path: "/playground", count: PLAYGROUND_CATALOG.length },
-                  { label: "MESAS", path: "/mesas-e-freezers", count: MESAS_FREEZERS_CATALOG.length },
-                  { label: "Segurança", path: "/seguranca", count: SEGURANCA_CATALOG.length },
-                  { label: "Comunicação Visual", path: "/comunicacao-visual", count: COMUNICACAO_VISUAL_CATALOG.length },
-                ].map(({ label, path, count }) => (
+                {CATEGORY_LINKS.map(({ label, path }) => (
                   <li key={path}>
                     <Link
                       href={path}
                       className="flex items-center justify-between w-full py-2 px-3 rounded-lg font-body-md text-sm text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
                     >
                       <span>{label}</span>
-                      <span className="text-[10px] opacity-60 bg-surface-container-high px-2 py-0.5 rounded-full font-bold">{count}</span>
+                      <span className="text-[10px] opacity-60 bg-surface-container-high px-2 py-0.5 rounded-full font-bold">
+                        {ALL_PRODUCTS.filter((p) => p.categoryPath === path).length}
+                      </span>
                     </Link>
                   </li>
                 ))}

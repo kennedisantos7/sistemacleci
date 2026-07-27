@@ -6,27 +6,31 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
-import ProductCard from "../components/ui/ProductCard";
-import { GRAFICA_CATALOG, GRAFICA_SLUGS } from "../data/grafica";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
+import { GRAFICA_CATALOG as FALLBACK_CATALOG, GRAFICA_SLUGS as FALLBACK_SLUGS } from "../data/grafica";
 
-// Categorias na ordem definida em GRAFICA_SLUGS (única fonte de verdade)
-const CATEGORIAS = Object.values(GRAFICA_SLUGS);
-
-const SLUG_TO_LABEL = GRAFICA_SLUGS;
-const LABEL_TO_SLUG = Object.fromEntries(
-  Object.entries(GRAFICA_SLUGS).map(([slug, label]) => [label, slug])
-);
-
-export default function Grafica() {
+export default function Grafica({
+  catalog = FALLBACK_CATALOG,
+  slugs = FALLBACK_SLUGS,
+}: {
+  catalog?: Product[];
+  slugs?: Record<string, string>;
+}) {
   const { searchParams, setQuery } = useQueryParams();
+
+  const CATEGORIAS = useMemo(() => Object.values(slugs), [slugs]);
+  const LABEL_TO_SLUG = useMemo(
+    () => Object.fromEntries(Object.entries(slugs).map(([slug, label]) => [label, slug])),
+    [slugs],
+  );
   const tipoParam = searchParams.get("tipo");
-  const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
+  const categoriaAtiva = tipoParam ? slugs[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   const produtosFiltrados = useMemo(() => {
-    if (!categoriaAtiva) return GRAFICA_CATALOG;
-    return GRAFICA_CATALOG.filter((p) => p.category === categoriaAtiva);
-  }, [categoriaAtiva]);
+    if (!categoriaAtiva) return catalog;
+    return catalog.filter((p) => p.category === categoriaAtiva);
+  }, [catalog, categoriaAtiva]);
 
   function selecionar(label: string | null) {
     if (!label) setQuery({});
@@ -107,11 +111,11 @@ export default function Grafica() {
                 }`}
               >
                 Ver Tudo
-                <span className="ml-2 text-xs opacity-60">({GRAFICA_CATALOG.length})</span>
+                <span className="ml-2 text-xs opacity-60">({catalog.length})</span>
               </button>
             </li>
             {CATEGORIAS.map((cat) => {
-              const count = GRAFICA_CATALOG.filter((p) => p.category === cat).length;
+              const count = catalog.filter((p) => p.category === cat).length;
               const active = categoriaAtiva === cat;
               return (
                 <li key={cat}>

@@ -6,29 +6,35 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
-import ProductCard from "../components/ui/ProductCard";
-import { SEGURANCA_CATALOG, SEGURANCA_SLUGS } from "../data/seguranca";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
+import { SEGURANCA_CATALOG as FALLBACK_CATALOG, SEGURANCA_SLUGS as FALLBACK_SLUGS } from "../data/seguranca";
 
-// Categorias na ordem definida em SEGURANCA_SLUGS (única fonte de verdade)
-const CATEGORIAS = Object.values(SEGURANCA_SLUGS);
 
 // Mapeia slug → label
-const SLUG_TO_LABEL = SEGURANCA_SLUGS;
-const LABEL_TO_SLUG = Object.fromEntries(
-  Object.entries(SEGURANCA_SLUGS).map(([slug, label]) => [label, slug])
-);
 
-export default function Seguranca() {
+export default function Seguranca({
+  catalog = FALLBACK_CATALOG,
+  slugs = FALLBACK_SLUGS,
+}: {
+  catalog?: Product[];
+  slugs?: Record<string, string>;
+}) {
   const { searchParams, setQuery } = useQueryParams();
+
+  const CATEGORIAS = useMemo(() => Object.values(slugs), [slugs]);
+  const LABEL_TO_SLUG = useMemo(
+    () => Object.fromEntries(Object.entries(slugs).map(([slug, label]) => [label, slug])),
+    [slugs],
+  );
   const tipoParam = searchParams.get("tipo");
-  const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
+  const categoriaAtiva = tipoParam ? slugs[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   // Produtos filtrados
   const produtosFiltrados = useMemo(() => {
-    if (!categoriaAtiva) return SEGURANCA_CATALOG;
-    return SEGURANCA_CATALOG.filter((p) => p.category === categoriaAtiva);
-  }, [categoriaAtiva]);
+    if (!categoriaAtiva) return catalog;
+    return catalog.filter((p) => p.category === categoriaAtiva);
+  }, [catalog, categoriaAtiva]);
 
   function selecionar(label: string | null) {
     if (!label) {
@@ -113,12 +119,12 @@ export default function Seguranca() {
                 }`}
               >
                 Ver Tudo
-                <span className="ml-2 text-xs opacity-60">({SEGURANCA_CATALOG.length})</span>
+                <span className="ml-2 text-xs opacity-60">({catalog.length})</span>
               </button>
             </li>
             {/* Cada categoria */}
             {CATEGORIAS.map((cat) => {
-              const count = SEGURANCA_CATALOG.filter((p) => p.category === cat).length;
+              const count = catalog.filter((p) => p.category === cat).length;
               const active = categoriaAtiva === cat;
               return (
                 <li key={cat}>

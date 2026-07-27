@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
-import { getProductById } from "@/lib/catalog";
+import { loadProduct } from "@/server/catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   }
 
   const productId = typeof body.productId === "string" ? body.productId : "";
-  const product = getProductById(productId);
+  const product = await loadProduct(productId);
   if (!product || !product.priceCents) {
     return NextResponse.json({ error: "produto sem checkout online" }, { status: 400 });
   }

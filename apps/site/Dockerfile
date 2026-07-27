@@ -10,9 +10,12 @@ FROM base AS builder
 ENV DOCKER_BUILD=1
 COPY pnpm-workspace.yaml package.json pnpm-lock.yaml* ./
 COPY apps/site/package.json apps/site/package.json
+COPY packages/db/package.json packages/db/package.json
 # --prod=false: garante devDependencies mesmo com NODE_ENV=production (Coolify).
 RUN pnpm install --frozen-lockfile --prod=false --filter @cleci/site...
 COPY . .
+# O site lê o catálogo do banco (Prisma Client precisa ser gerado).
+RUN pnpm --filter @cleci/db generate
 # Variáveis públicas embutidas no bundle em build-time.
 ARG NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=30
 ENV NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=$NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS
@@ -20,16 +23,21 @@ ENV NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS=$NEXT_PUBLIC_ATTRIBUTION_COOKIE_DAYS
 ARG NEXT_PUBLIC_SISTEMA_URL=http://localhost:3001
 ENV NEXT_PUBLIC_SISTEMA_URL=$NEXT_PUBLIC_SISTEMA_URL
 RUN pnpm --filter @cleci/site build
+# Stage o engine do Prisma num caminho fixo (glob de shell resolve o hash do pnpm).
+RUN mkdir -p /engine && \
+    cp /app/node_modules/.pnpm/@prisma+client*/node_modules/.prisma/client/libquery_engine-*.so.node /engine/
 
 # ---------- Runner ----------
 FROM base AS runner
 ENV NODE_ENV=production
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget openssl
 RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/apps/site/.next/standalone ./
 COPY --from=builder /app/apps/site/.next/static ./apps/site/.next/static
 COPY --from=builder /app/apps/site/public ./apps/site/public
+# Engine do Prisma: o bundler do Next standalone não copia o .so.node.
+COPY --from=builder /engine/ ./apps/site/.next/server/
 
 USER nextjs
 EXPOSE 3000

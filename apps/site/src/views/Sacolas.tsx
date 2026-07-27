@@ -6,26 +6,32 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
-import ProductCard from "../components/ui/ProductCard";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
 import { SACOLAS_CATALOG, SACOLAS_SLUGS } from "../data/sacolas";
 
-const CATEGORIAS = Object.values(SACOLAS_SLUGS);
-
-const SLUG_TO_LABEL = SACOLAS_SLUGS;
-const LABEL_TO_SLUG = Object.fromEntries(
-  Object.entries(SACOLAS_SLUGS).map(([slug, label]) => [label, slug])
-);
-
-export default function Sacolas() {
+export default function Sacolas({
+  catalog = SACOLAS_CATALOG,
+  slugs = SACOLAS_SLUGS,
+}: {
+  catalog?: Product[];
+  slugs?: Record<string, string>;
+}) {
   const { searchParams, setQuery } = useQueryParams();
-  const tipoParam = searchParams.get("tipo");
-  const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
+  const CATEGORIAS = useMemo(() => Object.values(slugs), [slugs]);
+  const LABEL_TO_SLUG = useMemo(
+    () => Object.fromEntries(Object.entries(slugs).map(([slug, label]) => [label, slug])),
+    [slugs],
+  );
+
+  const tipoParam = searchParams.get("tipo");
+  const categoriaAtiva = tipoParam ? slugs[tipoParam] : null;
+
   const produtosFiltrados = useMemo(() => {
-    if (!categoriaAtiva) return SACOLAS_CATALOG;
-    return SACOLAS_CATALOG.filter((p) => p.category === categoriaAtiva);
-  }, [categoriaAtiva]);
+    if (!categoriaAtiva) return catalog;
+    return catalog.filter((p) => p.category === categoriaAtiva);
+  }, [catalog, categoriaAtiva]);
 
   function selecionar(label: string | null) {
     if (!label) setQuery({});
@@ -106,11 +112,11 @@ export default function Sacolas() {
                 }`}
               >
                 Ver Tudo
-                <span className="ml-2 text-xs opacity-60">({SACOLAS_CATALOG.length})</span>
+                <span className="ml-2 text-xs opacity-60">({catalog.length})</span>
               </button>
             </li>
             {CATEGORIAS.map((cat) => {
-              const count = SACOLAS_CATALOG.filter((p) => p.category === cat).length;
+              const count = catalog.filter((p) => p.category === cat).length;
               const active = categoriaAtiva === cat;
               return (
                 <li key={cat}>

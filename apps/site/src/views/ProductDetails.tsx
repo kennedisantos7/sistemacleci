@@ -4,7 +4,7 @@ import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { type BorderOption } from "../components/ui/ProductCard";
+import { type BorderOption, type Product } from "../components/ui/ProductCard";
 
 import MediaCarousel from "../components/ui/MediaCarousel";
 import BuyButton from "../components/BuyButton";
@@ -12,28 +12,16 @@ import { productMedia, toMediaItem } from "../lib/media";
 import AffiliateCopy from "../components/AffiliateCopy";
 import { buildWaLink } from "../lib/whatsapp";
 import { formatCents } from "../lib/format";
-import { TAPETES_CATALOG } from "../data/tapetes";
-import { GRAFICA_CATALOG } from "../data/grafica";
-import { SACOLAS_CATALOG } from "../data/sacolas";
-import { PLAYGROUND_CATALOG } from "../data/playground";
-import { MESAS_FREEZERS_CATALOG } from "../data/mesas-freezers";
-import { SEGURANCA_CATALOG } from "../data/seguranca";
-import { COMUNICACAO_VISUAL_CATALOG } from "../data/comunicacao-visual";
+import { ALL_PRODUCTS } from "../lib/catalog";
 
-const ALL_PRODUCTS = [
-  ...TAPETES_CATALOG,
-  ...GRAFICA_CATALOG,
-  ...SACOLAS_CATALOG,
-  ...PLAYGROUND_CATALOG,
-  ...MESAS_FREEZERS_CATALOG,
-  ...SEGURANCA_CATALOG,
-  ...COMUNICACAO_VISUAL_CATALOG,
-];
-
-export default function ProductDetails() {
+/**
+ * `product` vem da página (banco). O fallback pelos arquivos estáticos cobre o
+ * caso de a página não ter conseguido carregar do banco.
+ */
+export default function ProductDetails({ product: fromServer }: { product?: Product }) {
   const params = useParams();
   const id = typeof params?.id === "string" ? params.id : "";
-  const product = ALL_PRODUCTS.find((p) => String(p.id) === id);
+  const product = fromServer ?? ALL_PRODUCTS.find((p) => String(p.id) === id);
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);

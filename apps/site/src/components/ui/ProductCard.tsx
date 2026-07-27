@@ -43,6 +43,7 @@ export interface Product {
   description?: string; // Descrição curta (ex: dimensões)
   images?: string[];    // Galeria de imagens (legado — prefira `media`)
   media?: MediaItem[];  // Galeria ordenada de imagens e vídeos
+  categoryPath?: string; // rota da categoria (ex.: "/sacolas"), usada nas contagens
   waLink?: string;
   priceCents?: number;  // Se definido, habilita o checkout online (Mercado Pago)
 }
