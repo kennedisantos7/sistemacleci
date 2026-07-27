@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
 import { getProduct, listCategoriesWithSubs } from "@/server/services/products";
+import { isStorageConfigured } from "@/server/storage";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductForm } from "../../product-form";
 import { type VariantValue } from "../../variants-field";
@@ -47,6 +48,7 @@ export default async function EditarProdutoPage({
       <Card>
         <CardContent className="pt-6">
           <ProductForm
+            uploadEnabled={isStorageConfigured()}
             categories={categories.map((c) => ({
               id: c.id,
               name: c.name,
