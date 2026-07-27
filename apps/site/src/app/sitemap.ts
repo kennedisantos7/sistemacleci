@@ -3,6 +3,9 @@ import { loadAllProducts } from "@/server/catalog";
 
 const BASE = process.env.SITE_URL ?? "https://cleci.com.br";
 
+// Sem isto o sitemap congela no build e segue listando produto já desativado.
+export const revalidate = 3600;
+
 const STATIC_ROUTES = [
   "",
   "/produtos",
