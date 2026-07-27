@@ -149,13 +149,24 @@ export async function getAllProducts(): Promise<Product[] | null> {
   }
 }
 
-/** Produto por id; `null` se indisponível ou inexistente. */
+/**
+ * Produto por id; `null` se indisponível ou inexistente.
+ *
+ * Links antigos usam o id curto do catálogo estático (ex.: `s-06`), enquanto o
+ * banco guarda o id do seed (`seed_sacolas_s-06`). Se a busca exata não achar,
+ * tentamos o sufixo para não quebrar link compartilhado ou de afiliado.
+ */
 export async function getProductFromDb(id: string): Promise<Product | null> {
   try {
-    const row = await prisma.product.findFirst({
-      where: { id, active: true },
-      select: PRODUCT_SELECT,
-    });
+    const row =
+      (await prisma.product.findFirst({
+        where: { id, active: true },
+        select: PRODUCT_SELECT,
+      })) ??
+      (await prisma.product.findFirst({
+        where: { id: { endsWith: `_${id}` }, active: true },
+        select: PRODUCT_SELECT,
+      }));
     return row ? toProduct(row) : null;
   } catch {
     return null;
