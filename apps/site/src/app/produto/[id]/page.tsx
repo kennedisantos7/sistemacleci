@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import ProductDetails from "@/views/ProductDetails";
-import { getProductById } from "@/lib/catalog";
+import { loadProduct } from "@/server/catalog";
+
+// Produto vem do banco (painel). Revalida a cada minuto.
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
@@ -8,7 +11,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const product = getProductById(id);
+  const product = await loadProduct(id);
   if (!product) {
     return { title: "Produto não encontrado | Cleci Personaliza" };
   }
@@ -28,6 +31,9 @@ export async function generateMetadata({
   };
 }
 
-export default function Page() {
-  return <ProductDetails />;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const product = await loadProduct(id);
+
+  return <ProductDetails product={product} />;
 }

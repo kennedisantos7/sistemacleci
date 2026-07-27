@@ -3,26 +3,29 @@
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
 import { ChevronRight, LayoutGrid, Filter, X } from "lucide-react";
-import { useState } from "react";
-import ProductCard from "../components/ui/ProductCard";
-import { PLAYGROUND_CATALOG, PLAYGROUND_SLUGS } from "../data/playground";
+import { useMemo, useState } from "react";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
+import { PLAYGROUND_CATALOG as FALLBACK_CATALOG, PLAYGROUND_SLUGS as FALLBACK_SLUGS } from "../data/playground";
 import { cn } from "../lib/utils";
 
-// Categorias na ordem definida em PLAYGROUND_SLUGS (única fonte de verdade)
-const CATEGORIAS = Object.values(PLAYGROUND_SLUGS);
-
-const SLUG_TO_LABEL = PLAYGROUND_SLUGS;
-
-export default function Playground() {
+export default function Playground({
+  catalog = FALLBACK_CATALOG,
+  slugs = FALLBACK_SLUGS,
+}: {
+  catalog?: Product[];
+  slugs?: Record<string, string>;
+}) {
   const { searchParams } = useQueryParams();
+
+  const CATEGORIAS = useMemo(() => Object.values(slugs), [slugs]);
   const tipo = searchParams.get("tipo");
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
-  const filteredProducts = tipo && SLUG_TO_LABEL[tipo]
-    ? PLAYGROUND_CATALOG.filter(p => p.category === SLUG_TO_LABEL[tipo])
-    : PLAYGROUND_CATALOG;
+  const filteredProducts = tipo && slugs[tipo]
+    ? catalog.filter(p => p.category === slugs[tipo])
+    : catalog;
 
-  const currentCategoryLabel = tipo ? SLUG_TO_LABEL[tipo] : "Todos os Itens";
+  const currentCategoryLabel = tipo ? slugs[tipo] : "Todos os Itens";
 
   return (
     <div className="bg-surface min-h-screen">
@@ -73,15 +76,15 @@ export default function Playground() {
                     "text-xs px-2 py-0.5 rounded-full",
                     !tipo ? "bg-white/20" : "bg-surface-container-high opacity-60"
                   )}>
-                    {PLAYGROUND_CATALOG.length}
+                    {catalog.length}
                   </span>
                 </Link>
               </li>
               
               {CATEGORIAS.map((cat) => {
-                const catSlug = Object.keys(SLUG_TO_LABEL).find(key => SLUG_TO_LABEL[key] === cat);
+                const catSlug = Object.keys(slugs).find(key => slugs[key] === cat);
                 const isActive = tipo === catSlug;
-                const count = PLAYGROUND_CATALOG.filter(p => p.category === cat).length;
+                const count = catalog.filter(p => p.category === cat).length;
                 
                 return (
                   <li key={cat}>

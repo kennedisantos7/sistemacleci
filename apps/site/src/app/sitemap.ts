@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { ALL_PRODUCTS } from "@/lib/catalog";
+import { loadAllProducts } from "@/server/catalog";
 
 const BASE = process.env.SITE_URL ?? "https://cleci.com.br";
 
@@ -16,8 +16,9 @@ const STATIC_ROUTES = [
   "/privacidade",
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const products = await loadAllProducts();
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((path) => ({
     url: `${BASE}${path}`,
@@ -26,7 +27,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: path === "" ? 1 : 0.8,
   }));
 
-  const productEntries: MetadataRoute.Sitemap = ALL_PRODUCTS.map((p) => ({
+  const productEntries: MetadataRoute.Sitemap = products.map((p) => ({
     url: `${BASE}/produto/${p.id}`,
     lastModified: now,
     changeFrequency: "monthly",

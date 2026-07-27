@@ -108,6 +108,9 @@ importers:
 
   apps/site:
     dependencies:
+      '@cleci/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       clsx:
         specifier: ^2.1.1
         version: 2.1.1

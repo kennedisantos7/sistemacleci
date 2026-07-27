@@ -60,25 +60,27 @@ const TRUST_ITEMS = [
 
 type Showcase = { novidades: Product[]; top1: Product; maisVendidos: Product[] };
 
-const deterministicPicks = (): Showcase => ({
-  novidades: ALL_PRODUCTS.slice(0, 4),
-  top1: ALL_PRODUCTS[4],
-  maisVendidos: ALL_PRODUCTS.slice(5, 8),
+const deterministicPicks = (pool: Product[]): Showcase => ({
+  novidades: pool.slice(0, 4),
+  top1: pool[4],
+  maisVendidos: pool.slice(5, 8),
 });
 
-export default function Home() {
+export default function Home({ products = ALL_PRODUCTS }: { products?: Product[] }) {
   // SSR e primeira pintura usam uma seleção determinística (evita hydration
   // mismatch); após montar, embaralhamos para dar variedade à vitrine.
-  const [{ novidades, top1, maisVendidos }, setPicks] = useState<Showcase>(deterministicPicks);
+  const [{ novidades, top1, maisVendidos }, setPicks] = useState<Showcase>(() =>
+    deterministicPicks(products),
+  );
 
   useEffect(() => {
-    const shuffled = shuffle(ALL_PRODUCTS);
+    const shuffled = shuffle(products);
     setPicks({
       novidades: shuffled.slice(0, 4),
       top1: shuffled[4],
       maisVendidos: shuffled.slice(5, 8),
     });
-  }, []);
+  }, [products]);
 
   return (
     <div className="w-full">

@@ -6,29 +6,35 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQueryParams } from "../lib/use-query-params";
 import { cn } from "../lib/utils";
-import ProductCard from "../components/ui/ProductCard";
-import { TAPETES_CATALOG, TAPETES_SLUGS } from "../data/tapetes";
+import ProductCard, { type Product } from "../components/ui/ProductCard";
+import { TAPETES_CATALOG as FALLBACK_CATALOG, TAPETES_SLUGS as FALLBACK_SLUGS } from "../data/tapetes";
 
-// Categorias na ordem definida em TAPETES_SLUGS (única fonte de verdade)
-const CATEGORIAS = Object.values(TAPETES_SLUGS);
 
-// Mapeia slug → label (invertendo TAPETES_SLUGS)
-const SLUG_TO_LABEL = TAPETES_SLUGS;
-const LABEL_TO_SLUG = Object.fromEntries(
-  Object.entries(TAPETES_SLUGS).map(([slug, label]) => [label, slug])
-);
+// Mapeia slug → label (invertendo slugs)
 
-export default function Tapetes() {
+export default function Tapetes({
+  catalog = FALLBACK_CATALOG,
+  slugs = FALLBACK_SLUGS,
+}: {
+  catalog?: Product[];
+  slugs?: Record<string, string>;
+}) {
   const { searchParams, setQuery } = useQueryParams();
+
+  const CATEGORIAS = useMemo(() => Object.values(slugs), [slugs]);
+  const LABEL_TO_SLUG = useMemo(
+    () => Object.fromEntries(Object.entries(slugs).map(([slug, label]) => [label, slug])),
+    [slugs],
+  );
   const tipoParam = searchParams.get("tipo");
-  const categoriaAtiva = tipoParam ? SLUG_TO_LABEL[tipoParam] : null;
+  const categoriaAtiva = tipoParam ? slugs[tipoParam] : null;
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   // Produtos filtrados
   const produtosFiltrados = useMemo(() => {
-    if (!categoriaAtiva) return TAPETES_CATALOG;
-    return TAPETES_CATALOG.filter((p) => p.category === categoriaAtiva);
-  }, [categoriaAtiva]);
+    if (!categoriaAtiva) return catalog;
+    return catalog.filter((p) => p.category === categoriaAtiva);
+  }, [catalog, categoriaAtiva]);
 
   function selecionar(label: string | null) {
     if (!label) {
@@ -113,12 +119,12 @@ export default function Tapetes() {
                 }`}
               >
                 Ver Tudo
-                <span className="ml-2 text-xs opacity-60">({TAPETES_CATALOG.length})</span>
+                <span className="ml-2 text-xs opacity-60">({catalog.length})</span>
               </button>
             </li>
             {/* Cada categoria */}
             {CATEGORIAS.map((cat) => {
-              const count = TAPETES_CATALOG.filter((p) => p.category === cat).length;
+              const count = catalog.filter((p) => p.category === cat).length;
               const active = categoriaAtiva === cat;
               return (
                 <li key={cat}>
