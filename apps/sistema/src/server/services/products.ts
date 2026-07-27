@@ -1,4 +1,13 @@
-import { prisma, type Prisma } from "@cleci/db";
+import { prisma, Prisma } from "@cleci/db";
+
+/** Linha/versão do produto (ex.: Premium, Popular, Plastificada). */
+export type ProductVariantInput = {
+  name: string;
+  image?: string | null;
+  description?: string | null;
+  sizes: string[];
+  codes: string[];
+};
 
 export type ProductInput = {
   categoryId: string;
@@ -10,11 +19,18 @@ export type ProductInput = {
   gallery: string[];
   sizes: string[];
   codes: string[];
+  variants: ProductVariantInput[];
   badge?: string | null;
   badgeColor?: string | null;
   code?: string | null;
   active: boolean;
 };
+
+/** `null` limpa a coluna Json quando não há linhas cadastradas. */
+function variantsValue(variants: ProductVariantInput[]): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  if (variants.length === 0) return Prisma.DbNull;
+  return variants as unknown as Prisma.InputJsonValue;
+}
 
 /** Categorias com seus subtipos (para os selects do formulário). */
 export function listCategoriesWithSubs() {
@@ -67,6 +83,7 @@ export async function createProduct(data: ProductInput) {
       gallery: data.gallery,
       sizes: data.sizes,
       codes: data.codes,
+      variants: variantsValue(data.variants),
       badge: data.badge ?? null,
       badgeColor: data.badgeColor ?? null,
       code: data.code ?? null,
@@ -89,6 +106,7 @@ export async function updateProduct(id: string, data: ProductInput) {
       gallery: data.gallery,
       sizes: data.sizes,
       codes: data.codes,
+      variants: variantsValue(data.variants),
       badge: data.badge ?? null,
       badgeColor: data.badgeColor ?? null,
       code: data.code ?? null,

@@ -69,21 +69,31 @@ export const SACOLAS_CATALOG: Product[] = [
   // ── PAPEL ─────────────────────────────────────────────────────────────────
   {
     id: "s-06",
-    title: "OFFSET COLORIDA (LINHA PREMIUM)",
+    title: "SACOLAS DE PAPEL",
     category: "PAPEL",
     image: "https://imgur.com/Y7NpMgk.png",
-    description: "Sacolas de papel da Linha Premium: fabricadas totalmente sob medida para atender aos desejos mais exigentes dos nossos clientes. Esta linha oferece uma ampla gama de acabamentos sofisticados, como laminação, Hot Stamping, alças de cetim ou modelo cadarço, além de gramaturas de papel personalizáveis. Ideal para quem busca exclusividade e o mais alto padrão de apresentação para sua marca.",
-    codes: ["4013", "4021", "4022", "4054", "4039", "4038", "4040", "4023", "4028", "4026"],
-    sizes: ["13x13x7", "16x14x7", "23x17x7", "22x18x11,5", "21,5x15x7,5", "23,5x14,5x7,5", "32,5x21x10", "24x35x10", "30x42x12", "35x45x16"],
-  },
-  {
-    id: "s-07",
-    title: "OFFSET BRANCA (LINHA POPULAR)",
-    category: "PAPEL",
-    image: "https://imgur.com/witlVqO.png",
-    description: "Sacola de papel da Linha Popular: fabricada em papel offset branco de 180g (sem brilho) e com alças em fita de cetim. Este modelo oferece a vantagem de produção em qualquer quantidade, permitindo personalização colorida na frente, verso e laterais. Ideais para vestuário, calçados, alimentos e presentes, nossas sacolas unem funcionalidade, estética e sustentabilidade. São excelentes ferramentas de marketing e branding, transmitindo elegância e profissionalismo por um baixo custo de investimento.",
-    codes: ["4013", "4021", "4022", "4054", "4039", "4038", "4040", "4023", "4028", "4026"],
-    sizes: ["13x13x7", "16x14x7", "23x17x7", "22x18x11,5", "21,5x15x7,5", "23,5x14,5x7,5", "32,5x21x10", "24x35x10", "30x42x12", "35x45x16"],
+    description: "Sacolas de papel personalizadas para vestuário, calçados, alimentos e presentes. Escolha a linha que melhor atende ao seu negócio: Premium, Popular ou Plastificada.",
+    variants: [
+      {
+        name: "LINHA PREMIUM",
+        image: "https://imgur.com/Y7NpMgk.png",
+        description: "Sacolas de papel da Linha Premium: fabricadas totalmente sob medida para atender aos desejos mais exigentes dos nossos clientes. Esta linha oferece uma ampla gama de acabamentos sofisticados, como laminação, Hot Stamping, alças de cetim ou modelo cadarço, além de gramaturas de papel personalizáveis. Ideal para quem busca exclusividade e o mais alto padrão de apresentação para sua marca.",
+        codes: ["4013", "4021", "4022", "4054", "4039", "4038", "4040", "4023", "4028", "4026"],
+        sizes: ["13x13x7", "16x14x7", "23x17x7", "22x18x11,5", "21,5x15x7,5", "23,5x14,5x7,5", "32,5x21x10", "24x35x10", "30x42x12", "35x45x16"],
+      },
+      {
+        name: "LINHA POPULAR",
+        image: "https://imgur.com/witlVqO.png",
+        description: "Sacola de papel da Linha Popular: fabricada em papel offset branco de 180g (sem brilho) e com alças em fita de cetim. Este modelo oferece a vantagem de produção em qualquer quantidade, permitindo personalização colorida na frente, verso e laterais. Ideais para vestuário, calçados, alimentos e presentes, nossas sacolas unem funcionalidade, estética e sustentabilidade. São excelentes ferramentas de marketing e branding, transmitindo elegância e profissionalismo por um baixo custo de investimento.",
+        codes: ["4013", "4021", "4022", "4054", "4039", "4038", "4040", "4023", "4028", "4026"],
+        sizes: ["13x13x7", "16x14x7", "23x17x7", "22x18x11,5", "21,5x15x7,5", "23,5x14,5x7,5", "32,5x21x10", "24x35x10", "30x42x12", "35x45x16"],
+      },
+      {
+        name: "LINHA PLASTIFICADA",
+        description: "Sacola de papel com acabamento plastificado: a laminação garante mais resistência, proteção contra umidade e um brilho que valoriza as cores da sua personalização. Disponível nas medidas abaixo.",
+        sizes: ["13x13x7", "16x14x7", "23x17x7", "22x18x11,5", "21,5x15x7,5", "23,5x14,5x7,5", "24x35x10"],
+      },
+    ],
   },
 
   // ── ALÇA FITA ─────────────────────────────────────────────────────────────

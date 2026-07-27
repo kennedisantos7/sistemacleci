@@ -36,15 +36,30 @@ const EXT_BY_TYPE: Record<string, string> = {
   "image/avif": "avif",
 };
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+const VIDEO_EXT_BY_TYPE: Record<string, string> = {
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+};
+
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB (imagens)
+export const MAX_VIDEO_UPLOAD_BYTES = 30 * 1024 * 1024; // 30 MB (vídeos)
 
 /**
- * Sobe uma imagem para o bucket e devolve a URL pública. Valida tipo/tamanho.
+ * Sobe uma imagem ou vídeo para o bucket e devolve a URL pública.
+ * Valida tipo/tamanho (limite maior para vídeo).
  */
-export async function uploadImage(file: File): Promise<string> {
-  const ext = EXT_BY_TYPE[file.type];
-  if (!ext) throw new Error("Formato inválido. Use JPG, PNG, WEBP, GIF ou AVIF.");
-  if (file.size > MAX_UPLOAD_BYTES) throw new Error("Imagem muito grande (máx. 5 MB).");
+export async function uploadMedia(file: File): Promise<string> {
+  const videoExt = VIDEO_EXT_BY_TYPE[file.type];
+  const ext = videoExt ?? EXT_BY_TYPE[file.type];
+  if (!ext) {
+    throw new Error("Formato inválido. Use JPG, PNG, WEBP, GIF, AVIF, MP4, WEBM ou MOV.");
+  }
+  if (videoExt) {
+    if (file.size > MAX_VIDEO_UPLOAD_BYTES) throw new Error("Vídeo muito grande (máx. 30 MB).");
+  } else if (file.size > MAX_UPLOAD_BYTES) {
+    throw new Error("Imagem muito grande (máx. 5 MB).");
+  }
 
   const key = `produtos/${Date.now()}-${randomBytes(6).toString("hex")}.${ext}`;
   const body = new Uint8Array(await file.arrayBuffer());

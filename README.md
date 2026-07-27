@@ -46,6 +46,19 @@ Todos os valores são armazenados em **centavos (Int)**. Taxas de comissão em
 
 ## Deploy (Coolify)
 
-Cada app tem seu próprio `Dockerfile` (multi-stage) e vira um serviço independente
-apontando para o mesmo PostgreSQL. Use **PgBouncer** (`DATABASE_URL`) para o runtime
-e conexão direta (`DIRECT_URL`) para migrations.
+Produção roda em **VPS Hostinger** com **Coolify**. Cada app tem seu próprio
+`Dockerfile` (multi-stage) e vira um serviço independente apontando para o mesmo
+PostgreSQL 18.
+
+| | |
+| --- | --- |
+| Site | `https://cleci.com.br` (+ `www`) |
+| Painel | `https://painel.cleci.com.br` |
+| Coolify | `https://coolify.cleci.com.br` |
+
+Em produção **não há PgBouncer**: `DATABASE_URL` e `DIRECT_URL` apontam ambas
+para a 5432 direta. O PgBouncer do [docker-compose.yml](docker-compose.yml)
+existe só no ambiente local.
+
+Procedimento completo, variáveis e uso da API do Coolify: [DEPLOY.md](DEPLOY.md).
+Histórico da migração vinda da AWS: [MIGRACAO-HOSTINGER.md](MIGRACAO-HOSTINGER.md).

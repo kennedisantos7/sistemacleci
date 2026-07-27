@@ -3,9 +3,12 @@
 import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { type BorderOption } from "../components/ui/ProductCard";
+
+import MediaCarousel from "../components/ui/MediaCarousel";
 import BuyButton from "../components/BuyButton";
+import { productMedia, toMediaItem } from "../lib/media";
 import AffiliateCopy from "../components/AffiliateCopy";
 import { buildWaLink } from "../lib/whatsapp";
 import { formatCents } from "../lib/format";
@@ -36,6 +39,7 @@ export default function ProductDetails() {
   const [selectedSizeIndex, setSelectedSizeIndex] = useState(0);
   const [withInstallation, setWithInstallation] = useState(false);
   const [selectedBorder, setSelectedBorder] = useState<BorderOption | null>(null);
+  const [variantIndex, setVariantIndex] = useState(0);
   // Pagamento online só fica disponível quando o cliente chega pelo link de
   // pagamento do afiliado (?pagar=1). No site normal, o fechamento é via WhatsApp.
   const [pagar, setPagar] = useState(false);
@@ -49,13 +53,32 @@ export default function ProductDetails() {
   }, []);
 
   useEffect(() => {
+    setVariantIndex(0);
     if (product?.borders && product.borders.length > 0) {
       setSelectedBorder(product.borders[0]);
-    } else if (product?.sizes && product.sizes.length > 0) {
-      setSelectedSize(product.sizes[0]);
+      return;
+    }
+    const firstSizes = product?.variants?.[0]?.sizes ?? product?.sizes;
+    if (firstSizes && firstSizes.length > 0) {
+      setSelectedSize(firstSizes[0]);
       setSelectedSizeIndex(0);
     }
   }, [product]);
+
+  // Galeria exibida: imagens/vídeos do produto na ordem cadastrada. Quando há
+  // linhas (variações), a imagem da linha ativa entra em primeiro e as imagens
+  // das outras linhas ficam de fora.
+  const media = useMemo(() => {
+    if (!product) return [];
+    const variantImages = new Set(
+      (product.variants ?? []).map((v) => v.image).filter(Boolean) as string[],
+    );
+    const base = productMedia(product).filter((m) => !variantImages.has(m.url));
+    const activeImage = product.variants?.[variantIndex]?.image;
+    const list = activeImage ? [toMediaItem(activeImage), ...base] : base;
+    // Linha sem imagem própria: cai para a imagem principal do produto.
+    return list.length > 0 ? list : [toMediaItem(product.image)];
+  }, [product, variantIndex]);
 
   if (!product) {
     return (
@@ -71,13 +94,30 @@ export default function ProductDetails() {
     setSelectedSizeIndex(index);
   };
 
+  // Variação ativa (ex.: linha da sacola de papel). Cada variação pode ter
+  // suas próprias medidas, códigos, descrição e imagem.
+  const variants = product.variants;
+  const activeVariant = variants?.[variantIndex];
+  const currentSizes = activeVariant?.sizes ?? product.sizes;
+  const currentCodes = activeVariant?.codes ?? product.codes;
+  const currentDescription = activeVariant?.description ?? product.description;
+
+  const handleVariantSelect = (index: number) => {
+    setVariantIndex(index);
+    const sizes = variants?.[index]?.sizes ?? product.sizes;
+    setSelectedSize(sizes && sizes.length > 0 ? sizes[0] : "");
+    setSelectedSizeIndex(0);
+  };
+
   // Determinar o código exibido (se tiver múltiplos, pega o correspondente ao tamanho)
-  const currentCode = product.codes && product.codes[selectedSizeIndex] 
-    ? product.codes[selectedSizeIndex] 
+  const currentCode = currentCodes && currentCodes[selectedSizeIndex]
+    ? currentCodes[selectedSizeIndex]
     : product.code;
 
   // Título exibido no breadcrumb e no heading principal
-  const displayName = product.title;
+  const displayName = activeVariant
+    ? `${product.title} (${activeVariant.name})`
+    : product.title;
 
   // Helper: build WA link com nome completo e múltiplos códigos quando aplicável
   const buildLink = () => {
@@ -89,7 +129,7 @@ export default function ProductDetails() {
     }
     
     return buildWaLink(
-      product.borders ? `${product.category} ${product.title}` : product.title,
+      product.borders ? `${product.category} ${product.title}` : displayName,
       { 
         category: product.category, 
         size: selectedBorder ? selectedBorder.name : (selectedSize || undefined), 
@@ -118,28 +158,15 @@ export default function ProductDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-gutter mb-section-gap bg-white p-6 md:p-10 rounded-2xl border border-outline-variant shadow-sm">
           
           {/* Left Gallery */}
-          <div className="lg:col-span-6 flex flex-col gap-6">
-            <div className="w-full aspect-square bg-surface-container-low rounded-xl overflow-hidden flex items-center justify-center p-8 border border-outline-variant/50">
-              <img 
-                alt={product.title} 
-                className="w-full h-full object-contain drop-shadow-xl" 
-                src={product.image}
-              />
-            </div>
-
-            {/* Gallery Thumbnails - Only show if there are multiple images */}
-            {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-4">
-                {product.images.map((img, i) => (
-                  <button 
-                    key={i} 
-                    className={`aspect-square bg-surface-container-lowest rounded-lg border p-2 flex items-center justify-center overflow-hidden transition-all ${img === product.image ? 'border-primary ring-2 ring-primary/20' : 'border-outline-variant hover:border-primary'}`}
-                  >
-                    <img alt={`Thumbnail ${i}`} className="w-full h-full object-contain" src={img}/>
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="lg:col-span-6 flex flex-col gap-6 group">
+            <MediaCarousel
+              items={media}
+              alt={displayName}
+              videoControls
+              imageLoading="eager"
+              className="w-full aspect-square bg-surface-container-low rounded-xl flex items-center justify-center p-8 border border-outline-variant/50"
+              mediaClassName="w-full h-full object-contain drop-shadow-xl"
+            />
           </div>
 
           {/* Right Info */}
@@ -169,7 +196,7 @@ export default function ProductDetails() {
             )}
             
             <p className="font-body-md text-on-surface-variant mb-8 border-b border-outline-variant/30 pb-8 leading-relaxed">
-              {product.description || "Alta qualidade e personalização total para o seu negócio. Nossos produtos são fabricados com os melhores materiais do mercado, garantindo durabilidade e uma estética impecável para sua marca."}
+              {currentDescription || "Alta qualidade e personalização total para o seu negócio. Nossos produtos são fabricados com os melhores materiais do mercado, garantindo durabilidade e uma estética impecável para sua marca."}
             </p>
 
             <div className="flex flex-col gap-8 mb-10">
@@ -231,14 +258,39 @@ export default function ProductDetails() {
                 </div>
               )}
 
+              {/* Seleção de Linha / Versão (ex.: sacolas de papel) */}
+              {variants && variants.length > 0 && (
+                <div className="flex flex-col gap-4">
+                  <label className="font-bold text-on-background uppercase text-xs tracking-widest">
+                    Selecione a Linha
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {variants.map((variant, index) => (
+                      <button
+                        key={variant.name}
+                        type="button"
+                        onClick={() => handleVariantSelect(index)}
+                        className={`px-5 h-[50px] flex items-center justify-center rounded-lg font-bold text-sm uppercase tracking-wide transition-all border-2 ${
+                          variantIndex === index
+                            ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
+                            : "bg-white border-outline-variant text-on-surface hover:border-primary hover:text-primary"
+                        }`}
+                      >
+                        {variant.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Seleção de Tamanho (produtos sem bordas) */}
-              {!product.borders && product.sizes && product.sizes.length > 0 && (
+              {!product.borders && currentSizes && currentSizes.length > 0 && (
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-center md:justify-between items-center">
                     <label className="font-bold text-on-background uppercase text-xs tracking-widest text-center md:text-left">Selecione o Tamanho</label>
                   </div>
                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
-                    {product.sizes.map((size, index) => (
+                    {currentSizes.map((size, index) => (
                       <button
                         key={size}
                         onClick={() => handleSizeSelect(size, index)}

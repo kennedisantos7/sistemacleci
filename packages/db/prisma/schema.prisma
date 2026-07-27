@@ -320,7 +320,8 @@ model Product {
 
   sizes   String[] @default([]) // tamanhos (texto livre)
   codes   String[] @default([]) // códigos por tamanho
-  borders Json? // bordas (tapetes): {name,image,code}[]
+  borders  Json? // bordas (tapetes): {name,image,code}[]
+  variants Json? // linhas/versões: {name,image?,description?,sizes?,codes?}[]
 
   badge      String?
   badgeColor String?

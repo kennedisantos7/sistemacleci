@@ -1,12 +1,31 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { formatCents } from "../../lib/format";
+import { productMedia } from "../../lib/media";
 import AffiliateCopy from "../AffiliateCopy";
+import MediaCarousel from "./MediaCarousel";
 
 export type BorderOption = {
   name: string;
   image: string;
   code: string; // Código da borda (ex: 1017, 1018, 1019)
+};
+
+/** Mídia do produto: imagem ou vídeo. A ordem da lista é a ordem exibida. */
+export type MediaItem = {
+  type: "image" | "video";
+  url: string;
+  /** Imagem de capa do vídeo (opcional). */
+  poster?: string;
+};
+
+/** Variação de um produto (ex.: linhas de sacola de papel). */
+export type ProductVariant = {
+  name: string;
+  image?: string;       // Se ausente, usa a imagem do produto
+  description?: string; // Se ausente, usa a descrição do produto
+  codes?: string[];
+  sizes?: string[];
 };
 
 export interface Product {
@@ -18,10 +37,12 @@ export interface Product {
   badgeColor?: string;
   sizes?: string[];
   borders?: BorderOption[]; // Opções de borda (tapetes)
+  variants?: ProductVariant[]; // Opções de linha/versão (ex.: sacolas de papel)
   code?: string;       // Código de referência do produto
   codes?: string[];    // Lista de códigos para produtos agrupados
   description?: string; // Descrição curta (ex: dimensões)
-  images?: string[];    // Galeria de imagens
+  images?: string[];    // Galeria de imagens (legado — prefira `media`)
+  media?: MediaItem[];  // Galeria ordenada de imagens e vídeos
   waLink?: string;
   priceCents?: number;  // Se definido, habilita o checkout online (Mercado Pago)
 }
@@ -45,23 +66,23 @@ export default function ProductCard({
   // linkToDetail mantido na API por compatibilidade; ambos os links levam ao detalhe.
   void linkToDetail;
 
+  const media = productMedia(product);
+
   return (
     <article
       className={`group hover-lift bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden flex flex-col shadow-sm hover:shadow-[0_18px_50px_-12px_rgba(21,65,252,0.22)] hover:border-primary/40 h-full relative ${className}`}
     >
       <Link href={`/produto/${product.id}`} className="flex-grow flex flex-col">
-        {/* Imagem */}
+        {/* Mídia (imagens e vídeos, com scroll lateral) */}
         <div className="relative h-[260px] bg-surface-container-low flex items-center justify-center overflow-hidden">
           {/* Brilho diagonal sutil ao passar o mouse */}
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-tr from-transparent via-white/0 to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-          <img
+          <MediaCarousel
+            items={media}
             alt={product.title}
-            src={product.image}
-            width={300}
-            height={260}
-            loading={imageLoading}
-            decoding="async"
-            className="max-h-full object-contain transition-transform duration-[600ms] ease-out group-hover:scale-110 group-hover:-rotate-1"
+            className="h-full w-full"
+            mediaClassName="object-contain"
+            imageLoading={imageLoading}
           />
           {product.badge && (
             <span

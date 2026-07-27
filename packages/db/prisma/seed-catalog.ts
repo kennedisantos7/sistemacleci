@@ -36,6 +36,7 @@ type SiteProduct = {
   badgeColor?: string;
   sizes?: string[];
   borders?: unknown;
+  variants?: unknown;
   code?: string;
   codes?: string[];
   description?: string;
@@ -92,6 +93,7 @@ async function main() {
       const id = `seed_${cfg.slug}_${p.id}`;
       const subcategoryId = labelToSubId.get(p.category) ?? null;
       const borders = p.borders ? (p.borders as object) : undefined;
+      const variants = p.variants ? (p.variants as object) : undefined;
 
       const data = {
         categoryId: category.id,
@@ -110,10 +112,15 @@ async function main() {
         position: pi,
       };
 
+      const json = {
+        ...(borders !== undefined ? { borders } : {}),
+        ...(variants !== undefined ? { variants } : {}),
+      };
+
       await prisma.product.upsert({
         where: { id },
-        update: { ...data, ...(borders !== undefined ? { borders } : {}) },
-        create: { id, ...data, ...(borders !== undefined ? { borders } : {}) },
+        update: { ...data, ...json },
+        create: { id, ...data, ...json },
       });
       totalProducts++;
     }
