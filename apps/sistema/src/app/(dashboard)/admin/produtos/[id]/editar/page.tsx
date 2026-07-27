@@ -4,8 +4,28 @@ import { STAFF_ROLES } from "@/lib/rbac";
 import { getProduct, listCategoriesWithSubs } from "@/server/services/products";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProductForm } from "../../product-form";
+import { type VariantValue } from "../../variants-field";
 
 export const dynamic = "force-dynamic";
+
+/** A coluna é Json: normaliza para o formato do formulário. */
+function parseVariants(raw: unknown): VariantValue[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== "object") return [];
+    const v = item as Record<string, unknown>;
+    if (typeof v.name !== "string") return [];
+    return [
+      {
+        name: v.name,
+        image: typeof v.image === "string" ? v.image : "",
+        description: typeof v.description === "string" ? v.description : "",
+        sizes: Array.isArray(v.sizes) ? v.sizes.filter((s): s is string => typeof s === "string") : [],
+        codes: Array.isArray(v.codes) ? v.codes.filter((s): s is string => typeof s === "string") : [],
+      },
+    ];
+  });
+}
 
 export default async function EditarProdutoPage({
   params,
@@ -43,6 +63,7 @@ export default async function EditarProdutoPage({
               gallery: product.gallery,
               sizes: product.sizes,
               codes: product.codes,
+              variants: parseVariants(product.variants),
               badge: product.badge,
               code: product.code,
               active: product.active,

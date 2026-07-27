@@ -4,6 +4,7 @@ import { useActionState, useMemo, useState } from "react";
 import { X } from "lucide-react";
 import { createProductAction, updateProductAction, type ProductFormState } from "./actions";
 import { MainImageUpload, GalleryUpload } from "./image-upload";
+import { VariantsField, type VariantValue } from "./variants-field";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,7 @@ export type ProductDefaults = {
   gallery?: string[];
   sizes?: string[];
   codes?: string[];
+  variants?: VariantValue[];
   badge?: string | null;
   code?: string | null;
   active?: boolean;
@@ -214,13 +216,18 @@ export function ProductForm({
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium">Galeria (opcional)</label>
+        <label className="text-sm font-medium">Galeria — imagens e vídeos (opcional)</label>
         <GalleryUpload defaultUrls={defaults?.gallery} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <StringListField name="sizes" label="Tamanhos" placeholder="ex.: 40x60" defaultValues={defaults?.sizes} />
         <StringListField name="codes" label="Códigos por tamanho" placeholder="ex.: 1017" defaultValues={defaults?.codes} />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-sm font-medium">Linhas / versões (opcional)</label>
+        <VariantsField defaultValues={defaults?.variants} />
       </div>
 
       <label className="flex items-center gap-2 text-sm">

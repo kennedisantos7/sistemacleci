@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
-import { uploadImage, isStorageConfigured } from "@/server/storage";
+import { uploadMedia, isStorageConfigured } from "@/server/storage";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** Upload de imagem de produto (admin/gerente). Devolve a URL pública. */
+/** Upload de imagem ou vídeo de produto (admin/gerente). Devolve a URL pública. */
 export async function POST(req: NextRequest) {
   await requireUser(STAFF_ROLES);
 
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const url = await uploadImage(file);
+    const url = await uploadMedia(file);
     return NextResponse.json({ url });
   } catch (err) {
     return NextResponse.json(

@@ -10,6 +10,14 @@ import { createProduct, updateProduct, deleteProduct } from "@/server/services/p
 
 const stringArray = z.array(z.string().trim().min(1)).max(50);
 
+const variantSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome da linha.").max(80),
+  image: z.string().url("Imagem da linha inválida.").optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional(),
+  sizes: stringArray.default([]),
+  codes: stringArray.default([]),
+});
+
 const productSchema = z.object({
   categoryId: z.string().min(1, "Selecione a categoria."),
   subcategoryId: z.string().optional(),
@@ -19,6 +27,7 @@ const productSchema = z.object({
   gallery: stringArray,
   sizes: stringArray,
   codes: stringArray,
+  variants: z.array(variantSchema).max(20),
   badge: z.string().trim().max(40).optional(),
   code: z.string().trim().max(60).optional(),
   active: z.boolean(),
@@ -51,6 +60,7 @@ function parseForm(formData: FormData) {
     gallery: jsonArray(formData, "gallery"),
     sizes: jsonArray(formData, "sizes"),
     codes: jsonArray(formData, "codes"),
+    variants: jsonArray(formData, "variants"),
     badge: formData.get("badge") || undefined,
     code: formData.get("code") || undefined,
     active: formData.get("active") === "on" || formData.get("active") === "true",
@@ -71,6 +81,13 @@ function parseForm(formData: FormData) {
       gallery: d.gallery,
       sizes: d.sizes,
       codes: d.codes,
+      variants: d.variants.map((v) => ({
+        name: v.name,
+        image: v.image || null,
+        description: v.description || null,
+        sizes: v.sizes,
+        codes: v.codes,
+      })),
       badge: d.badge || null,
       code: d.code || null,
       active: d.active,
