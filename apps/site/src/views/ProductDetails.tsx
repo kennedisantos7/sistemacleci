@@ -53,19 +53,18 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
     }
   }, [product]);
 
-  // Galeria exibida: imagens/vídeos do produto na ordem cadastrada. Quando há
-  // linhas (variações), a imagem da linha ativa entra em primeiro e as imagens
-  // das outras linhas ficam de fora.
+  // Galeria exibida: a imagem da linha ativa vem primeiro, seguida de todas as
+  // mídias do produto (as fotos dos tipos ficam misturadas, sem repetir).
   const media = useMemo(() => {
     if (!product) return [];
-    const variantImages = new Set(
-      (product.variants ?? []).map((v) => v.image).filter(Boolean) as string[],
-    );
-    const base = productMedia(product).filter((m) => !variantImages.has(m.url));
     const activeImage = product.variants?.[variantIndex]?.image;
-    const list = activeImage ? [toMediaItem(activeImage), ...base] : base;
-    // Linha sem imagem própria: cai para a imagem principal do produto.
-    return list.length > 0 ? list : [toMediaItem(product.image)];
+    const list = activeImage
+      ? [toMediaItem(activeImage), ...productMedia(product)]
+      : productMedia(product);
+
+    const seen = new Set<string>();
+    const unique = list.filter((m) => (seen.has(m.url) ? false : seen.add(m.url)));
+    return unique.length > 0 ? unique : [toMediaItem(product.image)];
   }, [product, variantIndex]);
 
   if (!product) {
