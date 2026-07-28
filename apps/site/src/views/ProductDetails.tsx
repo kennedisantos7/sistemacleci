@@ -159,11 +159,31 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
 
           {/* Right Info */}
           <div className="lg:col-span-6 flex flex-col">
-            <div className="flex gap-2 mb-4">
-              <span className="bg-primary/10 text-primary font-extrabold text-xs md:text-sm px-4 py-1.5 md:px-5 md:py-2 rounded-full uppercase tracking-widest border border-primary/20">{product.category}</span>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {/* Com linhas, as pílulas delas ocupam essa faixa — a tag de categoria sairia repetindo o breadcrumb */}
+              {!variants && (
+                <span className="bg-primary/10 text-primary font-extrabold text-xs md:text-sm px-4 py-1.5 md:px-5 md:py-2 rounded-full uppercase tracking-widest border border-primary/20">{product.category}</span>
+              )}
               {product.badge && (
                 <span className="bg-secondary/10 text-secondary font-extrabold text-xs md:text-sm px-4 py-1.5 md:px-5 md:py-2 rounded-full uppercase tracking-widest border border-secondary/20">{product.badge}</span>
               )}
+
+              {/* Linhas do produto: mesmas pílulas da tag de categoria; a ativa fica sólida */}
+              {variants?.map((variant, index) => (
+                <button
+                  key={variant.name}
+                  type="button"
+                  onClick={() => handleVariantSelect(index)}
+                  aria-pressed={variantIndex === index}
+                  className={`font-extrabold text-xs md:text-sm px-4 py-1.5 md:px-5 md:py-2 rounded-full uppercase tracking-widest border transition-all ${
+                    variantIndex === index
+                      ? "bg-primary text-white border-primary shadow-md shadow-primary/25"
+                      : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+                  }`}
+                >
+                  {variant.name}
+                </button>
+              ))}
             </div>
 
             <h1 className="font-headline-md text-on-background mb-2 text-3xl md:text-4xl">{displayName}</h1>
@@ -242,31 +262,6 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
                         </button>
                       );
                     })}
-                  </div>
-                </div>
-              )}
-
-              {/* Seleção de Linha / Versão (ex.: sacolas de papel) */}
-              {variants && variants.length > 0 && (
-                <div className="flex flex-col gap-4">
-                  <label className="font-bold text-on-background uppercase text-xs tracking-widest">
-                    Selecione a Linha
-                  </label>
-                  <div className="flex flex-wrap gap-3">
-                    {variants.map((variant, index) => (
-                      <button
-                        key={variant.name}
-                        type="button"
-                        onClick={() => handleVariantSelect(index)}
-                        className={`px-5 h-[50px] flex items-center justify-center rounded-lg font-bold text-sm uppercase tracking-wide transition-all border-2 ${
-                          variantIndex === index
-                            ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
-                            : "bg-white border-outline-variant text-on-surface hover:border-primary hover:text-primary"
-                        }`}
-                      >
-                        {variant.name}
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}
