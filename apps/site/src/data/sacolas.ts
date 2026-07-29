@@ -28,7 +28,14 @@ export const SACOLAS_CATALOG: Product[] = [
     title: "SACOLAS ALÇA BOCA DE PALHAÇO",
     category: "ALÇA BOCA DE PALHAÇO",
     image: "https://i.imgur.com/pgMMaq0.png",
-    images: ["https://i.imgur.com/vsPNfd8.jpeg", "https://i.imgur.com/gk0Zu7e.jpeg"],
+    images: [
+      "https://i.imgur.com/vsPNfd8.jpeg",
+      "https://i.imgur.com/gk0Zu7e.jpeg",
+      // Fotos da linha fosca
+      "https://i.imgur.com/B3k9g0H.png",
+      "https://i.imgur.com/9R2ridg.png",
+      "https://i.imgur.com/rnvKDex.png",
+    ],
     description: "Também chamada de Alça Vazada, é muito usada em lojas de confecções, óticas e lojas que desejam transportar produtos com mais elegância. Escolha o modelo: colorida, fosca ou cristal.",
     variants: [
       {
