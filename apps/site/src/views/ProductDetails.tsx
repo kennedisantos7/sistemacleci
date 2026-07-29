@@ -53,14 +53,24 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
     }
   }, [product]);
 
-  // Galeria exibida: a imagem da linha ativa vem primeiro, seguida de todas as
-  // mídias do produto (as fotos dos tipos ficam misturadas, sem repetir).
+  // Galeria exibida: a foto de capa é exclusiva de cada linha — a da linha ativa
+  // abre a galeria e as das outras ficam de fora. As demais fotos e vídeos do
+  // produto seguem misturados, sem repetir.
   const media = useMemo(() => {
     if (!product) return [];
-    const activeImage = product.variants?.[variantIndex]?.image;
-    const list = activeImage
-      ? [toMediaItem(activeImage), ...productMedia(product)]
-      : productMedia(product);
+    const variants = product.variants ?? [];
+    const activeImage = variants[variantIndex]?.image;
+    const outrasCapas = new Set(
+      variants
+        .filter((_, i) => i !== variantIndex)
+        .map((v) => v.image)
+        .filter(Boolean) as string[],
+    );
+
+    const list = [
+      ...(activeImage ? [toMediaItem(activeImage)] : []),
+      ...productMedia(product).filter((m) => !outrasCapas.has(m.url)),
+    ];
 
     const seen = new Set<string>();
     const unique = list.filter((m) => (seen.has(m.url) ? false : seen.add(m.url)));
