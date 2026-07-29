@@ -141,7 +141,17 @@ export const SACOLAS_CATALOG: Product[] = [
     title: "SACOLAS KRAFT",
     category: "KRAFT",
     image: "https://i.imgur.com/aSiiKMj.png",
-    images: ["https://imgur.com/15qBuUf.png"],
+    images: [
+      "https://imgur.com/15qBuUf.png",
+      // Fotos da linha personalizada
+      "https://i.imgur.com/9MpZrLq.png",
+      "https://i.imgur.com/d3lQCaU.png",
+      "https://i.imgur.com/8gDniOv.png",
+      "https://i.imgur.com/uVYEzTw.png",
+      "https://i.imgur.com/cyQp015.png",
+      "https://i.imgur.com/TIaKOfT.png",
+      "https://i.imgur.com/72J2lgE.png",
+    ],
     description: "Sacola de papel kraft de alta qualidade, alternativa ecológica, resistente e sofisticada. Escolha o modelo: lisa ou personalizada.",
     variants: [
       {
