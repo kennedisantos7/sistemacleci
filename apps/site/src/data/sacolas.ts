@@ -115,7 +115,20 @@ export const SACOLAS_CATALOG: Product[] = [
     title: "SACOLAS ALÇA FITA",
     category: "ALÇA FITA",
     image: "https://i.imgur.com/zgJsy0K.jpeg",
-    images: ["https://i.imgur.com/fjPnc14.jpeg"],
+    images: [
+      "https://i.imgur.com/fjPnc14.jpeg",
+      // Fotos e vídeo da linha colorida
+      "https://i.imgur.com/9QepWqk.png",
+      "https://i.imgur.com/luQyK1B.png",
+      "https://i.imgur.com/7wZjPNS.png",
+      "https://i.imgur.com/NkSJese.png",
+      "https://i.imgur.com/XAphJG9.png",
+      "https://i.imgur.com/xXqZgDA.png",
+      "https://i.imgur.com/14ReU0U.png",
+      "https://i.imgur.com/zXXlvBn.png",
+      "https://i.imgur.com/nzVvp89.png",
+      "https://i.imgur.com/JuVrrwf.mp4",
+    ],
     description: "As sacolas com alça fita destacam-se pela elegância, alta resistência e praticidade, com espessura robusta de 14 micras. Escolha o modelo: colorida ou fosca.",
     variants: [
       {
