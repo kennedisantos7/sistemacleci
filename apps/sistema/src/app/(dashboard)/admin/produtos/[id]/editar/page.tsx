@@ -21,6 +21,7 @@ function parseVariants(raw: unknown): VariantValue[] {
         name: v.name,
         image: typeof v.image === "string" ? v.image : "",
         description: typeof v.description === "string" ? v.description : "",
+        note: typeof v.note === "string" ? v.note : "",
         sizes: Array.isArray(v.sizes) ? v.sizes.filter((s): s is string => typeof s === "string") : [],
         codes: Array.isArray(v.codes) ? v.codes.filter((s): s is string => typeof s === "string") : [],
       },

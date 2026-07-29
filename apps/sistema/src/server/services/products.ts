@@ -5,6 +5,7 @@ export type ProductVariantInput = {
   name: string;
   image?: string | null;
   description?: string | null;
+  note?: string | null;
   sizes: string[];
   codes: string[];
 };

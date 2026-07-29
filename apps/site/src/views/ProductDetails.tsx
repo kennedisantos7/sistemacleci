@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ShieldCheck, Truck } from "lucide-react";
+import { ChevronRight, Info, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
@@ -212,9 +212,19 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
               </div>
             )}
             
-            <p className="font-body-md text-on-surface-variant mb-8 border-b border-outline-variant/30 pb-8 leading-relaxed">
+            <p className="font-body-md text-on-surface-variant leading-relaxed">
               {currentDescription || "Alta qualidade e personalização total para o seu negócio. Nossos produtos são fabricados com os melhores materiais do mercado, garantindo durabilidade e uma estética impecável para sua marca."}
             </p>
+
+            {/* Aviso da linha (ex.: pedido mínimo) */}
+            {activeVariant?.note && (
+              <p className="mt-4 flex items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 font-body-md text-sm font-bold text-primary">
+                <Info className="mt-0.5 h-4 w-4 flex-shrink-0" />
+                {activeVariant.note}
+              </p>
+            )}
+
+            <div className="mb-8 border-b border-outline-variant/30 pb-8" />
 
             <div className="flex flex-col gap-8 mb-10">
               {/* Seleção de Borda (Tapetes) */}

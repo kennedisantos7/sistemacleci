@@ -14,6 +14,7 @@ const variantSchema = z.object({
   name: z.string().trim().min(2, "Informe o nome da linha.").max(80),
   image: z.string().url("Imagem da linha inválida.").optional().or(z.literal("")),
   description: z.string().trim().max(2000).optional(),
+  note: z.string().trim().max(200).optional(),
   sizes: stringArray.default([]),
   codes: stringArray.default([]),
 });
@@ -85,6 +86,7 @@ function parseForm(formData: FormData) {
         name: v.name,
         image: v.image || null,
         description: v.description || null,
+        note: v.note || null,
         sizes: v.sizes,
         codes: v.codes,
       })),

@@ -63,6 +63,7 @@ function toVariants(raw: unknown): ProductVariant[] | undefined {
         image: typeof v.image === "string" && v.image ? v.image : undefined,
         description:
           typeof v.description === "string" && v.description ? v.description : undefined,
+        note: typeof v.note === "string" && v.note ? v.note : undefined,
         sizes: strings(v.sizes),
         codes: strings(v.codes),
       },

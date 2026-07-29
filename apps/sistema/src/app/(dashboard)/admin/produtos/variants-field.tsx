@@ -11,6 +11,8 @@ export type VariantValue = {
   name: string;
   image?: string | null;
   description?: string | null;
+  /** Aviso em destaque na página (ex.: pedido mínimo). */
+  note?: string | null;
   sizes: string[];
   codes: string[];
 };
@@ -154,6 +156,12 @@ export function VariantsField({
             onChange={(e) => patch(i, { description: e.target.value })}
           />
 
+          <Input
+            value={variant.note ?? ""}
+            placeholder="Aviso em destaque (ex.: Pedido mínimo de 1.000 unidades)"
+            onChange={(e) => patch(i, { note: e.target.value })}
+          />
+
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">
               Imagem da linha (opcional)
@@ -188,7 +196,10 @@ export function VariantsField({
         variant="outline"
         size="sm"
         onClick={() =>
-          setVariants((prev) => [...prev, { name: "", description: "", image: "", sizes: [], codes: [] }])
+          setVariants((prev) => [
+            ...prev,
+            { name: "", description: "", note: "", image: "", sizes: [], codes: [] },
+          ])
         }
       >
         <Plus className="h-4 w-4" />
