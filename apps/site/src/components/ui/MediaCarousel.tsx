@@ -139,17 +139,24 @@ export default function MediaCarousel({
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          {/* Pontinhos */}
-          <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
-            {items.map((item, i) => (
-              <span
-                key={`dot-${item.url}-${i}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? "w-4 bg-primary" : "w-1.5 bg-on-surface/25"
-                }`}
-              />
-            ))}
-          </div>
+          {/* Contagem (ex.: 1/23) */}
+          <span className="pointer-events-none absolute right-2 top-2 z-20 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-bold tabular-nums text-white">
+            {index + 1}/{items.length}
+          </span>
+
+          {/* Pontinhos — acima de 8 mídias viram poluição; a contagem já orienta */}
+          {items.length <= 8 && (
+            <div className="pointer-events-none absolute bottom-2 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
+              {items.map((item, i) => (
+                <span
+                  key={`dot-${item.url}-${i}`}
+                  className={`h-1.5 rounded-full transition-all ${
+                    i === index ? "w-4 bg-primary" : "w-1.5 bg-on-surface/25"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>
