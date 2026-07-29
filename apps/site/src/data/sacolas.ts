@@ -197,6 +197,11 @@ export const SACOLAS_CATALOG: Product[] = [
     title: "ALÇA BOCA DE PALHAÇO",
     category: "TNT",
     image: "https://imgur.com/sek8sYC.png",
+    images: [
+      "https://i.imgur.com/sXidxks.png",
+      "https://i.imgur.com/OjScGYW.png",
+      "https://i.imgur.com/uxrx9R6.png",
+    ],
     codes: ["4033"],
     sizes: ["Com 100 unidades"],
     description: "Sacola boca de palhaço de TNT personalizada, é um tipo de embalagem versátil e resistente, focada em sustentabilidade, pois é reutilizável. Tem a finalidade de servir como embalagem para brindes, presentes, festas e outros produtos leves de varejo. O TNT tem vantagens com relação ao plástico pela sua resistência e por ser ecologicamente correto.",
