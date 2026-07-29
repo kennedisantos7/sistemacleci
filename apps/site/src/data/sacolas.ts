@@ -35,6 +35,16 @@ export const SACOLAS_CATALOG: Product[] = [
       "https://i.imgur.com/B3k9g0H.png",
       "https://i.imgur.com/9R2ridg.png",
       "https://i.imgur.com/rnvKDex.png",
+      // Fotos da linha colorida
+      "https://i.imgur.com/uxrx9R6.png",
+      "https://i.imgur.com/JxUeLKN.png",
+      "https://i.imgur.com/EmeAUSu.png",
+      "https://i.imgur.com/pzol4z3.png",
+      "https://i.imgur.com/1c0HO8Y.png",
+      "https://i.imgur.com/pvGHf4I.png",
+      "https://i.imgur.com/PbMmV0x.png",
+      // Vídeo da linha cristal
+      "https://i.imgur.com/LME5Z6v.mp4",
     ],
     description: "Também chamada de Alça Vazada, é muito usada em lojas de confecções, óticas e lojas que desejam transportar produtos com mais elegância. Escolha o modelo: colorida, fosca ou cristal.",
     variants: [
