@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { prisma, BudgetStatus, SaleStatus } from "@cleci/db";
+import { BudgetStatus, SaleStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { isBudgetOverdue } from "@/server/services/budgets";
+import { isBudgetOverdue, listBudgetsForActor } from "@/server/services/budgets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
+import { BUDGET_ROLES, canSeeAllBudgets } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
 
@@ -36,35 +37,30 @@ function isBudgetStatus(v: string): v is BudgetStatus {
   return v in STATUS_LABEL;
 }
 
-export default async function VendedorOrcamentosPage({
+export default async function OrcamentosPage({
   searchParams,
 }: {
   searchParams: Promise<{ status?: string }>;
 }) {
-  const user = await requireUser(["VENDEDOR_FIXO"]);
+  const user = await requireUser(BUDGET_ROLES);
   const { status } = await searchParams;
   const statusFilter = status && isBudgetStatus(status) ? status : undefined;
+  const seesAll = canSeeAllBudgets(user.role);
 
-  const budgets = await prisma.budget.findMany({
-    where: { vendedorId: user.id, ...(statusFilter ? { status: statusFilter } : {}) },
-    include: {
-      client: { select: { name: true, companyName: true } },
-      sale: { select: { status: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-  });
+  const budgets = await listBudgetsForActor(user, { status: statusFilter, take: 50 });
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Orçamentos</h1>
+          <h1 className="text-2xl font-bold">Orçamentos e pedidos</h1>
           <p className="text-muted-foreground">
-            Acompanhe todos os orçamentos enviados e o andamento das vendas.
+            {seesAll
+              ? "Acompanhe os orçamentos de toda a equipe e o andamento das vendas."
+              : "Acompanhe seus orçamentos e o andamento das vendas."}
           </p>
         </div>
-        <Link href="/vendedor/orcamentos/novo" className={buttonVariants({ className: "w-fit" })}>
+        <Link href="/orcamentos/novo" className={buttonVariants({ className: "w-fit" })}>
           Novo orçamento
         </Link>
       </header>
@@ -76,7 +72,7 @@ export default async function VendedorOrcamentosPage({
           return (
             <Link
               key={f.value}
-              href={f.value ? `/vendedor/orcamentos?status=${f.value}` : "/vendedor/orcamentos"}
+              href={f.value ? `/orcamentos?status=${f.value}` : "/orcamentos"}
               className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                 active
                   ? "bg-primary text-primary-foreground"
@@ -98,7 +94,11 @@ export default async function VendedorOrcamentosPage({
         <CardContent>
           {budgets.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {statusFilter ? "Nenhum orçamento com este status." : "Você ainda não criou orçamentos."}
+              {statusFilter
+                ? "Nenhum orçamento com este status."
+                : seesAll
+                  ? "Nenhum orçamento criado ainda."
+                  : "Você ainda não criou orçamentos."}
             </p>
           ) : (
             <div className="divide-y divide-border">
@@ -113,17 +113,24 @@ export default async function VendedorOrcamentosPage({
                 return (
                   <Link
                     key={b.id}
-                    href={`/vendedor/orcamentos/${b.id}`}
+                    href={`/orcamentos/${b.id}`}
                     className="flex flex-col gap-1 py-3 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between sm:px-2"
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">
-                        #{b.number} · {b.client.name}
-                        {b.title ? <span className="text-muted-foreground"> — {b.title}</span> : null}
+                        {b.docType === "PEDIDO" ? "Pedido" : "Orçamento"} #{b.number} ·{" "}
+                        {b.client.name}
+                        {b.title ? (
+                          <span className="text-muted-foreground"> — {b.title}</span>
+                        ) : null}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {formatCents(b.totalCents)} · {b.createdAt.toLocaleDateString("pt-BR")}
+                        {formatCents(b.totalCents)} · {b._count.items} ite
+                        {b._count.items === 1 ? "m" : "ns"} ·{" "}
+                        {b.createdAt.toLocaleDateString("pt-BR")}
                         {b.sale ? ` · venda: ${saleLabel}` : ""}
+                        {/* Quem vê a equipe inteira precisa saber de quem é o orçamento. */}
+                        {seesAll ? ` · ${b.vendedor.name ?? b.vendedor.email}` : ""}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">

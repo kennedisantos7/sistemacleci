@@ -1,106 +1,304 @@
-import { prisma, BudgetStatus, SaleOrigin, SaleStatus } from "@cleci/db";
+import {
+  prisma,
+  BudgetStatus,
+  BudgetDocType,
+  AdjustmentMode,
+  PriceUnit,
+  SaleOrigin,
+  SaleStatus,
+  type Prisma,
+  type Role,
+} from "@cleci/db";
 import { z } from "zod";
 import { markSalePaid } from "./sales";
+import { getPriceItemsByIds } from "./price-items";
+import { canSeeAllBudgets } from "@/lib/rbac";
+import {
+  calcBudget,
+  type Adjustment,
+  type BudgetAdjustments,
+  type BudgetUnit,
+} from "@/lib/budget-math";
 
 // ---------------------------------------------------------------------------
-// Validação dos itens (enviados pelo formulário como JSON).
+// Escopo por papel
 // ---------------------------------------------------------------------------
+// Admin/desenvolvedor/gerente enxergam os orçamentos de toda a equipe; o
+// vendedor só os próprios. Todo acesso passa por aqui — nunca só pela UI.
+
+export type BudgetActor = { id: string; role: Role };
+
+function scopeWhere(actor: BudgetActor): Prisma.BudgetWhereInput {
+  return canSeeAllBudgets(actor.role) ? {} : { vendedorId: actor.id };
+}
+
+function clientScopeWhere(actor: BudgetActor): Prisma.ClientWhereInput {
+  return canSeeAllBudgets(actor.role) ? {} : { vendedorId: actor.id };
+}
+
+// ---------------------------------------------------------------------------
+// Validação (o formulário envia os itens como JSON)
+// ---------------------------------------------------------------------------
+
+const decimalString = z
+  .number()
+  .nonnegative()
+  .max(10_000)
+  .transform((n) => Math.round(n * 1000) / 1000);
+
 export const budgetItemsSchema = z
   .array(
-    z.object({
-      description: z.string().trim().min(1, "Descreva o item.").max(500),
-      quantity: z.number().positive("Quantidade inválida.").max(100_000),
-      unitPriceCents: z.number().int().min(0).max(100_000_000),
-    }),
+    z
+      .object({
+        priceItemId: z.string().cuid().nullable().optional(),
+        description: z.string().trim().min(1, "Descreva o item.").max(500),
+        unit: z.nativeEnum(PriceUnit).default(PriceUnit.UNIDADE),
+        widthM: decimalString.nullable().optional(),
+        lengthM: decimalString.nullable().optional(),
+        quantity: z.number().positive("Quantidade inválida.").max(100_000),
+        unitPriceCents: z.number().int().min(0).max(100_000_000),
+      })
+      .superRefine((item, ctx) => {
+        // Itens por m² precisam das duas medidas — senão o total sai zerado
+        // sem o vendedor perceber.
+        if (item.unit !== PriceUnit.M2) return;
+        if (!item.widthM || !item.lengthM) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `"${item.description}": informe largura e comprimento (item cobrado por m²).`,
+          });
+        }
+      }),
   )
   .min(1, "Adicione ao menos um item.")
-  .max(50);
+  .max(200); // itens ilimitados na prática; teto só para barrar abuso
 
 export type BudgetItemInput = z.infer<typeof budgetItemsSchema>[number];
 
+const adjustmentSchema = z.object({
+  mode: z.nativeEnum(AdjustmentMode).default(AdjustmentMode.VALOR),
+  // centavos quando VALOR, bps quando PERCENTUAL (10000 bps = 100%)
+  input: z.number().int().min(0).max(100_000_000).default(0),
+});
+
+export const budgetAdjustmentsSchema = z.object({
+  discount: adjustmentSchema,
+  surcharge: adjustmentSchema,
+  freight: adjustmentSchema,
+  tax: adjustmentSchema,
+});
+
+export type BudgetAdjustmentsInput = z.infer<typeof budgetAdjustmentsSchema>;
+
+export const ZERO_ADJUSTMENTS: BudgetAdjustmentsInput = {
+  discount: { mode: AdjustmentMode.VALOR, input: 0 },
+  surcharge: { mode: AdjustmentMode.VALOR, input: 0 },
+  freight: { mode: AdjustmentMode.VALOR, input: 0 },
+  tax: { mode: AdjustmentMode.VALOR, input: 0 },
+};
+
 export type BudgetHeaderInput = {
   clientId: string;
+  docType: BudgetDocType;
   title?: string | null;
   note?: string | null;
   validUntil?: Date | null;
+  paymentTerms?: string | null;
+  deliveryForecast?: string | null;
+  deliveryCity?: string | null;
 };
 
-/** Recalcula totais no servidor (nunca confia no total vindo do cliente). */
-export function recalculateTotals(items: BudgetItemInput[]) {
-  const withTotals = items.map((item, index) => {
-    const quantity = Math.round(item.quantity * 100) / 100;
-    return {
-      position: index,
-      description: item.description,
-      quantity,
-      unitPriceCents: item.unitPriceCents,
-      totalCents: Math.round(quantity * item.unitPriceCents),
-    };
-  });
-  const subtotalCents = withTotals.reduce((sum, item) => sum + item.totalCents, 0);
-  return { items: withTotals, subtotalCents, totalCents: subtotalCents };
+// ---------------------------------------------------------------------------
+// Cálculo (fonte da verdade)
+// ---------------------------------------------------------------------------
+
+function toAdjustment(input: { mode: AdjustmentMode; input: number }): Adjustment {
+  return { mode: input.mode === AdjustmentMode.PERCENTUAL ? "PERCENTUAL" : "VALOR", input: input.input };
 }
 
-/** Busca um orçamento garantindo que pertence ao vendedor. */
-export function getBudgetForVendedor(vendedorId: string, budgetId: string) {
+function toAdjustments(input: BudgetAdjustmentsInput): BudgetAdjustments {
+  return {
+    discount: toAdjustment(input.discount),
+    surcharge: toAdjustment(input.surcharge),
+    freight: toAdjustment(input.freight),
+    tax: toAdjustment(input.tax),
+  };
+}
+
+/**
+ * Recalcula tudo no servidor. O preço e a descrição podem ser ajustados pelo
+ * vendedor (a planilha permite), mas o `code` vem sempre da tabela de preços —
+ * o cliente não escolhe que código gravar.
+ */
+export async function buildBudgetData(
+  items: BudgetItemInput[],
+  adjustments: BudgetAdjustmentsInput,
+) {
+  const priceItemIds = items.map((i) => i.priceItemId).filter((id): id is string => Boolean(id));
+  const priceItems = await getPriceItemsByIds(priceItemIds);
+
+  // Um produto apagado entre abrir e salvar o formulário vira item avulso.
+  const linked = items.map((item) => {
+    const priceItem = item.priceItemId ? priceItems.get(item.priceItemId) : undefined;
+    return { item, priceItem };
+  });
+
+  const { items: calculated, totals } = calcBudget(
+    linked.map(({ item }) => ({
+      unit: item.unit as BudgetUnit,
+      unitPriceCents: item.unitPriceCents,
+      quantity: item.quantity,
+      widthM: item.widthM ?? null,
+      lengthM: item.lengthM ?? null,
+    })),
+    toAdjustments(adjustments),
+  );
+
+  const rows = linked.map(({ item, priceItem }, index) => {
+    const calc = calculated[index]!;
+    const isM2 = item.unit === PriceUnit.M2;
+    return {
+      position: index,
+      priceItemId: priceItem?.id ?? null,
+      code: priceItem?.code ?? null,
+      description: item.description,
+      unit: item.unit,
+      widthM: isM2 ? (item.widthM ?? null) : null,
+      lengthM: isM2 ? (item.lengthM ?? null) : null,
+      areaM2: calc.areaM2,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      partialCents: calc.partialCents,
+      totalCents: calc.totalCents,
+    };
+  });
+
+  return {
+    items: rows,
+    totals: {
+      subtotalCents: totals.subtotalCents,
+      totalCents: totals.totalCents,
+      discountMode: adjustments.discount.mode,
+      discountInput: adjustments.discount.input,
+      discountCents: totals.discountCents,
+      surchargeMode: adjustments.surcharge.mode,
+      surchargeInput: adjustments.surcharge.input,
+      surchargeCents: totals.surchargeCents,
+      freightMode: adjustments.freight.mode,
+      freightInput: adjustments.freight.input,
+      freightCents: totals.freightCents,
+      taxMode: adjustments.tax.mode,
+      taxInput: adjustments.tax.input,
+      taxCents: totals.taxCents,
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Leitura
+// ---------------------------------------------------------------------------
+
+const BUDGET_INCLUDE = {
+  client: true,
+  items: { orderBy: { position: "asc" } },
+  vendedor: { select: { id: true, name: true, email: true } },
+  sale: { select: { id: true, status: true, paidAt: true } },
+} satisfies Prisma.BudgetInclude;
+
+/** Busca um orçamento respeitando o escopo do papel. */
+export function getBudgetForActor(actor: BudgetActor, budgetId: string) {
   return prisma.budget.findFirst({
-    where: { id: budgetId, vendedorId },
+    where: { id: budgetId, ...scopeWhere(actor) },
+    include: BUDGET_INCLUDE,
+  });
+}
+
+/** Lista os orçamentos visíveis para o papel. */
+export function listBudgetsForActor(
+  actor: BudgetActor,
+  options: { status?: BudgetStatus; search?: string; take?: number } = {},
+) {
+  const { status, search, take = 100 } = options;
+  return prisma.budget.findMany({
+    where: {
+      ...scopeWhere(actor),
+      ...(status ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" } },
+              { client: { name: { contains: search, mode: "insensitive" } } },
+              { client: { companyName: { contains: search, mode: "insensitive" } } },
+            ],
+          }
+        : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take,
     include: {
-      client: true,
-      items: { orderBy: { position: "asc" } },
-      sale: { select: { id: true, status: true, paidAt: true } },
+      client: { select: { id: true, name: true, companyName: true } },
+      vendedor: { select: { id: true, name: true, email: true } },
+      sale: { select: { id: true, status: true } },
+      _count: { select: { items: true } },
     },
   });
 }
 
-export async function createBudget(
-  vendedorId: string,
-  header: BudgetHeaderInput,
-  items: BudgetItemInput[],
-) {
-  // O cliente do orçamento precisa pertencer ao vendedor.
+// ---------------------------------------------------------------------------
+// Escrita
+// ---------------------------------------------------------------------------
+
+/** O cliente precisa estar no escopo de quem está montando o orçamento. */
+async function assertClientInScope(actor: BudgetActor, clientId: string) {
   const client = await prisma.client.findFirst({
-    where: { id: header.clientId, vendedorId },
+    where: { id: clientId, ...clientScopeWhere(actor) },
     select: { id: true },
   });
   if (!client) throw new Error("Cliente inválido.");
+}
 
-  const totals = recalculateTotals(items);
+export async function createBudget(
+  actor: BudgetActor,
+  header: BudgetHeaderInput,
+  items: BudgetItemInput[],
+  adjustments: BudgetAdjustmentsInput,
+) {
+  await assertClientInScope(actor, header.clientId);
+  const data = await buildBudgetData(items, adjustments);
 
   return prisma.budget.create({
     data: {
-      vendedorId,
+      vendedorId: actor.id,
       clientId: header.clientId,
+      docType: header.docType,
       title: header.title ?? null,
       note: header.note ?? null,
       validUntil: header.validUntil ?? null,
-      subtotalCents: totals.subtotalCents,
-      totalCents: totals.totalCents,
-      items: { create: totals.items },
+      paymentTerms: header.paymentTerms ?? null,
+      deliveryForecast: header.deliveryForecast ?? null,
+      deliveryCity: header.deliveryCity ?? null,
+      ...data.totals,
+      items: { create: data.items },
     },
   });
 }
 
 /** Atualiza um orçamento — somente enquanto RASCUNHO (imutável após envio). */
 export async function updateBudget(
-  vendedorId: string,
+  actor: BudgetActor,
   budgetId: string,
   header: BudgetHeaderInput,
   items: BudgetItemInput[],
+  adjustments: BudgetAdjustmentsInput,
 ) {
   const budget = await prisma.budget.findFirst({
-    where: { id: budgetId, vendedorId, status: BudgetStatus.RASCUNHO },
+    where: { id: budgetId, status: BudgetStatus.RASCUNHO, ...scopeWhere(actor) },
     select: { id: true },
   });
   if (!budget) throw new Error("Orçamento não encontrado ou já enviado (não editável).");
 
-  const client = await prisma.client.findFirst({
-    where: { id: header.clientId, vendedorId },
-    select: { id: true },
-  });
-  if (!client) throw new Error("Cliente inválido.");
-
-  const totals = recalculateTotals(items);
+  await assertClientInScope(actor, header.clientId);
+  const data = await buildBudgetData(items, adjustments);
 
   return prisma.$transaction(async (tx) => {
     await tx.budgetItem.deleteMany({ where: { budgetId } });
@@ -108,15 +306,26 @@ export async function updateBudget(
       where: { id: budgetId },
       data: {
         clientId: header.clientId,
+        docType: header.docType,
         title: header.title ?? null,
         note: header.note ?? null,
         validUntil: header.validUntil ?? null,
-        subtotalCents: totals.subtotalCents,
-        totalCents: totals.totalCents,
-        items: { create: totals.items },
+        paymentTerms: header.paymentTerms ?? null,
+        deliveryForecast: header.deliveryForecast ?? null,
+        deliveryCity: header.deliveryCity ?? null,
+        ...data.totals,
+        items: { create: data.items },
       },
     });
   });
+}
+
+/** Exclui um orçamento em rascunho (nunca um já enviado/aceito). */
+export async function deleteBudget(actor: BudgetActor, budgetId: string) {
+  const res = await prisma.budget.deleteMany({
+    where: { id: budgetId, status: BudgetStatus.RASCUNHO, saleId: null, ...scopeWhere(actor) },
+  });
+  if (res.count === 0) throw new Error("Só rascunhos podem ser excluídos.");
 }
 
 // ---------------------------------------------------------------------------
@@ -124,18 +333,18 @@ export async function updateBudget(
 // ---------------------------------------------------------------------------
 
 /** RASCUNHO -> ENVIADO. */
-export async function markBudgetSent(vendedorId: string, budgetId: string) {
+export async function markBudgetSent(actor: BudgetActor, budgetId: string) {
   const res = await prisma.budget.updateMany({
-    where: { id: budgetId, vendedorId, status: BudgetStatus.RASCUNHO },
+    where: { id: budgetId, status: BudgetStatus.RASCUNHO, ...scopeWhere(actor) },
     data: { status: BudgetStatus.ENVIADO, sentAt: new Date() },
   });
   if (res.count === 0) throw new Error("Orçamento não está em rascunho.");
 }
 
 /** ENVIADO -> RASCUNHO (corrigir antes de reenviar). Só sem venda vinculada. */
-export async function revertBudgetToDraft(vendedorId: string, budgetId: string) {
+export async function revertBudgetToDraft(actor: BudgetActor, budgetId: string) {
   const res = await prisma.budget.updateMany({
-    where: { id: budgetId, vendedorId, status: BudgetStatus.ENVIADO, saleId: null },
+    where: { id: budgetId, status: BudgetStatus.ENVIADO, saleId: null, ...scopeWhere(actor) },
     data: { status: BudgetStatus.RASCUNHO, sentAt: null },
   });
   if (res.count === 0) throw new Error("Orçamento não pode voltar para rascunho.");
@@ -144,12 +353,18 @@ export async function revertBudgetToDraft(vendedorId: string, budgetId: string) 
 /**
  * ENVIADO -> ACEITO. Cria a venda correspondente (origin ORCAMENTO, status
  * PENDENTE — "aceito" significa aprovação do cliente, não dinheiro em caixa).
+ * A venda fica no nome do vendedor dono do orçamento, não de quem clicou.
  * Idempotente: recusa se já existe venda vinculada.
  */
-export async function markBudgetAccepted(vendedorId: string, budgetId: string) {
+export async function markBudgetAccepted(actor: BudgetActor, budgetId: string) {
   return prisma.$transaction(async (tx) => {
     const budget = await tx.budget.findFirst({
-      where: { id: budgetId, vendedorId, status: BudgetStatus.ENVIADO, saleId: null },
+      where: {
+        id: budgetId,
+        status: BudgetStatus.ENVIADO,
+        saleId: null,
+        ...scopeWhere(actor),
+      },
       include: { client: { select: { name: true, email: true } } },
     });
     if (!budget) throw new Error("Orçamento não pode ser aceito neste estado.");
@@ -164,8 +379,8 @@ export async function markBudgetAccepted(vendedorId: string, budgetId: string) {
         currency: "BRL",
         customerName: budget.client.name,
         customerEmail: budget.client.email,
-        note: `Orçamento #${budget.number}`,
-        userId: vendedorId,
+        note: `${budget.docType === BudgetDocType.PEDIDO ? "Pedido" : "Orçamento"} #${budget.number}`,
+        userId: budget.vendedorId,
       },
     });
 
@@ -179,18 +394,18 @@ export async function markBudgetAccepted(vendedorId: string, budgetId: string) {
 }
 
 /** ENVIADO -> RECUSADO. Não gera venda. */
-export async function markBudgetRejected(vendedorId: string, budgetId: string) {
+export async function markBudgetRejected(actor: BudgetActor, budgetId: string) {
   const res = await prisma.budget.updateMany({
-    where: { id: budgetId, vendedorId, status: BudgetStatus.ENVIADO },
+    where: { id: budgetId, status: BudgetStatus.ENVIADO, ...scopeWhere(actor) },
     data: { status: BudgetStatus.RECUSADO, respondedAt: new Date() },
   });
   if (res.count === 0) throw new Error("Orçamento não pode ser recusado neste estado.");
 }
 
 /** Marca a venda do orçamento aceito como finalizada (paga). */
-export async function markBudgetSaleFinalized(vendedorId: string, budgetId: string) {
+export async function markBudgetSaleFinalized(actor: BudgetActor, budgetId: string) {
   const budget = await prisma.budget.findFirst({
-    where: { id: budgetId, vendedorId, status: BudgetStatus.ACEITO },
+    where: { id: budgetId, status: BudgetStatus.ACEITO, ...scopeWhere(actor) },
     include: { sale: true },
   });
   if (!budget?.sale) throw new Error("Orçamento não tem venda vinculada.");

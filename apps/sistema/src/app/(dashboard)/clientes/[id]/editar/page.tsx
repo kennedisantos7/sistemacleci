@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/server/session";
-import { getClientForVendedor } from "@/server/services/clients";
+import { BUDGET_ROLES } from "@/lib/rbac";
+import { getClientForActor } from "@/server/services/clients";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientForm } from "../../client-form";
 import { DeleteClientButton } from "../../delete-client-button";
@@ -12,10 +13,10 @@ export default async function EditarClientePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireUser(["VENDEDOR_FIXO"]);
+  const user = await requireUser(BUDGET_ROLES);
   const { id } = await params;
 
-  const client = await getClientForVendedor(user.id, id);
+  const client = await getClientForActor(user, id);
   if (!client) notFound();
 
   return (

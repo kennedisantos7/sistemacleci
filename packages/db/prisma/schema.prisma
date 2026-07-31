@@ -351,6 +351,14 @@ model Client {
   phone       String? // WhatsApp
   note        String?
 
+  // Endereço/contato do bloco de cliente do pedido impresso.
+  whatsapp    String?
+  contactName String? // "CONTATO:" na planilha
+  address     String?
+  city        String?
+  state       String?
+  zip         String?
+
   budgets Budget[]
 
   createdAt DateTime @default(now())
@@ -359,13 +367,63 @@ model Client {
   @@index([vendedorId, name])
 }
 
-// ----------------- Orçamentos (Vendedor Fixo) ---------------
+// ------------- Tabela de preços (base do orçamento) ---------
+// Espelha a planilha de produtos: código, descrição, unidade e valor.
+// Separada do catálogo do site (Category > Subcategory > Product), que existe
+// para vitrine e tem outra granularidade.
+enum PriceUnit {
+  M2 // cobrado por metro quadrado (largura × comprimento)
+  UNIDADE
+  PACOTE
+  MILHEIRO
+}
+
+model PriceItem {
+  id String @id @default(cuid())
+
+  code        String    @unique // código da planilha, ex.: "2047"
+  description String
+  unit        PriceUnit @default(UNIDADE)
+  priceCents  Int // valor unitário (ou por m² quando unit = M2)
+  group       String? // agrupador para busca, ex.: "Tapetes"
+
+  // Descrição sem acento e em maiúsculas: ILIKE do Postgres não ignora acento,
+  // então "acrescimo" só acha "ACRÉSCIMO" comparando por aqui.
+  // Sempre derivada de `description` (ver normalizeSearch em price-items.ts).
+  searchText String @default("")
+
+  active   Boolean @default(true)
+  position Int     @default(0)
+
+  budgetItems BudgetItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, position])
+  @@index([group])
+  @@index([searchText])
+}
+
+// ----------------- Orçamentos / Pedidos ---------------------
 enum BudgetStatus {
   RASCUNHO
   ENVIADO
   ACEITO
   RECUSADO
   EXPIRADO
+}
+
+/** Os dois selos do cabeçalho da planilha. */
+enum BudgetDocType {
+  ORCAMENTO
+  PEDIDO
+}
+
+/** Desconto/adicional/frete/imposto podem ser em R$ ou em % do subtotal. */
+enum AdjustmentMode {
+  VALOR
+  PERCENTUAL
 }
 
 model Budget {
@@ -377,11 +435,33 @@ model Budget {
   clientId   String
   client     Client @relation(fields: [clientId], references: [id]) // sem cascade: protege o histórico
 
-  status BudgetStatus @default(RASCUNHO)
+  status  BudgetStatus  @default(RASCUNHO)
+  docType BudgetDocType @default(ORCAMENTO)
 
   title      String? // ex.: "Orçamento — Fachada Loja X"
   note       String? // observações impressas no PDF
   validUntil DateTime?
+
+  // Cabeçalho do pedido impresso.
+  paymentTerms     String? // "Condição de pagamento", ex.: "Pix"
+  deliveryForecast String? // "Previsão de entrega", ex.: "15 dias"
+  deliveryCity     String? // cidade de entrega
+
+  // Ajustes do rodapé. Para cada um guardamos o modo, o que foi digitado
+  // (centavos quando VALOR, bps quando PERCENTUAL) e o valor já resolvido em
+  // centavos — assim o histórico não muda se a regra de cálculo evoluir.
+  discountMode   AdjustmentMode @default(VALOR)
+  discountInput  Int            @default(0)
+  discountCents  Int            @default(0)
+  surchargeMode  AdjustmentMode @default(VALOR)
+  surchargeInput Int            @default(0)
+  surchargeCents Int            @default(0)
+  freightMode    AdjustmentMode @default(VALOR)
+  freightInput   Int            @default(0)
+  freightCents   Int            @default(0)
+  taxMode        AdjustmentMode @default(VALOR)
+  taxInput       Int            @default(0)
+  taxCents       Int            @default(0)
 
   // Denormalizados para listagem barata; SEMPRE recalculados no servidor.
   subtotalCents Int @default(0)
@@ -408,15 +488,32 @@ model BudgetItem {
   budgetId String
   budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
 
-  position       Int // ordem de exibição
-  description    String
+  // Produto da tabela de preços (opcional: item avulso é permitido).
+  // SetNull: apagar um produto não apaga o histórico do orçamento.
+  priceItemId String?
+  priceItem   PriceItem? @relation(fields: [priceItemId], references: [id], onDelete: SetNull)
+
+  position    Int // ordem de exibição
+  description String
+
+  // Snapshot do produto no momento do orçamento — preço pode mudar depois.
+  code String?
+  unit PriceUnit @default(UNIDADE)
+
+  // Dimensões (só quando unit = M2). areaM2 = widthM × lengthM.
+  widthM  Decimal? @db.Decimal(10, 3)
+  lengthM Decimal? @db.Decimal(10, 3)
+  areaM2  Decimal? @db.Decimal(12, 4)
+
   quantity       Decimal @default(1) @db.Decimal(10, 2) // permite fração (ex.: metros)
   unitPriceCents Int
+  partialCents   Int     @default(0) // "Valor Parcial": preço × m² (ou o próprio preço)
   totalCents     Int // persistido: PDF/histórico estável
 
   createdAt DateTime @default(now())
 
   @@index([budgetId, position])
+  @@index([priceItemId])
 }
 
 // ----------- Metas de venda (Vendedor Fixo) -----------------

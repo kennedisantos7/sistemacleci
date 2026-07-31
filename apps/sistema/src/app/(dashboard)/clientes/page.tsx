@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/server/session";
 import { listClients } from "@/server/services/clients";
+import { BUDGET_ROLES, canSeeAllBudgets } from "@/lib/rbac";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,22 +13,25 @@ export default async function VendedorClientesPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
-  const user = await requireUser(["VENDEDOR_FIXO"]);
+  const user = await requireUser(BUDGET_ROLES);
   const { q } = await searchParams;
   const search = q?.trim() || undefined;
 
-  const clients = await listClients(user.id, search);
+  const clients = await listClients(user, search);
+  const seesAll = canSeeAllBudgets(user.role);
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Meus clientes</h1>
+          <h1 className="text-2xl font-bold">{seesAll ? "Clientes" : "Meus clientes"}</h1>
           <p className="text-muted-foreground">
-            Cadastre e acompanhe os clientes e empresas da sua carteira.
+            {seesAll
+              ? "Clientes cadastrados por toda a equipe de vendas."
+              : "Cadastre e acompanhe os clientes e empresas da sua carteira."}
           </p>
         </div>
-        <Link href="/vendedor/clientes/novo" className={buttonVariants({ className: "w-fit" })}>
+        <Link href="/clientes/novo" className={buttonVariants({ className: "w-fit" })}>
           Novo cliente
         </Link>
       </header>
@@ -63,19 +67,23 @@ export default async function VendedorClientesPage({
                       ) : null}
                     </p>
                     <p className="truncate text-xs text-muted-foreground">
-                      {[c.phone, c.email, c.document].filter(Boolean).join(" · ") || "—"} ·{" "}
-                      {c._count.budgets} orçamento{c._count.budgets === 1 ? "" : "s"}
+                      {[c.phone ?? c.whatsapp, c.email, c.document, c.city]
+                        .filter(Boolean)
+                        .join(" · ") || "—"}{" "}
+                      · {c._count.budgets} orçamento{c._count.budgets === 1 ? "" : "s"}
+                      {/* Quem vê a equipe inteira precisa saber de quem é o cliente. */}
+                      {seesAll ? ` · ${c.vendedor.name ?? c.vendedor.email}` : ""}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <Link
-                      href={`/vendedor/orcamentos/novo?cliente=${c.id}`}
+                      href={`/orcamentos/novo?cliente=${c.id}`}
                       className="text-sm font-medium text-primary hover:underline"
                     >
                       Novo orçamento
                     </Link>
                     <Link
-                      href={`/vendedor/clientes/${c.id}/editar`}
+                      href={`/clientes/${c.id}/editar`}
                       className="text-sm font-medium text-foreground/70 hover:text-foreground hover:underline"
                     >
                       Editar

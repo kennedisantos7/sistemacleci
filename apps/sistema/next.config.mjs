@@ -31,6 +31,16 @@ const nextConfig = {
     ];
     return [{ source: "/:path*", headers: securityHeaders }];
   },
+  // Orçamentos/clientes deixaram de ser só do vendedor e viraram rotas
+  // compartilhadas com admin/gerente. Links antigos continuam funcionando.
+  async redirects() {
+    return [
+      { source: "/vendedor/orcamentos", destination: "/orcamentos", permanent: true },
+      { source: "/vendedor/orcamentos/:path*", destination: "/orcamentos/:path*", permanent: true },
+      { source: "/vendedor/clientes", destination: "/clientes", permanent: true },
+      { source: "/vendedor/clientes/:path*", destination: "/clientes/:path*", permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;

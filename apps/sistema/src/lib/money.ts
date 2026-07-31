@@ -38,6 +38,37 @@ export function parseReaisToCents(input: string): number | null {
 }
 
 /**
+ * Igual a `parseReaisToCents`, mas aceita zero e campo vazio (-> 0). Usado no
+ * orçamento: há produtos sem preço na tabela e desconto/frete começam zerados.
+ * Retorna null só quando o texto é realmente inválido.
+ */
+export function parseReaisToCentsAllowZero(input: string): number | null {
+  const s = input.trim();
+  if (!s) return 0;
+  const normalized = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+  const value = Number(normalized);
+  if (!Number.isFinite(value) || value < 0) return null;
+  return Math.round(value * 100);
+}
+
+/**
+ * Converte uma medida em metros ("2", "1,5") para número com 3 casas.
+ * Vazio -> null (o item ainda não foi dimensionado); inválido -> undefined.
+ */
+export function parseMeters(input: string): number | null | undefined {
+  const s = input.trim();
+  if (!s) return null;
+  const value = Number(s.replace(",", "."));
+  if (!Number.isFinite(value) || value <= 0 || value > 10_000) return undefined;
+  return Math.round(value * 1000) / 1000;
+}
+
+/** Formata uma medida/área para exibição (pt-BR). */
+export function formatDecimal(value: number, maximumFractionDigits = 2): string {
+  return value.toLocaleString("pt-BR", { maximumFractionDigits });
+}
+
+/**
  * Converte uma quantidade digitada ("2", "2,5" ou "2.5") em número com até
  * 2 casas decimais. Retorna null se inválido/não-positivo.
  */

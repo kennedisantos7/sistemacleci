@@ -15,6 +15,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",
     "seed:catalog": "tsx prisma/seed-catalog.ts",
+    "seed:precos": "tsx prisma/seed-price-table.ts",
     "studio": "prisma studio",
     "typecheck": "tsc --noEmit"
   },

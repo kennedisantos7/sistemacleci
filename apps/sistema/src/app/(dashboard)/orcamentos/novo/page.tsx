@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireUser } from "@/server/session";
-import { listClients } from "@/server/services/clients";
+import { listClientOptions } from "@/server/services/clients";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
+import { BUDGET_ROLES } from "@/lib/rbac";
 import { BudgetForm } from "../budget-form";
 
 export const dynamic = "force-dynamic";
@@ -12,10 +13,10 @@ export default async function NovoOrcamentoPage({
 }: {
   searchParams: Promise<{ cliente?: string }>;
 }) {
-  const user = await requireUser(["VENDEDOR_FIXO"]);
+  const user = await requireUser(BUDGET_ROLES);
   const { cliente } = await searchParams;
 
-  const clients = await listClients(user.id);
+  const clients = await listClientOptions(user);
 
   if (clients.length === 0) {
     return (
@@ -26,12 +27,10 @@ export default async function NovoOrcamentoPage({
         <Card>
           <CardHeader>
             <CardTitle>Cadastre um cliente primeiro</CardTitle>
-            <CardDescription>
-              Todo orçamento é vinculado a um cliente da sua carteira.
-            </CardDescription>
+            <CardDescription>Todo orçamento é vinculado a um cliente.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link href="/vendedor/clientes/novo" className={buttonVariants()}>
+            <Link href="/clientes/novo" className={buttonVariants()}>
               Cadastrar cliente
             </Link>
           </CardContent>
@@ -43,11 +42,12 @@ export default async function NovoOrcamentoPage({
   const preselected = clients.some((c) => c.id === cliente) ? cliente : undefined;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Novo orçamento</h1>
         <p className="text-muted-foreground">
-          Monte os itens e salve — o orçamento nasce como rascunho.
+          Busque os produtos pelo código ou nome — o sistema calcula os totais. O documento nasce
+          como rascunho.
         </p>
       </header>
 

@@ -8,6 +8,9 @@ const ADMIN_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
   { href: "/admin/produtos", label: "Produtos" },
+  { href: "/orcamentos", label: "Orçamentos" },
+  { href: "/clientes", label: "Clientes" },
+  { href: "/admin/tabela-precos", label: "Tabela de preços" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/metas", label: "Metas" },
   { href: "/admin/saques", label: "Saques" },
@@ -26,6 +29,9 @@ const GERENTE_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
   { href: "/admin/produtos", label: "Produtos" },
+  { href: "/orcamentos", label: "Orçamentos" },
+  { href: "/clientes", label: "Clientes" },
+  { href: "/admin/tabela-precos", label: "Tabela de preços" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/metas", label: "Metas" },
 ];
@@ -36,8 +42,8 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
   GERENTE: GERENTE_NAV,
   VENDEDOR_FIXO: [
     { href: "/vendedor", label: "Dashboard" },
-    { href: "/vendedor/orcamentos", label: "Orçamentos" },
-    { href: "/vendedor/clientes", label: "Clientes" },
+    { href: "/orcamentos", label: "Orçamentos" },
+    { href: "/clientes", label: "Clientes" },
     { href: "/vendedor/links", label: "Meus Links" },
   ],
   AFILIADO: [

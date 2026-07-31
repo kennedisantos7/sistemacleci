@@ -9,6 +9,8 @@ export const STAFF_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE"];
 export const SELLER_ROLES: Role[] = ["VENDEDOR_FIXO", "AFILIADO"];
 /** Quem acumula comissão e pode solicitar saque (afiliado e desenvolvedor). */
 export const EARNER_ROLES: Role[] = ["AFILIADO", "DESENVOLVEDOR"];
+/** Quem monta orçamento/pedido e gerencia clientes. Afiliado fica de fora. */
+export const BUDGET_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO"];
 
 /** Acesso irrestrito (admin/desenvolvedor). */
 export function isFullAccess(role: Role | undefined): boolean {
@@ -19,8 +21,24 @@ export function isStaff(role: Role | undefined): boolean {
   return role !== undefined && STAFF_ROLES.includes(role);
 }
 
+/** Pode acessar o módulo de orçamento/pedido. */
+export function canUseBudgets(role: Role | undefined): boolean {
+  return role !== undefined && BUDGET_ROLES.includes(role);
+}
+
+/**
+ * Enxerga os orçamentos e clientes de toda a equipe. O vendedor vê só os seus;
+ * admin/desenvolvedor/gerente veem tudo.
+ */
+export function canSeeAllBudgets(role: Role | undefined): boolean {
+  return isStaff(role);
+}
+
 /** Prefixo de rota -> roles autorizadas. A primeira correspondência vence. */
 export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
+  // Orçamentos/clientes são compartilhados pela equipe de venda + administração.
+  { prefix: "/orcamentos", roles: BUDGET_ROLES },
+  { prefix: "/clientes", roles: BUDGET_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
   // O desenvolvedor usa /afiliado/saques para sacar a própria participação.

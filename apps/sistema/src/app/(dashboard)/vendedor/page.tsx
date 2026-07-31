@@ -46,7 +46,7 @@ export default async function VendedorDashboard() {
       </div>
 
       <p className="text-sm">
-        <Link href="/vendedor/orcamentos" className="text-primary hover:underline">
+        <Link href="/orcamentos" className="text-primary hover:underline">
           Ver todos os orçamentos →
         </Link>
       </p>

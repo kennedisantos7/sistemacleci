@@ -31,3 +31,7 @@ Thumbs.db
 # misc
 coverage/
 *.tsbuildinfo
+
+# Planilhas de origem do orcamento: o importador le so os .html.
+# resources/ e CSS/imagens gerados pelo Google Sheets (4 MB) para render no browser.
+Orçamento_pedido/resources/

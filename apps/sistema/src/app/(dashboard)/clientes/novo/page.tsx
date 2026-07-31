@@ -1,11 +1,12 @@
 import { requireUser } from "@/server/session";
+import { BUDGET_ROLES } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClientForm } from "../client-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovoClientePage() {
-  await requireUser(["VENDEDOR_FIXO"]);
+  await requireUser(BUDGET_ROLES);
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
