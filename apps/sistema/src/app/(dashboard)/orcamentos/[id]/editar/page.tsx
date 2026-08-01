@@ -4,7 +4,7 @@ import { requireUser } from "@/server/session";
 import { getBudgetForActor } from "@/server/services/budgets";
 import { listClientOptions } from "@/server/services/clients";
 import { Card, CardContent } from "@/components/ui/card";
-import { BUDGET_ROLES } from "@/lib/rbac";
+import { BUDGET_ROLES, isStaff } from "@/lib/rbac";
 import { BudgetForm } from "../../budget-form";
 import type { BudgetUnit, AdjustmentKind } from "@/lib/budget-math";
 
@@ -39,6 +39,7 @@ export default async function EditarOrcamentoPage({
         <CardContent className="pt-6">
           <BudgetForm
             clients={clients.map((c) => ({ id: c.id, name: c.name, companyName: c.companyName }))}
+            canManagePriceItems={isStaff(user.role)}
             defaults={{
               id: budget.id,
               clientId: budget.clientId,

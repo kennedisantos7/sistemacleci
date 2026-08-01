@@ -24,12 +24,15 @@ export function ProductSearch({
   onSelect,
   onClear,
   label,
+  canManagePriceItems = false,
 }: {
   /** Produto já vinculado à linha (null = item avulso). */
   value: { code: string | null; description: string } | null;
   onSelect: (option: ProductOption) => void;
   onClear: () => void;
   label: string;
+  /** Staff vê o atalho para cadastrar o produto que não existe na tabela. */
+  canManagePriceItems?: boolean;
 }) {
   const listId = useId();
   const [query, setQuery] = useState("");
@@ -86,18 +89,19 @@ export function ProductSearch({
     setOpen(false);
   }
 
-  // Produto já escolhido: mostra o chip com código, sem o campo de busca.
+  // Produto já escolhido: mostra o chip com o código, sem o campo de busca.
   if (value?.code) {
     return (
-      <div className="flex items-center gap-1 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5">
-        <span className="font-mono text-xs font-semibold text-primary">{value.code}</span>
+      <div className="flex h-10 items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2.5">
+        <span className="font-mono text-sm font-semibold text-primary">{value.code}</span>
         <button
           type="button"
           onClick={onClear}
-          aria-label={`Remover o produto do ${label}`}
-          className="ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          aria-label={`Trocar o produto do ${label}`}
+          title="Trocar produto"
+          className="ml-auto rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     );
@@ -106,15 +110,15 @@ export function ProductSearch({
   return (
     <div ref={boxRef} className="relative">
       <div className="relative">
-        <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           role="combobox"
           aria-expanded={open}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-label={`Buscar produto para o ${label}`}
-          placeholder="Código ou nome"
-          className="pl-8"
+          placeholder="Buscar por código ou nome..."
+          className="pl-9"
           value={query}
           onFocus={() => setOpen(true)}
           onChange={(e) => {
@@ -145,13 +149,24 @@ export function ProductSearch({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-72 w-[min(28rem,80vw)] overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg"
+          className="absolute z-30 mt-1 max-h-80 w-[min(34rem,calc(100vw-3rem))] overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg"
         >
           {loading && options.length === 0 ? (
             <li className="px-2 py-3 text-sm text-muted-foreground">Buscando...</li>
           ) : options.length === 0 ? (
-            <li className="px-2 py-3 text-sm text-muted-foreground">
-              Nenhum produto encontrado. Você pode digitar a descrição e o valor à mão.
+            <li className="space-y-1 px-2 py-3 text-sm text-muted-foreground">
+              <p>Nenhum produto encontrado com esse código ou nome.</p>
+              <p>Você pode digitar a descrição e o valor à mão neste item.</p>
+              {canManagePriceItems ? (
+                <a
+                  href="/admin/tabela-precos/novo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block pt-1 font-medium text-primary hover:underline"
+                >
+                  Cadastrar produto na tabela de preços →
+                </a>
+              ) : null}
             </li>
           ) : (
             options.map((option, index) => (

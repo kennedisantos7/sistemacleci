@@ -3,7 +3,7 @@ import { requireUser } from "@/server/session";
 import { listClientOptions } from "@/server/services/clients";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { BUDGET_ROLES } from "@/lib/rbac";
+import { BUDGET_ROLES, isStaff } from "@/lib/rbac";
 import { BudgetForm } from "../budget-form";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +56,7 @@ export default async function NovoOrcamentoPage({
           <BudgetForm
             clients={clients.map((c) => ({ id: c.id, name: c.name, companyName: c.companyName }))}
             defaults={preselected ? { clientId: preselected } : undefined}
+            canManagePriceItems={isStaff(user.role)}
           />
         </CardContent>
       </Card>

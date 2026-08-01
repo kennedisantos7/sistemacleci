@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { PackageSearch, Plus, Trash2 } from "lucide-react";
 import { createBudgetAction, updateBudgetAction, type BudgetFormState } from "./actions";
 import { ProductSearch, type ProductOption } from "./product-search";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,52 @@ import {
 const initial: BudgetFormState = {};
 
 const UNITS: BudgetUnit[] = ["M2", "UNIDADE", "PACOTE", "MILHEIRO"];
+
+/**
+ * Colunas da "planilha" no desktop (xl+). Abaixo disso cada item vira um card
+ * de 2 colunas. Usada no cabeçalho e nas linhas — precisam bater exatamente.
+ */
+const GRID_COLS =
+  "xl:grid-cols-[200px_minmax(0,1fr)_100px_100px_70px_70px_62px_100px_62px_104px_36px]";
+
+/** Rótulo acima do campo no celular; no desktop o cabeçalho da tabela já rotula. */
+function Field({
+  label,
+  className = "",
+  children,
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={className}>
+      <span className="mb-1 block text-xs text-muted-foreground xl:hidden">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Valor calculado: caixa tracejada no celular, texto puro no desktop. */
+function Computed({
+  children,
+  align = "left",
+  strong = false,
+}: {
+  children: React.ReactNode;
+  align?: "left" | "right";
+  strong?: boolean;
+}) {
+  return (
+    <div
+      className={`flex h-10 items-center rounded-md border border-dashed border-border bg-muted/40 px-2 text-sm tabular-nums xl:h-auto xl:rounded-none xl:border-0 xl:bg-transparent xl:px-0 ${
+        align === "right" ? "justify-end xl:justify-end" : ""
+      } ${strong ? "font-semibold" : ""}`}
+    >
+      {children}
+    </div>
+  );
+}
 
 type ItemRow = {
   key: string;
@@ -111,9 +157,12 @@ function adjustmentToRow(adj?: { mode: AdjustmentKind; input: number }): Adjustm
 export function BudgetForm({
   clients,
   defaults,
+  canManagePriceItems = false,
 }: {
   clients: ClientOption[];
   defaults?: BudgetDefaults;
+  /** Staff vê o atalho para cadastrar produto que falta na tabela de preços. */
+  canManagePriceItems?: boolean;
 }) {
   const isEdit = Boolean(defaults?.id);
   const [state, action, pending] = useActionState(
@@ -433,161 +482,59 @@ export function BudgetForm({
         </div>
       </div>
 
-      {/* Itens */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-            Itens
-          </h2>
+      {/* Itens — o coração da tela: card destacado com a busca de produto. */}
+      <section className="overflow-hidden rounded-xl border-2 border-primary/20 bg-card">
+        <header className="flex flex-col gap-3 border-b border-border bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-bold">
+              <PackageSearch className="h-5 w-5 text-primary" />
+              Produtos do orçamento
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Busque pelo código ou pelo nome — valor, unidade e cálculo vêm preenchidos.
+            </p>
+          </div>
           <Button
             type="button"
-            variant="outline"
-            size="sm"
+            className="w-full sm:w-auto"
             onClick={() => setItems((r) => [...r, newRow()])}
           >
             <Plus className="h-4 w-4" /> Adicionar item
           </Button>
-        </div>
+        </header>
 
-        {/* Cabeçalho da "planilha" — só no desktop; no mobile cada item é um card. */}
-        <div className="hidden gap-2 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground xl:grid xl:grid-cols-[130px_minmax(0,1fr)_110px_110px_76px_76px_66px_104px_66px_104px_32px]">
-          <span>Código</span>
-          <span>Descrição</span>
-          <span>Valor</span>
-          <span>Unidade</span>
-          <span>La.</span>
-          <span>Com.</span>
-          <span>M²</span>
-          <span className="text-right">Parcial</span>
-          <span>Qtd</span>
-          <span className="text-right">Total</span>
-          <span />
-        </div>
+        <div className="p-3 sm:p-4">
+          {/* Cabeçalho da "planilha" — só no desktop; no mobile cada item vira card. */}
+          <div className={`hidden gap-2 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground xl:grid ${GRID_COLS}`}>
+            <span>Produto</span>
+            <span>Descrição</span>
+            <span>Valor</span>
+            <span>Unidade</span>
+            <span>La.</span>
+            <span>Com.</span>
+            <span>M²</span>
+            <span className="text-right">Parcial</span>
+            <span>Qtd</span>
+            <span className="text-right">Total</span>
+            <span />
+          </div>
 
-        <div className="space-y-3 xl:space-y-0">
-          {items.map((row, i) => {
-            const result = lineResults[i];
-            const isArea = row.unit === "M2";
-            return (
-              <div
-                key={row.key}
-                className="rounded-lg border border-border bg-card p-3 xl:rounded-none xl:border-0 xl:border-b xl:bg-transparent xl:p-0"
-              >
-                <div className="grid gap-2 xl:grid-cols-[130px_minmax(0,1fr)_110px_110px_76px_76px_66px_104px_66px_104px_32px] xl:items-center xl:px-3 xl:py-1.5">
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Produto
+          <div className="space-y-3 xl:space-y-0">
+            {items.map((row, i) => {
+              const result = lineResults[i];
+              const isArea = row.unit === "M2";
+              // Fora do m², largura/comprimento só ocupam espaço no celular.
+              const areaOnly = isArea ? "" : "hidden xl:block";
+              return (
+                <div
+                  key={row.key}
+                  className="rounded-lg border border-border bg-background p-3 xl:rounded-none xl:border-0 xl:border-b xl:bg-transparent xl:p-0"
+                >
+                  {/* Cabeçalho do card (mobile): número do item + remover */}
+                  <div className="mb-2 flex items-center justify-between xl:hidden">
+                    <span className="text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Item {i + 1}
                     </span>
-                    <ProductSearch
-                      label={`item ${i + 1}`}
-                      value={row.code ? { code: row.code, description: row.description } : null}
-                      onSelect={(option) => applyProduct(row.key, option)}
-                      onClear={() => updateItem(row.key, { priceItemId: null, code: null })}
-                    />
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Descrição
-                    </span>
-                    <Textarea
-                      aria-label={`Descrição do item ${i + 1}`}
-                      placeholder="Busque um produto ou descreva o item"
-                      value={row.description}
-                      onChange={(e) => updateItem(row.key, { description: e.target.value })}
-                      className="min-h-[40px]"
-                      rows={1}
-                    />
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Valor {isArea ? "(R$/m²)" : "(R$)"}
-                    </span>
-                    <Input
-                      aria-label={`Valor do item ${i + 1}`}
-                      placeholder="0,00"
-                      inputMode="decimal"
-                      value={row.unitPrice}
-                      onChange={(e) => updateItem(row.key, { unitPrice: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Unidade
-                    </span>
-                    <select
-                      aria-label={`Unidade do item ${i + 1}`}
-                      value={row.unit}
-                      onChange={(e) => updateItem(row.key, { unit: e.target.value as BudgetUnit })}
-                      className="flex h-10 w-full rounded-md border border-border bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    >
-                      {UNITS.map((u) => (
-                        <option key={u} value={u}>
-                          {UNIT_LABEL[u]}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Largura (m)
-                    </span>
-                    <Input
-                      aria-label={`Largura do item ${i + 1}`}
-                      placeholder="—"
-                      inputMode="decimal"
-                      disabled={!isArea}
-                      value={isArea ? row.width : ""}
-                      onChange={(e) => updateItem(row.key, { width: e.target.value })}
-                    />
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">
-                      Comprimento (m)
-                    </span>
-                    <Input
-                      aria-label={`Comprimento do item ${i + 1}`}
-                      placeholder="—"
-                      inputMode="decimal"
-                      disabled={!isArea}
-                      value={isArea ? row.length : ""}
-                      onChange={(e) => updateItem(row.key, { length: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 text-sm tabular-nums">
-                    <span className="text-xs text-muted-foreground xl:hidden">M²:</span>
-                    {result?.areaM2 != null ? formatDecimal(result.areaM2, 4) : "—"}
-                  </div>
-
-                  <div className="flex items-center gap-1 text-sm tabular-nums xl:justify-end">
-                    <span className="text-xs text-muted-foreground xl:hidden">Valor parcial:</span>
-                    {result ? formatCents(result.partialCents) : "—"}
-                  </div>
-
-                  <div>
-                    <span className="mb-1 block text-xs text-muted-foreground xl:hidden">Qtd</span>
-                    <Input
-                      aria-label={`Quantidade do item ${i + 1}`}
-                      placeholder="Qtd"
-                      inputMode="decimal"
-                      value={row.quantity}
-                      onChange={(e) => updateItem(row.key, { quantity: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-1 text-sm font-semibold tabular-nums xl:justify-end">
-                    <span className="text-xs font-normal text-muted-foreground xl:hidden">
-                      Total:
-                    </span>
-                    {result ? formatCents(result.totalCents) : "—"}
-                  </div>
-
-                  <div className="flex justify-end">
                     <Button
                       type="button"
                       variant="ghost"
@@ -599,12 +546,125 @@ export function BudgetForm({
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
                   </div>
+
+                  <div className={`grid grid-cols-2 gap-2 xl:items-center xl:px-3 xl:py-1.5 ${GRID_COLS}`}>
+                    <Field label="Produto" className="col-span-2 xl:col-span-1">
+                      <ProductSearch
+                        label={`item ${i + 1}`}
+                        value={row.code ? { code: row.code, description: row.description } : null}
+                        onSelect={(option) => applyProduct(row.key, option)}
+                        onClear={() => updateItem(row.key, { priceItemId: null, code: null })}
+                        canManagePriceItems={canManagePriceItems}
+                      />
+                    </Field>
+
+                    <Field label="Descrição" className="col-span-2 xl:col-span-1">
+                      <Textarea
+                        aria-label={`Descrição do item ${i + 1}`}
+                        placeholder="Busque um produto ou descreva o item"
+                        value={row.description}
+                        onChange={(e) => updateItem(row.key, { description: e.target.value })}
+                        className="min-h-[40px]"
+                        rows={1}
+                      />
+                    </Field>
+
+                    <Field label={isArea ? "Valor (R$/m²)" : "Valor (R$)"}>
+                      <Input
+                        aria-label={`Valor do item ${i + 1}`}
+                        placeholder="0,00"
+                        inputMode="decimal"
+                        value={row.unitPrice}
+                        onChange={(e) => updateItem(row.key, { unitPrice: e.target.value })}
+                      />
+                    </Field>
+
+                    <Field label="Unidade">
+                      <select
+                        aria-label={`Unidade do item ${i + 1}`}
+                        value={row.unit}
+                        onChange={(e) => updateItem(row.key, { unit: e.target.value as BudgetUnit })}
+                        className="flex h-10 w-full rounded-md border border-border bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      >
+                        {UNITS.map((u) => (
+                          <option key={u} value={u}>
+                            {UNIT_LABEL[u]}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+
+                    <Field label="Largura (m)" className={areaOnly}>
+                      <Input
+                        aria-label={`Largura do item ${i + 1}`}
+                        placeholder="—"
+                        inputMode="decimal"
+                        disabled={!isArea}
+                        value={isArea ? row.width : ""}
+                        onChange={(e) => updateItem(row.key, { width: e.target.value })}
+                      />
+                    </Field>
+
+                    <Field label="Compr. (m)" className={areaOnly}>
+                      <Input
+                        aria-label={`Comprimento do item ${i + 1}`}
+                        placeholder="—"
+                        inputMode="decimal"
+                        disabled={!isArea}
+                        value={isArea ? row.length : ""}
+                        onChange={(e) => updateItem(row.key, { length: e.target.value })}
+                      />
+                    </Field>
+
+                    <Field label="M²" className={areaOnly}>
+                      <Computed>
+                        {result?.areaM2 != null ? formatDecimal(result.areaM2, 4) : "—"}
+                      </Computed>
+                    </Field>
+
+                    <Field label="Valor parcial">
+                      <Computed align="right">
+                        {result ? formatCents(result.partialCents) : "—"}
+                      </Computed>
+                    </Field>
+
+                    <Field label="Qtd">
+                      <Input
+                        aria-label={`Quantidade do item ${i + 1}`}
+                        placeholder="Qtd"
+                        inputMode="decimal"
+                        value={row.quantity}
+                        onChange={(e) => updateItem(row.key, { quantity: e.target.value })}
+                      />
+                    </Field>
+
+                    {/* No celular o total fecha o card ocupando a linha toda. */}
+                    <Field label="Total" className="col-span-2 xl:col-span-1">
+                      <Computed align="right" strong>
+                        {result ? formatCents(result.totalCents) : "—"}
+                      </Computed>
+                    </Field>
+
+                    {/* Remover — no mobile já está no cabeçalho do card. */}
+                    <div className="hidden justify-end xl:flex">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        aria-label={`Remover item ${i + 1}`}
+                        disabled={items.length === 1}
+                        onClick={() => setItems((rows) => rows.filter((r) => r.key !== row.key))}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Totais */}
       <div className="ml-auto w-full max-w-lg space-y-2 rounded-lg border border-border bg-muted/30 p-4">
@@ -688,43 +748,43 @@ function AdjustmentField({
   resolvedCents: number;
 }) {
   const isPercent = row.mode === "PERCENTUAL";
+  // Larguras fixas em todas as linhas: sem isso cada rótulo empurra os campos
+  // para uma posição diferente e a coluna de valores fica serrilhada.
   return (
-    <div className="flex items-center justify-between gap-2">
-      <label htmlFor={`adj-${id}`} className="text-sm">
+    <div className="flex items-center gap-2">
+      <label htmlFor={`adj-${id}`} className="w-16 shrink-0 text-sm sm:w-24">
         {label}
       </label>
-      <div className="flex items-center gap-1">
-        <div className="flex overflow-hidden rounded-md border border-border">
-          {(["VALOR", "PERCENTUAL"] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={row.mode === mode}
-              aria-label={`${label} em ${mode === "VALOR" ? "reais" : "porcentagem"}`}
-              onClick={() => onChange({ ...row, mode })}
-              className={`px-2 py-1 text-xs font-medium ${
-                row.mode === mode
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background text-muted-foreground hover:bg-muted"
-              }`}
-            >
-              {mode === "VALOR" ? "R$" : "%"}
-            </button>
-          ))}
-        </div>
-        <Input
-          id={`adj-${id}`}
-          aria-label={`${label} em ${isPercent ? "porcentagem" : "reais"}`}
-          className="h-8 w-24 text-right"
-          inputMode="decimal"
-          placeholder="0"
-          value={row.value}
-          onChange={(e) => onChange({ ...row, value: e.target.value })}
-        />
-        <span className="w-24 text-right text-sm tabular-nums text-muted-foreground">
-          {formatCents(resolvedCents)}
-        </span>
+      <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
+        {(["VALOR", "PERCENTUAL"] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={row.mode === mode}
+            aria-label={`${label} em ${mode === "VALOR" ? "reais" : "porcentagem"}`}
+            onClick={() => onChange({ ...row, mode })}
+            className={`px-2 py-1 text-xs font-medium ${
+              row.mode === mode
+                ? "bg-primary text-primary-foreground"
+                : "bg-background text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            {mode === "VALOR" ? "R$" : "%"}
+          </button>
+        ))}
       </div>
+      <Input
+        id={`adj-${id}`}
+        aria-label={`${label} em ${isPercent ? "porcentagem" : "reais"}`}
+        className="h-8 min-w-0 flex-1 text-right"
+        inputMode="decimal"
+        placeholder="0"
+        value={row.value}
+        onChange={(e) => onChange({ ...row, value: e.target.value })}
+      />
+      <span className="w-20 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:w-24">
+        {formatCents(resolvedCents)}
+      </span>
     </div>
   );
 }
