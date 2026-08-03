@@ -24,9 +24,17 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
     return {};
   } catch (error) {
     if (error instanceof AuthError) {
-      return { error: "E-mail ou senha inválidos, ou conta não ativada." };
+      return {
+        error:
+          "E-mail ou senha inválidos, conta não confirmada ou ainda não liberada pelo administrador.",
+      };
     }
     // Re-lança o redirect interno do Next.js.
     throw error;
   }
+}
+
+/** Login rápido com Google. O guard de acesso mora no callback `signIn`. */
+export async function googleLoginAction(): Promise<void> {
+  await signIn("google", { redirectTo: "/" });
 }

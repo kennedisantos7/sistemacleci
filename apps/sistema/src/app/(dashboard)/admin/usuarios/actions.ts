@@ -115,7 +115,16 @@ export async function createUserAction(
 
   const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role, status: UserStatus.ATIVO },
+    // Conta criada pelo admin não passa por confirmação de e-mail: quem criou
+    // já respondeu pela pessoa, e exigir o clique no link só travaria o acesso.
+    data: {
+      name,
+      email,
+      passwordHash,
+      role,
+      status: UserStatus.ATIVO,
+      emailVerified: new Date(),
+    },
   });
   await prisma.auditLog.create({
     data: {

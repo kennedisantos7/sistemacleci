@@ -10,7 +10,7 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL") // via PgBouncer (runtime)
-  directUrl = env("DIRECT_URL")   // conexão direta (migrations)
+  directUrl = env("DIRECT_URL") // conexão direta (migrations)
 }
 
 // --------------------------- RBAC ---------------------------
@@ -33,9 +33,9 @@ enum UserStatus {
 
 // --------------------- Auth.js (NextAuth) -------------------
 model User {
-  id            String     @id @default(cuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String     @unique
+  email         String    @unique
   emailVerified DateTime?
   passwordHash  String? // login por credenciais
   image         String?
@@ -49,8 +49,9 @@ model User {
   // Código pessoal de afiliação (usado em ?ref= no site; modo afiliado).
   affiliateCode String? @unique
 
-  accounts Account[]
-  sessions Session[]
+  accounts                Account[]
+  sessions                Session[]
+  emailVerificationTokens EmailVerificationToken[]
 
   affiliateLinks AffiliateLink[]
   sales          Sale[]
@@ -102,6 +103,27 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
+// ------------- Confirmação de e-mail (cadastro próprio) -----
+// Tabela dedicada em vez de reaproveitar VerificationToken: aquela pertence ao
+// Auth.js (magic link) e é consumida pelo adapter — misturar os dois fluxos
+// causaria conflito se um provider de e-mail for adicionado depois.
+//
+// Guardamos apenas o HASH do token; o valor em claro só existe no link enviado
+// por e-mail. Assim um vazamento do banco não permite confirmar contas alheias.
+model EmailVerificationToken {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique // SHA-256 do token enviado no link
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
 // --------------- Configuração global do sistema -------------
 // Taxas FIXAS do programa. Alteráveis somente no login DESENVOLVEDOR.
 model CommissionConfig {
@@ -110,11 +132,11 @@ model CommissionConfig {
   cookieDurationDays Int    @default(30) // 30 | 60 | 90
 
   // Afiliado: venda fechada no gateway (link de pagamento).
-  afiliadoVendaBps Int @default(800) // 8%
+  afiliadoVendaBps     Int @default(800) // 8%
   // Afiliado: apenas indicação/lead (link de WhatsApp).
   afiliadoIndicacaoBps Int @default(300) // 3%
   // Participação do desenvolvedor sobre vendas com afiliado (relatório).
-  desenvolvedorBps Int @default(1000) // 10%
+  desenvolvedorBps     Int @default(1000) // 10%
 
   singletonKey String   @unique @default("global") // garante 1 linha só
   updatedAt    DateTime @updatedAt
@@ -318,8 +340,8 @@ model Product {
   imageUrl String // imagem principal (URL — imgur migrado ou upload R2)
   gallery  String[] @default([]) // galeria
 
-  sizes   String[] @default([]) // tamanhos (texto livre)
-  codes   String[] @default([]) // códigos por tamanho
+  sizes    String[] @default([]) // tamanhos (texto livre)
+  codes    String[] @default([]) // códigos por tamanho
   borders  Json? // bordas (tapetes): {name,image,code}[]
   variants Json? // linhas/versões: {name,image?,description?,sizes?,codes?}[]
 
@@ -414,13 +436,17 @@ enum BudgetStatus {
   EXPIRADO
 }
 
-/** Os dois selos do cabeçalho da planilha. */
+/**
+ * Os dois selos do cabeçalho da planilha.
+ */
 enum BudgetDocType {
   ORCAMENTO
   PEDIDO
 }
 
-/** Desconto/adicional/frete/imposto podem ser em R$ ou em % do subtotal. */
+/**
+ * Desconto/adicional/frete/imposto podem ser em R$ ou em % do subtotal.
+ */
 enum AdjustmentMode {
   VALOR
   PERCENTUAL
@@ -518,9 +544,9 @@ model BudgetItem {
 
 // ----------- Metas de venda (Vendedor Fixo) -----------------
 model SalesGoal {
-  id          String   @id @default(cuid())
+  id          String @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   year        Int
   month       Int // 1-12
   targetCents Int
