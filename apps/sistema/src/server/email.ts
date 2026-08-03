@@ -1,16 +1,22 @@
 import { env } from "@/env";
 
 /**
- * Envio de e-mail transacional via Resend, por HTTP puro — sem SDK.
+ * Envio de e-mail transacional por HTTP puro — sem SDK — com dois provedores:
+ * Resend e Brevo.
  *
  * Motivo de não usar SMTP: a maioria dos provedores de VPS bloqueia as portas
  * de saída 25/465/587, e a Hostinger não é exceção. Uma chamada HTTPS passa
  * sem configuração extra de rede.
  *
- * Trocar de provedor significa reescrever só `deliver()`.
+ * Se os dois estiverem configurados, tenta o primário e cai para o secundário
+ * quando o envio falha — um provedor fora do ar não impede a confirmação de
+ * um cadastro. A ordem é definida por EMAIL_PROVIDER.
  */
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+
+export type EmailProvider = "resend" | "brevo";
 
 export type SendEmailInput = {
   to: string;
@@ -20,54 +26,122 @@ export type SendEmailInput = {
   text?: string;
 };
 
+function isConfigured(provider: EmailProvider): boolean {
+  return provider === "resend" ? Boolean(env.RESEND_API_KEY) : Boolean(env.BREVO_API_KEY);
+}
+
 export function isEmailConfigured(): boolean {
-  return Boolean(env.RESEND_API_KEY);
+  return isConfigured("resend") || isConfigured("brevo");
 }
 
 /**
- * Tenta enviar o e-mail. NÃO lança: devolve `false` quando não foi possível.
- * Quem chama decide o que dizer ao usuário — um cadastro não deve falhar só
- * porque o provedor de e-mail está fora do ar.
+ * Ordem de tentativa: o provedor preferido primeiro, o outro como reserva.
+ * Provedores sem chave são descartados.
  */
-export async function sendEmail(input: SendEmailInput): Promise<boolean> {
-  if (!isEmailConfigured()) {
-    console.warn(
-      `[email] RESEND_API_KEY não configurada — e-mail para ${input.to} não enviado ("${input.subject}").`,
-    );
-    return false;
-  }
+function providerOrder(): EmailProvider[] {
+  const preferred: EmailProvider = env.EMAIL_PROVIDER === "brevo" ? "brevo" : "resend";
+  const fallback: EmailProvider = preferred === "brevo" ? "resend" : "brevo";
+  return [preferred, fallback].filter(isConfigured);
+}
+
+/**
+ * `EMAIL_FROM` aceita "Nome <email@dominio>" ou só o endereço. O Resend usa a
+ * string inteira; o Brevo exige nome e e-mail separados.
+ */
+function parseFrom(value: string): { name?: string; email: string } {
+  const match = /^\s*(.*?)\s*<\s*([^>]+)\s*>\s*$/.exec(value);
+  if (match) return { name: match[1] || undefined, email: match[2]! };
+  return { email: value.trim() };
+}
+
+type ProviderRequest = {
+  url: string;
+  headers: Record<string, string>;
+  body: Record<string, unknown>;
+};
+
+async function deliver(provider: EmailProvider, input: SendEmailInput): Promise<boolean> {
+  const from = parseFrom(env.EMAIL_FROM);
+
+  const request: ProviderRequest =
+    provider === "resend"
+      ? {
+          url: RESEND_ENDPOINT,
+          headers: {
+            Authorization: `Bearer ${env.RESEND_API_KEY!}`,
+            "Content-Type": "application/json",
+          },
+          body: {
+            from: env.EMAIL_FROM,
+            to: [input.to],
+            subject: input.subject,
+            html: input.html,
+            ...(input.text ? { text: input.text } : {}),
+          },
+        }
+      : {
+          url: BREVO_ENDPOINT,
+          headers: {
+            "api-key": env.BREVO_API_KEY!,
+            "Content-Type": "application/json",
+            accept: "application/json",
+          },
+          body: {
+            sender: from,
+            to: [{ email: input.to }],
+            subject: input.subject,
+            htmlContent: input.html,
+            ...(input.text ? { textContent: input.text } : {}),
+          },
+        };
 
   try {
-    const res = await fetch(RESEND_ENDPOINT, {
+    const res = await fetch(request.url, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: env.EMAIL_FROM,
-        to: [input.to],
-        subject: input.subject,
-        html: input.html,
-        ...(input.text ? { text: input.text } : {}),
-      }),
+      headers: request.headers,
+      body: JSON.stringify(request.body),
       // Não deixa uma indisponibilidade do provedor travar a requisição.
       signal: AbortSignal.timeout(10_000),
     });
 
     if (!res.ok) {
-      // O corpo do erro do Resend ajuda a diagnosticar (domínio não verificado,
-      // chave inválida...). Não vaza para o usuário final.
+      // O corpo do erro ajuda a diagnosticar (domínio não verificado, chave
+      // inválida...). Fica só no log — não vaza para o usuário final.
       const detail = await res.text().catch(() => "");
-      console.error(`[email] Falha ao enviar para ${input.to}: HTTP ${res.status} ${detail}`);
+      console.error(
+        `[email:${provider}] Falha ao enviar para ${input.to}: HTTP ${res.status} ${detail}`,
+      );
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error(`[email] Erro ao enviar para ${input.to}:`, error);
+    console.error(`[email:${provider}] Erro ao enviar para ${input.to}:`, error);
     return false;
   }
+}
+
+/**
+ * Tenta enviar o e-mail. NÃO lança: devolve `false` quando nenhum provedor
+ * conseguiu entregar. Quem chama decide o que dizer ao usuário — um cadastro
+ * não deve falhar só porque o provedor de e-mail está fora do ar.
+ */
+export async function sendEmail(input: SendEmailInput): Promise<boolean> {
+  const providers = providerOrder();
+
+  if (providers.length === 0) {
+    console.warn(
+      `[email] Nenhum provedor configurado (RESEND_API_KEY / BREVO_API_KEY) — e-mail para ${input.to} não enviado ("${input.subject}").`,
+    );
+    return false;
+  }
+
+  for (const provider of providers) {
+    if (await deliver(provider, input)) return true;
+    console.warn(`[email] ${provider} falhou para ${input.to}; tentando o próximo provedor.`);
+  }
+
+  return false;
 }
 
 // ---------------------------------------------------------------------------

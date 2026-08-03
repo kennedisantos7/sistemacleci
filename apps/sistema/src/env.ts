@@ -16,10 +16,13 @@ const envSchema = z.object({
   // é registrado e a tela de login mostra só o formulário de e-mail/senha.
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
-  // Envio de e-mail (confirmação de cadastro) via Resend. Opcional: sem a
-  // chave, o link de confirmação é registrado no log do servidor e a tela
-  // avisa que o e-mail não pôde ser enviado — o cadastro não quebra.
+  // Envio de e-mail (confirmação de cadastro). Dois provedores suportados;
+  // basta um. Sem nenhuma chave, o link de confirmação é registrado no log do
+  // servidor e a tela avisa que o e-mail não pôde ser enviado — nada quebra.
   RESEND_API_KEY: z.string().optional(),
+  BREVO_API_KEY: z.string().optional(),
+  // Qual tentar primeiro; o outro entra como reserva se o primeiro falhar.
+  EMAIL_PROVIDER: z.enum(["resend", "brevo"]).default("resend"),
   EMAIL_FROM: z.string().default("Cleci Personaliza <nao-responda@cleci.com.br>"),
   // Armazenamento de imagens (S3-compatível / Cloudflare R2). Opcional:
   // sem isso, o upload responde erro claro em vez de quebrar o boot.
@@ -45,6 +48,8 @@ const raw = {
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
   RESEND_API_KEY: process.env.RESEND_API_KEY,
+  BREVO_API_KEY: process.env.BREVO_API_KEY,
+  EMAIL_PROVIDER: process.env.EMAIL_PROVIDER,
   EMAIL_FROM: process.env.EMAIL_FROM,
   S3_ENDPOINT: process.env.S3_ENDPOINT,
   S3_REGION: process.env.S3_REGION,
