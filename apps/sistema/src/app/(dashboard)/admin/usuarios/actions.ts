@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma, UserStatus, Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES, SELLER_ROLES, isFullAccess } from "@/lib/rbac";
+import { parsePercentToBps } from "@/lib/money";
 
 /**
  * Regra de gestão: admin/desenvolvedor gerenciam qualquer conta; gerente só
@@ -259,4 +260,46 @@ export async function updateUserRoleAction(formData: FormData) {
   ]);
 
   revalidatePath("/admin/usuarios");
+}
+
+/**
+ * Percentual de comissão individual do vendedor. Sobrepõe o padrão da equipe e
+ * aparece no painel dele — a comissão do vendedor fixo é paga fora da
+ * plataforma, aqui só é calculada para acompanhamento.
+ *
+ * Campo vazio limpa a taxa individual e devolve o vendedor ao padrão global.
+ */
+export async function updateCommissionRateAction(formData: FormData) {
+  const admin = await requireUser(STAFF_ROLES);
+  const targetId = String(formData.get("userId") ?? "");
+  if (!targetId) return;
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { role: true },
+  });
+  if (!target || !canManageTarget(admin.role, target.role)) return;
+
+  const bruto = String(formData.get("commissionRate") ?? "").trim();
+  let commissionRateBps: number | null = null;
+  if (bruto) {
+    commissionRateBps = parsePercentToBps(bruto);
+    if (commissionRateBps == null) return; // fora de 0–100: ignora em vez de gravar lixo
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: targetId }, data: { commissionRateBps } }),
+    prisma.auditLog.create({
+      data: {
+        actorId: admin.id,
+        action: "USER_COMMISSION_RATE_CHANGED",
+        entity: "User",
+        entityId: targetId,
+        metadata: { commissionRateBps },
+      },
+    }),
+  ]);
+
+  revalidatePath("/admin/usuarios");
+  revalidatePath("/vendedor");
 }

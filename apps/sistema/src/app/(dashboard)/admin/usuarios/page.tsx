@@ -7,7 +7,13 @@ import { CreateUserForm } from "./create-user-form";
 import { ResetPasswordForm } from "./reset-password-form";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { DeleteUserButton } from "./delete-user-button";
-import { approveUserAction, blockUserAction, unblockUserAction, updateUserRoleAction } from "./actions";
+import {
+  approveUserAction,
+  blockUserAction,
+  unblockUserAction,
+  updateUserRoleAction,
+  updateCommissionRateAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -118,6 +124,31 @@ export default async function AdminUsersPage() {
                             Papel
                           </Button>
                         </form>
+
+                        {/* Comissão do vendedor fixo: só exibida no painel dele,
+                            o pagamento acontece fora da plataforma. */}
+                        {u.role === "VENDEDOR_FIXO" && (
+                          <form
+                            action={updateCommissionRateAction}
+                            className="flex items-center gap-1"
+                          >
+                            <input type="hidden" name="userId" value={u.id} />
+                            <input
+                              name="commissionRate"
+                              defaultValue={
+                                u.commissionRateBps === null ? "" : String(u.commissionRateBps / 100)
+                              }
+                              placeholder="padrão"
+                              inputMode="decimal"
+                              aria-label={`Comissão de ${u.name ?? u.email} em %`}
+                              title="Percentual de comissão. Vazio = padrão da equipe."
+                              className="h-9 w-20 rounded-md border border-border bg-background px-2 text-xs"
+                            />
+                            <Button size="sm" variant="outline" type="submit">
+                              % comissão
+                            </Button>
+                          </form>
+                        )}
                         {u.status === UserStatus.PENDENTE && (
                           <form action={approveUserAction}>
                             <input type="hidden" name="userId" value={u.id} />

@@ -18,8 +18,14 @@ export async function updateConfigAction(
   const afiliadoVendaBps = parsePercentToBps(String(formData.get("afiliadoVenda") ?? ""));
   const afiliadoIndicacaoBps = parsePercentToBps(String(formData.get("afiliadoIndicacao") ?? ""));
   const desenvolvedorBps = parsePercentToBps(String(formData.get("desenvolvedor") ?? ""));
+  const vendedorFixoBps = parsePercentToBps(String(formData.get("vendedorFixo") ?? ""));
 
-  if (afiliadoVendaBps == null || afiliadoIndicacaoBps == null || desenvolvedorBps == null) {
+  if (
+    afiliadoVendaBps == null ||
+    afiliadoIndicacaoBps == null ||
+    desenvolvedorBps == null ||
+    vendedorFixoBps == null
+  ) {
     return { error: "Taxa inválida (use 0 a 100)." };
   }
 
@@ -30,6 +36,7 @@ export async function updateConfigAction(
     afiliadoVendaBps,
     afiliadoIndicacaoBps,
     desenvolvedorBps,
+    vendedorFixoBps,
     cookieDurationDays: cookieDays,
   };
 

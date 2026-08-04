@@ -6,6 +6,7 @@ const DEFAULTS = {
   afiliadoVendaBps: 800, // 8% — venda fechada no gateway
   afiliadoIndicacaoBps: 300, // 3% — apenas indicação (WhatsApp)
   desenvolvedorBps: 1000, // 10% — participação do desenvolvedor (relatório)
+  vendedorFixoBps: 0, // definido pelo admin; 0 = ainda não combinado
 };
 
 /** Retorna a configuração global (cria com defaults se ainda não existir). */
@@ -25,6 +26,7 @@ export type ConfigInput = {
   afiliadoVendaBps: number;
   afiliadoIndicacaoBps: number;
   desenvolvedorBps: number;
+  vendedorFixoBps: number;
 };
 
 export async function updateConfig(input: ConfigInput) {

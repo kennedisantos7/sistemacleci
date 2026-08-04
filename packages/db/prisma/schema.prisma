@@ -139,6 +139,12 @@ model CommissionConfig {
   // Participação do desenvolvedor sobre vendas com afiliado (relatório).
   desenvolvedorBps     Int @default(1000) // 10%
 
+  // Vendedor fixo: comissão paga FORA da plataforma. Não gera Commission — o
+  // valor é só calculado para o vendedor acompanhar no painel dele.
+  // Começa em 0 de propósito: melhor o painel dizer "não configurada" do que
+  // exibir dinheiro calculado com um percentual que ninguém combinou.
+  vendedorFixoBps      Int @default(0)
+
   singletonKey String   @unique @default("global") // garante 1 linha só
   updatedAt    DateTime @updatedAt
 }

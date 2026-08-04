@@ -11,11 +11,13 @@ export function ConfigForm({
   afiliadoVendaPercent,
   afiliadoIndicacaoPercent,
   desenvolvedorPercent,
+  vendedorFixoPercent,
   cookieDays,
 }: {
   afiliadoVendaPercent: string;
   afiliadoIndicacaoPercent: string;
   desenvolvedorPercent: string;
+  vendedorFixoPercent: string;
   cookieDays: number;
 }) {
   const [state, action, pending] = useActionState(updateConfigAction, initial);
@@ -62,6 +64,23 @@ export function ConfigForm({
           required
         />
         <p className="text-xs text-muted-foreground">Sobre vendas atribuídas a um afiliado.</p>
+      </div>
+
+      <div className="space-y-1">
+        <label htmlFor="vendedorFixo" className="text-sm font-medium">
+          Vendedor fixo (%)
+        </label>
+        <Input
+          id="vendedorFixo"
+          name="vendedorFixo"
+          defaultValue={vendedorFixoPercent}
+          inputMode="decimal"
+          required
+        />
+        <p className="text-xs text-muted-foreground">
+          Padrão da equipe, exibido no painel do vendedor. Pago fora da plataforma. Cada vendedor
+          pode ter um percentual próprio em Usuários.
+        </p>
       </div>
 
       <div className="space-y-1">

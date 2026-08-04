@@ -34,6 +34,7 @@ export default async function AdminComissoesPage() {
             afiliadoVendaPercent={(config.afiliadoVendaBps / 100).toString()}
             afiliadoIndicacaoPercent={(config.afiliadoIndicacaoBps / 100).toString()}
             desenvolvedorPercent={(config.desenvolvedorBps / 100).toString()}
+            vendedorFixoPercent={(config.vendedorFixoBps / 100).toString()}
             cookieDays={config.cookieDurationDays}
           />
         </CardContent>
