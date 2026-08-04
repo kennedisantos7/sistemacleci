@@ -61,6 +61,7 @@ model User {
   salesGoals     SalesGoal[]
   auditLogs      AuditLog[]      @relation("ActorLogs")
   clients        Client[]
+  clientActivities ClientActivity[]
   budgets        Budget[]
 
   createdAt DateTime @default(now())
@@ -360,11 +361,25 @@ model Product {
   @@index([active, position])
 }
 
-// ----------- Clientes do vendedor (carteira própria) --------
+// --------- Clientes/empresas (base compartilhada) ------------
+// A base é única e pesquisável por toda a equipe de venda (afiliado não entra).
+// Cada empresa tem um vendedor TITULAR, que tem prioridade de atendimento: os
+// demais enxergam o registro, mas não pegam nem veem os dados de contato
+// enquanto a titularidade estiver ativa. Ver lib/client-ownership.ts.
 model Client {
-  id         String @id @default(cuid())
-  vendedorId String
-  vendedor   User   @relation(fields: [vendedorId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  // Titular. Opcional: cliente sem titular está livre para quem quiser pegar.
+  // SetNull (não Cascade): remover um vendedor libera a carteira dele em vez
+  // de apagar as empresas — a base é da Cleci, não do vendedor.
+  vendedorId String?
+  vendedor   User?   @relation(fields: [vendedorId], references: [id], onDelete: SetNull)
+
+  // Início da titularidade atual e último sinal de trabalho do titular.
+  // lastActivityAt é o que corre contra o prazo: qualquer atividade registrada,
+  // orçamento criado/editado ou edição da ficha empurra a data para frente.
+  ownerSince     DateTime?
+  lastActivityAt DateTime?
 
   name        String // nome do contato / razão social
   companyName String? // empresa / nome fantasia
@@ -381,12 +396,48 @@ model Client {
   state       String?
   zip         String?
 
-  budgets Budget[]
+  budgets    Budget[]
+  activities ClientActivity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([vendedorId, name])
+  @@index([name])
+  @@index([companyName])
+  @@index([lastActivityAt])
+}
+
+// Histórico do relacionamento com a empresa: contatos lançados pelo vendedor e
+// marcos gerados pelo próprio sistema (titularidade, orçamento).
+enum ClientActivityType {
+  LIGACAO
+  WHATSAPP
+  EMAIL
+  REUNIAO
+  VISITA
+  PROPOSTA
+  OBSERVACAO
+  SISTEMA // gerado automaticamente (assumiu, liberou, orçamento criado…)
+}
+
+model ClientActivity {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  // Autor. SetNull + nome em snapshot: a linha do tempo sobrevive à remoção do
+  // usuário sem virar "(desconhecido)".
+  userId     String?
+  user       User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName String?
+
+  type ClientActivityType
+  note String? @db.VarChar(2000)
+
+  createdAt DateTime @default(now())
+
+  @@index([clientId, createdAt])
 }
 
 // ------------- Tabela de preços (base do orçamento) ---------

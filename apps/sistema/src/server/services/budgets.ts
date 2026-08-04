@@ -13,6 +13,7 @@ import { z } from "zod";
 import { markSalePaid } from "./sales";
 import { getPriceItemsByIds } from "./price-items";
 import { canSeeAllBudgets } from "@/lib/rbac";
+import { touchClientActivity } from "./clients";
 import {
   calcBudget,
   type Adjustment,
@@ -26,7 +27,7 @@ import {
 // Admin/desenvolvedor/gerente enxergam os orçamentos de toda a equipe; o
 // vendedor só os próprios. Todo acesso passa por aqui — nunca só pela UI.
 
-export type BudgetActor = { id: string; role: Role };
+export type BudgetActor = { id: string; role: Role; name?: string | null; email?: string };
 
 function scopeWhere(actor: BudgetActor): Prisma.BudgetWhereInput {
   return canSeeAllBudgets(actor.role) ? {} : { vendedorId: actor.id };
@@ -248,13 +249,27 @@ export function listBudgetsForActor(
 // Escrita
 // ---------------------------------------------------------------------------
 
-/** O cliente precisa estar no escopo de quem está montando o orçamento. */
+/**
+ * O cliente precisa estar no escopo de quem está montando o orçamento — ou
+ * seja, ser titular dele (ou equipe administrativa). Empresa de outro vendedor,
+ * ou sem titular, precisa ser assumida antes.
+ */
 async function assertClientInScope(actor: BudgetActor, clientId: string) {
   const client = await prisma.client.findFirst({
     where: { id: clientId, ...clientScopeWhere(actor) },
     select: { id: true },
   });
-  if (!client) throw new Error("Cliente inválido.");
+  if (!client) throw new Error("Cliente inválido ou em atendimento por outro vendedor.");
+}
+
+/** Orçamento é trabalho: entra no histórico e renova o prazo do titular. */
+function registrarNoCliente(actor: BudgetActor, clientId: string, descricao: string) {
+  return touchClientActivity(
+    clientId,
+    actor.id,
+    descricao,
+    actor.name?.trim() || actor.email || "Usuário",
+  );
 }
 
 export async function createBudget(
@@ -266,7 +281,7 @@ export async function createBudget(
   await assertClientInScope(actor, header.clientId);
   const data = await buildBudgetData(items, adjustments);
 
-  return prisma.budget.create({
+  const budget = await prisma.budget.create({
     data: {
       vendedorId: actor.id,
       clientId: header.clientId,
@@ -281,6 +296,10 @@ export async function createBudget(
       items: { create: data.items },
     },
   });
+
+  const rotulo = budget.docType === BudgetDocType.PEDIDO ? "Pedido" : "Orçamento";
+  await registrarNoCliente(actor, header.clientId, `${rotulo} #${budget.number} criado.`);
+  return budget;
 }
 
 /** Atualiza um orçamento — somente enquanto RASCUNHO (imutável após envio). */
@@ -300,7 +319,7 @@ export async function updateBudget(
   await assertClientInScope(actor, header.clientId);
   const data = await buildBudgetData(items, adjustments);
 
-  return prisma.$transaction(async (tx) => {
+  const atualizado = await prisma.$transaction(async (tx) => {
     await tx.budgetItem.deleteMany({ where: { budgetId } });
     return tx.budget.update({
       where: { id: budgetId },
@@ -318,6 +337,10 @@ export async function updateBudget(
       },
     });
   });
+
+  const rotulo = atualizado.docType === BudgetDocType.PEDIDO ? "Pedido" : "Orçamento";
+  await registrarNoCliente(actor, header.clientId, `${rotulo} #${atualizado.number} atualizado.`);
+  return atualizado;
 }
 
 /** Exclui um orçamento em rascunho (nunca um já enviado/aceito). */

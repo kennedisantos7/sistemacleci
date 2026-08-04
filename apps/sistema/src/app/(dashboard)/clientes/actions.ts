@@ -6,11 +6,17 @@ import { requireUser } from "@/server/session";
 import { BUDGET_ROLES } from "@/lib/rbac";
 import {
   clientSchema,
+  activitySchema,
   createClient,
   updateClient,
   deleteClient,
+  claimClient,
+  releaseClient,
+  transferClient,
+  addClientActivity,
   type ClientInput,
 } from "@/server/services/clients";
+import { STAFF_ROLES } from "@/lib/rbac";
 
 export type ClientFormState = { error?: string };
 
@@ -46,9 +52,9 @@ export async function createClientAction(
     return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
   }
 
-  await createClient(user, parsed.data as ClientInput);
+  const client = await createClient(user, parsed.data as ClientInput);
   revalidatePath("/clientes");
-  redirect("/clientes");
+  redirect(`/clientes/${client.id}`);
 }
 
 export async function updateClientAction(
@@ -70,7 +76,85 @@ export async function updateClientAction(
     return { error: err instanceof Error ? err.message : "Erro ao salvar." };
   }
   revalidatePath("/clientes");
-  redirect("/clientes");
+  redirect(`/clientes/${clientId}`);
+}
+
+// --------------------------- Titularidade ---------------------------------
+
+export type OwnershipState = { error?: string };
+
+function revalidateClient(clientId: string) {
+  revalidatePath("/clientes");
+  revalidatePath(`/clientes/${clientId}`);
+}
+
+/** Assumir o atendimento de uma empresa livre ou com prazo vencido. */
+export async function claimClientAction(
+  _prev: OwnershipState,
+  formData: FormData,
+): Promise<OwnershipState> {
+  const user = await requireUser(BUDGET_ROLES);
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!clientId) return { error: "Cliente inválido." };
+
+  const error = await claimClient(user, clientId);
+  if (error) return { error };
+  revalidateClient(clientId);
+  return {};
+}
+
+/** O titular devolve a empresa para a base. */
+export async function releaseClientAction(
+  _prev: OwnershipState,
+  formData: FormData,
+): Promise<OwnershipState> {
+  const user = await requireUser(BUDGET_ROLES);
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!clientId) return { error: "Cliente inválido." };
+
+  const error = await releaseClient(user, clientId);
+  if (error) return { error };
+  revalidateClient(clientId);
+  return {};
+}
+
+/** Transferência direta — só equipe administrativa (validado aqui e no service). */
+export async function transferClientAction(
+  _prev: OwnershipState,
+  formData: FormData,
+): Promise<OwnershipState> {
+  const user = await requireUser(STAFF_ROLES);
+  const clientId = String(formData.get("clientId") ?? "");
+  const paraUserId = String(formData.get("paraUserId") ?? "");
+  if (!clientId || !paraUserId) return { error: "Selecione o vendedor de destino." };
+
+  const error = await transferClient(user, clientId, paraUserId);
+  if (error) return { error };
+  revalidateClient(clientId);
+  return {};
+}
+
+/** Lança um contato/atividade no histórico da empresa. */
+export async function addActivityAction(
+  _prev: OwnershipState,
+  formData: FormData,
+): Promise<OwnershipState> {
+  const user = await requireUser(BUDGET_ROLES);
+  const clientId = String(formData.get("clientId") ?? "");
+  if (!clientId) return { error: "Cliente inválido." };
+
+  const parsed = activitySchema.safeParse({
+    type: String(formData.get("type") ?? ""),
+    note: String(formData.get("note") ?? ""),
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const error = await addClientActivity(user, clientId, parsed.data);
+  if (error) return { error };
+  revalidateClient(clientId);
+  return {};
 }
 
 export type DeleteClientState = { error?: string };
