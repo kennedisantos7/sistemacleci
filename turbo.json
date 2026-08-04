@@ -12,7 +12,13 @@
     "ATTRIBUTION_COOKIE_DAYS",
     "SITE_URL",
     "SISTEMA_URL",
-    "INGEST_API_KEY"
+    "INGEST_API_KEY",
+    "AUTH_GOOGLE_ID",
+    "AUTH_GOOGLE_SECRET",
+    "RESEND_API_KEY",
+    "BREVO_API_KEY",
+    "EMAIL_PROVIDER",
+    "EMAIL_FROM"
   ],
   "tasks": {
     "build": {
@@ -24,6 +30,7 @@
       "persistent": true
     },
     "lint": {},
+    "test": {},
     "typecheck": {
       "dependsOn": ["^build"]
     },

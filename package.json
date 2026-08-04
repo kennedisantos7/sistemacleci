@@ -11,6 +11,8 @@
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "security:check": "node scripts/security-check.mjs",
     "db:generate": "pnpm --filter @cleci/db generate",
     "db:migrate": "pnpm --filter @cleci/db migrate",
     "db:seed": "pnpm --filter @cleci/db seed",

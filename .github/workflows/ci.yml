@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Um push novo cancela a execução anterior do mesmo branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Segurança, tipos e testes
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      # As 6 regras do SECURITY.md. Não depende de build nem de banco,
+      # então roda primeiro: falha rápido e barato.
+      - name: Regras de segurança
+        run: pnpm security:check
+
+      # O typecheck importa o client do Prisma; sem gerar, ele nem compila.
+      - name: Gerar Prisma Client
+        run: pnpm db:generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Testes
+        run: pnpm test
+
+      # Valores fictícios: o build só precisa que as variáveis existam e
+      # tenham formato válido — nada aqui alcança banco ou serviço externo.
+      - name: Build
+        run: pnpm build
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+          DIRECT_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+          AUTH_SECRET: ci-secret-placeholder-nao-usado-em-runtime
+          NEXTAUTH_URL: http://localhost:3001
+          SITE_URL: http://localhost:3000
+          SISTEMA_URL: http://localhost:3001

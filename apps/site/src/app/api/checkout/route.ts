@@ -1,9 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
 import { loadProduct } from "@/server/catalog";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const bodySchema = z.object({
+  productId: z.string().min(1).max(120),
+});
 
 /**
  * Proxy server-side para o checkout. Mantém a INGEST_API_KEY fora do navegador:
@@ -11,15 +16,20 @@ export const dynamic = "force-dynamic";
  * a URL do Mercado Pago. O ref de afiliado vem do cookie first-party (cleci_ref).
  */
 export async function POST(req: NextRequest) {
-  let body: { productId?: unknown };
+  let raw: unknown;
   try {
-    body = await req.json();
+    raw = await req.json();
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const productId = typeof body.productId === "string" ? body.productId : "";
-  const product = await loadProduct(productId);
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "produto inválido" }, { status: 400 });
+  }
+
+  // O preço vem SEMPRE do catálogo — nunca do corpo da requisição.
+  const product = await loadProduct(parsed.data.productId);
   if (!product || !product.priceCents) {
     return NextResponse.json({ error: "produto sem checkout online" }, { status: 400 });
   }
