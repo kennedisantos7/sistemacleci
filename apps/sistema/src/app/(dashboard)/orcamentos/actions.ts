@@ -11,6 +11,7 @@ import {
   createBudget,
   updateBudget,
   deleteBudget,
+  getBudgetForActor,
   markBudgetSent,
   markBudgetAccepted,
   markBudgetRejected,
@@ -21,10 +22,24 @@ import {
   type BudgetItemInput,
 } from "@/server/services/budgets";
 import { searchPriceItems, type PriceItemOption } from "@/server/services/price-items";
+import {
+  validarFormaPagamento,
+  validarPrazoEntrega,
+  validarCidadeEntrega,
+} from "@/lib/budget-options";
 
 export type BudgetFormState = { error?: string };
 
-function parseHeader(formData: FormData): BudgetHeaderInput | { error: string } {
+/** Valores já gravados no orçamento em edição, para não perder dado legado. */
+type ValoresAtuais = {
+  paymentTerms?: string | null;
+  deliveryForecast?: string | null;
+};
+
+function parseHeader(
+  formData: FormData,
+  atuais: ValoresAtuais = {},
+): BudgetHeaderInput | { error: string } {
   const clientId = String(formData.get("clientId") ?? "");
   if (!clientId) return { error: "Selecione o cliente." };
 
@@ -52,9 +67,11 @@ function parseHeader(formData: FormData): BudgetHeaderInput | { error: string } 
     title: title || null,
     note: note || null,
     validUntil,
-    paymentTerms: text("paymentTerms").slice(0, 120) || null,
-    deliveryForecast: text("deliveryForecast").slice(0, 120) || null,
-    deliveryCity: text("deliveryCity").slice(0, 120) || null,
+    // Listas fechadas: o que não está na lista (e não é o valor já gravado)
+    // vira null, em vez de aceitar qualquer texto vindo da requisição.
+    paymentTerms: validarFormaPagamento(text("paymentTerms"), atuais.paymentTerms),
+    deliveryForecast: validarPrazoEntrega(text("deliveryForecast"), atuais.deliveryForecast),
+    deliveryCity: validarCidadeEntrega(text("deliveryCity")),
   };
 }
 
@@ -125,7 +142,15 @@ export async function updateBudgetAction(
   const budgetId = String(formData.get("budgetId") ?? "");
   if (!budgetId) return { error: "Orçamento inválido." };
 
-  const header = parseHeader(formData);
+  // Lê o que já está gravado (respeitando o escopo do papel) para que valores
+  // antigos de texto livre sobrevivam à validação por lista.
+  const atual = await getBudgetForActor(user, budgetId);
+  if (!atual) return { error: "Orçamento não encontrado." };
+
+  const header = parseHeader(formData, {
+    paymentTerms: atual.paymentTerms,
+    deliveryForecast: atual.deliveryForecast,
+  });
   if ("error" in header) return header;
   const items = parseItems(formData);
   if ("error" in items) return items;

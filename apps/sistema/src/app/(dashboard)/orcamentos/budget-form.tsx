@@ -22,10 +22,14 @@ import {
   type BudgetUnit,
   type AdjustmentKind,
 } from "@/lib/budget-math";
+import { FORMAS_PAGAMENTO, PRAZOS_ENTREGA, CIDADES_TOCANTINS } from "@/lib/budget-options";
 
 const initial: BudgetFormState = {};
 
 const UNITS: BudgetUnit[] = ["M2", "UNIDADE", "PACOTE", "MILHEIRO"];
+
+const SELECT_CLASS =
+  "flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
 
 /**
  * Colunas da "planilha" no desktop (xl+). Abaixo disso cada item vira um card
@@ -195,6 +199,17 @@ export function BudgetForm({
   );
   const [freight, setFreight] = useState(() => adjustmentToRow(defaults?.adjustments?.freight));
   const [tax, setTax] = useState(() => adjustmentToRow(defaults?.adjustments?.tax));
+
+  // Valores gravados quando estes campos eram texto livre. Viram uma opção
+  // extra no select para que abrir a edição não apague o que já existia.
+  const legadoPagamento =
+    defaults?.paymentTerms && !FORMAS_PAGAMENTO.includes(defaults.paymentTerms as never)
+      ? defaults.paymentTerms
+      : null;
+  const legadoPrazo =
+    defaults?.deliveryForecast && !PRAZOS_ENTREGA.includes(defaults.deliveryForecast)
+      ? defaults.deliveryForecast
+      : null;
 
   function updateItem(key: string, patch: Partial<ItemRow>) {
     setItems((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
@@ -427,36 +442,63 @@ export function BudgetForm({
         </div>
         <div className="space-y-1">
           <label htmlFor="bf-payment" className="text-sm font-medium">
-            Condição de pagamento
+            Forma de pagamento
           </label>
-          <Input
+          <select
             id="bf-payment"
             name="paymentTerms"
-            placeholder="ex.: Pix"
             defaultValue={defaults?.paymentTerms ?? ""}
-          />
+            className={SELECT_CLASS}
+          >
+            <option value="">Selecione...</option>
+            {FORMAS_PAGAMENTO.map((forma) => (
+              <option key={forma} value={forma}>
+                {forma}
+              </option>
+            ))}
+            {/* Orçamento antigo pode ter texto livre; mantemos como opção para
+                não apagar o dado só por abrir a tela de edição. */}
+            {legadoPagamento ? <option value={legadoPagamento}>{legadoPagamento}</option> : null}
+          </select>
         </div>
         <div className="space-y-1">
           <label htmlFor="bf-forecast" className="text-sm font-medium">
-            Previsão de entrega
+            Prazo de entrega
           </label>
-          <Input
+          <select
             id="bf-forecast"
             name="deliveryForecast"
-            placeholder="ex.: 15 dias"
             defaultValue={defaults?.deliveryForecast ?? ""}
-          />
+            className={SELECT_CLASS}
+          >
+            <option value="">Selecione...</option>
+            {PRAZOS_ENTREGA.map((prazo) => (
+              <option key={prazo} value={prazo}>
+                {prazo}
+              </option>
+            ))}
+            {legadoPrazo ? <option value={legadoPrazo}>{legadoPrazo}</option> : null}
+          </select>
         </div>
         <div className="space-y-1">
           <label htmlFor="bf-city" className="text-sm font-medium">
             Cidade de entrega
           </label>
+          {/* Campo com sugestões (não select fechado): as 139 cidades do TO
+              cobrem o caso comum, mas entrega fora do estado continua possível. */}
           <Input
             id="bf-city"
             name="deliveryCity"
+            list="cidades-to"
             placeholder="ex.: Gurupi"
+            autoComplete="off"
             defaultValue={defaults?.deliveryCity ?? ""}
           />
+          <datalist id="cidades-to">
+            {CIDADES_TOCANTINS.map((cidade) => (
+              <option key={cidade} value={cidade} />
+            ))}
+          </datalist>
         </div>
         <div className="space-y-1">
           <label htmlFor="bf-valid" className="text-sm font-medium">

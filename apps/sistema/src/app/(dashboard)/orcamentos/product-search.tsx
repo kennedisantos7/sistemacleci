@@ -149,7 +149,11 @@ export function ProductSearch({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-80 w-[min(34rem,calc(100vw-3rem))] overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg"
+          // bg-card (não bg-popover): o tema deste projeto define apenas
+          // background/card/muted/primary/secondary. "popover" não existe aqui,
+          // e classe inexistente vira fundo transparente — a lista ficava
+          // legível por cima do que estivesse atrás dela.
+          className="absolute z-30 mt-1 max-h-80 w-[min(34rem,calc(100vw-3rem))] overflow-auto rounded-md border border-border bg-card p-1 text-card-foreground shadow-xl"
         >
           {loading && options.length === 0 ? (
             <li className="px-2 py-3 text-sm text-muted-foreground">Buscando...</li>
