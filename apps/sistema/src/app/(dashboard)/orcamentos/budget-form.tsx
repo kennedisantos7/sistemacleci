@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useRef, useState } from "react";
-import { PackageSearch, Plus, Trash2 } from "lucide-react";
+import { PackageSearch, Plus, Trash2, X } from "lucide-react";
 import { createBudgetAction, updateBudgetAction, type BudgetFormState } from "./actions";
 import { ProductSearch, type ProductOption } from "./product-search";
 import { Button } from "@/components/ui/button";
@@ -362,14 +362,20 @@ export function BudgetForm({
       }
     }
 
-    for (const [label, input] of [
-      ["Desconto", adjustmentInputs.discount.input],
-      ["Adicional", adjustmentInputs.surcharge.input],
-      ["Frete", adjustmentInputs.freight.input],
-      ["Imposto", adjustmentInputs.tax.input],
+    for (const [label, adj] of [
+      ["Desconto", adjustmentInputs.discount],
+      ["Adicional", adjustmentInputs.surcharge],
+      ["Frete", adjustmentInputs.freight],
+      ["Imposto", adjustmentInputs.tax],
     ] as const) {
-      if (input == null) {
-        setLocalError(`${label}: valor inválido.`);
+      if (adj.input == null) {
+        // Diz o que fazer, não só que está errado — o motivo mais comum é
+        // percentual acima de 100.
+        setLocalError(
+          adj.mode === "PERCENTUAL"
+            ? `${label}: informe um percentual de 0 a 100 (ex.: 12,5) ou deixe em branco.`
+            : `${label}: valor inválido (use o formato 1.234,56) ou deixe em branco.`,
+        );
         return false;
       }
     }
@@ -712,7 +718,7 @@ export function BudgetForm({
       </section>
 
       {/* Totais */}
-      <div className="ml-auto w-full max-w-lg space-y-2 rounded-lg border border-border bg-muted/30 p-4">
+      <div className="ml-auto w-full max-w-lg space-y-3 rounded-lg border border-border bg-muted/30 p-4 sm:space-y-2">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Valor total do pedido</span>
           <span className="text-sm font-semibold tabular-nums">
@@ -793,43 +799,71 @@ function AdjustmentField({
   resolvedCents: number;
 }) {
   const isPercent = row.mode === "PERCENTUAL";
-  // Larguras fixas em todas as linhas: sem isso cada rótulo empurra os campos
-  // para uma posição diferente e a coluna de valores fica serrilhada.
+  const preenchido = row.value.trim() !== "";
+
+  // No celular a linha única espremia o campo a uns 30px: não dava para ler o
+  // que estava digitado nem posicionar o cursor para apagar. Aqui vira duas
+  // linhas (rótulo + valor em cima, controles embaixo) e só volta a ser uma
+  // linha a partir de sm, onde há largura de sobra.
   return (
-    <div className="flex items-center gap-2">
-      <label htmlFor={`adj-${id}`} className="w-16 shrink-0 text-sm sm:w-24">
-        {label}
-      </label>
-      <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
-        {(["VALOR", "PERCENTUAL"] as const).map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={row.mode === mode}
-            aria-label={`${label} em ${mode === "VALOR" ? "reais" : "porcentagem"}`}
-            onClick={() => onChange({ ...row, mode })}
-            className={`px-2 py-1 text-xs font-medium ${
-              row.mode === mode
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {mode === "VALOR" ? "R$" : "%"}
-          </button>
-        ))}
+    <div className="space-y-1.5 sm:flex sm:items-center sm:gap-2 sm:space-y-0">
+      <div className="flex items-center justify-between gap-2 sm:contents">
+        <label
+          htmlFor={`adj-${id}`}
+          className="text-sm font-medium sm:w-24 sm:shrink-0 sm:font-normal"
+        >
+          {label}
+        </label>
+        <span className="text-sm font-medium tabular-nums text-muted-foreground sm:order-last sm:w-24 sm:shrink-0 sm:text-right sm:font-normal">
+          {formatCents(resolvedCents)}
+        </span>
       </div>
-      <Input
-        id={`adj-${id}`}
-        aria-label={`${label} em ${isPercent ? "porcentagem" : "reais"}`}
-        className="h-8 min-w-0 flex-1 text-right"
-        inputMode="decimal"
-        placeholder="0"
-        value={row.value}
-        onChange={(e) => onChange({ ...row, value: e.target.value })}
-      />
-      <span className="w-20 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:w-24">
-        {formatCents(resolvedCents)}
-      </span>
+
+      <div className="flex items-center gap-2 sm:min-w-0 sm:flex-1">
+        <div className="flex shrink-0 overflow-hidden rounded-md border border-border">
+          {(["VALOR", "PERCENTUAL"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={row.mode === mode}
+              aria-label={`${label} em ${mode === "VALOR" ? "reais" : "porcentagem"}`}
+              onClick={() => onChange({ ...row, mode })}
+              className={`px-3 py-2 text-xs font-medium sm:px-2 sm:py-1 ${
+                row.mode === mode
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              {mode === "VALOR" ? "R$" : "%"}
+            </button>
+          ))}
+        </div>
+
+        <div className="relative min-w-0 flex-1">
+          <Input
+            id={`adj-${id}`}
+            aria-label={`${label} em ${isPercent ? "porcentagem" : "reais"}`}
+            className="h-10 w-full pr-9 text-right sm:h-8"
+            inputMode="decimal"
+            placeholder="0"
+            value={row.value}
+            onChange={(e) => onChange({ ...row, value: e.target.value })}
+          />
+          {/* Limpar em um toque: no celular apagar dígito a dígito num campo
+              estreito era o que travava a remoção do desconto. */}
+          {preenchido ? (
+            <button
+              type="button"
+              onClick={() => onChange({ ...row, value: "" })}
+              aria-label={`Remover ${label.toLowerCase()}`}
+              title={`Remover ${label.toLowerCase()}`}
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground sm:p-1"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+      </div>
     </div>
   );
 }
