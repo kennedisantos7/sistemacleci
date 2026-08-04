@@ -483,8 +483,11 @@ export function BudgetForm({
       </div>
 
       {/* Itens — o coração da tela: card destacado com a busca de produto. */}
-      <section className="overflow-hidden rounded-xl border-2 border-primary/20 bg-card">
-        <header className="flex flex-col gap-3 border-b border-border bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+      {/* Sem overflow-hidden aqui: ele cortava a lista de resultados da busca
+          de produto, que é posicionada de forma absoluta. O arredondamento do
+          topo do cabeçalho é feito nele mesmo. */}
+      <section className="rounded-xl border-2 border-primary/20 bg-card">
+        <header className="flex flex-col gap-3 rounded-t-[10px] border-b border-border bg-primary/5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="flex items-center gap-2 text-base font-bold">
               <PackageSearch className="h-5 w-5 text-primary" />
