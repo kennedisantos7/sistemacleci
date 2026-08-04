@@ -17,7 +17,14 @@ export const TIPOS_ATIVIDADE = [
   { value: "OBSERVACAO", label: "Observação" },
 ] as const;
 
-export function ActivityForm({ clientId }: { clientId: string }) {
+export function ActivityForm({
+  clientId,
+  /** Empresa livre: registrar aqui transfere a titularidade para quem registra. */
+  assumeAoRegistrar = false,
+}: {
+  clientId: string;
+  assumeAoRegistrar?: boolean;
+}) {
   const [state, action, pending] = useActionState(addActivityAction, initial);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -58,12 +65,18 @@ export function ActivityForm({ clientId }: { clientId: string }) {
         </label>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" disabled={pending}>
-          {pending ? "Registrando..." : "Registrar atividade"}
+          {pending
+            ? "Registrando..."
+            : assumeAoRegistrar
+              ? "Assumir e registrar"
+              : "Registrar atividade"}
         </Button>
         <p className="text-xs text-muted-foreground">
-          Cada registro renova por 30 dias a sua prioridade sobre esta empresa.
+          {assumeAoRegistrar
+            ? "Esta empresa está sem responsável — ao registrar, ela passa a ser sua por 30 dias."
+            : "Cada registro renova por 30 dias a sua prioridade sobre esta empresa."}
         </p>
       </div>
 

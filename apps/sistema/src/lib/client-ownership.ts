@@ -103,6 +103,31 @@ export function podeOrcar(actor: OwnershipActor, client: OwnershipInput): boolea
   return podeEditar(actor, client);
 }
 
+/**
+ * Pode lançar contato no histórico: o titular (e a equipe administrativa), ou
+ * qualquer vendedor quando a empresa não está bloqueada. Registrar atividade em
+ * empresa livre É pegar a empresa — quem lança vira titular na hora, senão o
+ * prazo passaria a correr sem ninguém responsável por ele.
+ */
+export function podeRegistrarAtividade(
+  actor: OwnershipActor,
+  client: OwnershipInput,
+  agora: Date,
+): boolean {
+  return podeEditar(actor, client) || podeAssumir(actor, client, agora);
+}
+
+/** Registrar aqui vai transferir a titularidade para quem registrou. */
+export function registrarAssumeTitularidade(
+  actor: OwnershipActor,
+  client: OwnershipInput,
+  agora: Date,
+): boolean {
+  // Equipe administrativa acompanha sem entrar na carteira de ninguém.
+  if (isStaff(actor.role)) return false;
+  return podeAssumir(actor, client, agora);
+}
+
 const ROTULO: Record<OwnershipStatus["kind"], string> = {
   livre: "Sem vendedor",
   bloqueada: "Em atendimento",

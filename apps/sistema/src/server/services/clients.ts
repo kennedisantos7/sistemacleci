@@ -6,6 +6,8 @@ import {
   statusTitularidade,
   podeVerDetalhes,
   podeEditar,
+  podeRegistrarAtividade,
+  registrarAssumeTitularidade,
   ehTitular,
   type OwnershipStatus,
 } from "@/lib/client-ownership";
@@ -148,8 +150,20 @@ export async function addClientActivity(
     select: { id: true, vendedorId: true, lastActivityAt: true },
   });
   if (!client) return "Cliente não encontrado.";
-  if (!podeEditar(actor, client)) {
-    return "Só o vendedor responsável pode registrar atividades nesta empresa.";
+
+  const agora = new Date();
+  if (!podeRegistrarAtividade(actor, client, agora)) {
+    return "Esta empresa está em atendimento por outro vendedor.";
+  }
+
+  // Empresa livre/disponível: registrar é pegar. Assume antes, reaproveitando a
+  // trava de concorrência do claim — se outro vendedor pegou no meio do
+  // caminho, o lançamento para aqui em vez de entrar no histórico dele.
+  let virouTitular = false;
+  if (registrarAssumeTitularidade(actor, client, agora)) {
+    const erro = await claimClient(actor, clientId);
+    if (erro) return erro;
+    virouTitular = true;
   }
 
   await prisma.$transaction((tx) =>
@@ -160,7 +174,7 @@ export async function addClientActivity(
       input.type,
       input.note?.trim() || null,
       // Gerente/admin lançando nota não renova o prazo de outro vendedor.
-      ehTitular(actor, client),
+      virouTitular || ehTitular(actor, client),
     ),
   );
   return null;
@@ -328,6 +342,8 @@ export async function getClientProfile(actor: ClientActor, clientId: string) {
   const status = statusTitularidade(client, agora);
   const liberado = podeVerDetalhes(actor, client, agora);
   const editavel = podeEditar(actor, client);
+  const podeRegistrar = podeRegistrarAtividade(actor, client, agora);
+  const registrarAssume = registrarAssumeTitularidade(actor, client, agora);
 
   // Histórico e orçamentos são parte do "quanto" — empresa bloqueada com outro
   // vendedor mostra só a identificação e quem está atendendo.
@@ -354,6 +370,9 @@ export async function getClientProfile(actor: ClientActor, clientId: string) {
     isMine: ehTitular(actor, client),
     liberado,
     editavel,
+    podeRegistrar,
+    /** Ao registrar, quem lança assume o atendimento — a tela avisa antes. */
+    registrarAssume,
     ficha: liberado
       ? {
           email: client.email,

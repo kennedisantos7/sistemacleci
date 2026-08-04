@@ -8,6 +8,8 @@ import {
   podeVerDetalhes,
   podeEditar,
   podeAssumir,
+  podeRegistrarAtividade,
+  registrarAssumeTitularidade,
 } from "./client-ownership";
 
 const AGORA = new Date("2026-08-04T12:00:00Z");
@@ -113,6 +115,53 @@ describe("podeEditar", () => {
 
   it("prazo vencido não dá direito de editar sem assumir antes", () => {
     expect(podeEditar(outro, comAtividade(45))).toBe(false);
+  });
+});
+
+describe("podeRegistrarAtividade", () => {
+  const livre = { vendedorId: null, lastActivityAt: null };
+
+  it("o titular registra na própria empresa", () => {
+    expect(podeRegistrarAtividade(titular, comAtividade(2), AGORA)).toBe(true);
+  });
+
+  it("empresa sem responsável aceita registro de qualquer vendedor", () => {
+    expect(podeRegistrarAtividade(outro, livre, AGORA)).toBe(true);
+  });
+
+  it("empresa com prazo vencido aceita registro de outro vendedor", () => {
+    expect(podeRegistrarAtividade(outro, comAtividade(40), AGORA)).toBe(true);
+  });
+
+  it("empresa bloqueada recusa registro de quem não é o titular", () => {
+    expect(podeRegistrarAtividade(outro, comAtividade(2), AGORA)).toBe(false);
+  });
+
+  it("gerente e admin registram em qualquer empresa", () => {
+    expect(podeRegistrarAtividade(gerente, comAtividade(2), AGORA)).toBe(true);
+    expect(podeRegistrarAtividade(admin, livre, AGORA)).toBe(true);
+  });
+});
+
+describe("registrarAssumeTitularidade", () => {
+  const livre = { vendedorId: null, lastActivityAt: null };
+
+  it("vendedor registrando em empresa livre assume a titularidade", () => {
+    expect(registrarAssumeTitularidade(outro, livre, AGORA)).toBe(true);
+  });
+
+  it("vendedor registrando em empresa com prazo vencido assume", () => {
+    expect(registrarAssumeTitularidade(outro, comAtividade(40), AGORA)).toBe(true);
+  });
+
+  it("o titular não reassume o que já é dele", () => {
+    expect(registrarAssumeTitularidade(titular, comAtividade(2), AGORA)).toBe(false);
+  });
+
+  it("gerente e admin registram sem entrar na carteira", () => {
+    // Acompanhamento da equipe não deve virar titularidade de quem administra.
+    expect(registrarAssumeTitularidade(gerente, livre, AGORA)).toBe(false);
+    expect(registrarAssumeTitularidade(admin, comAtividade(40), AGORA)).toBe(false);
   });
 });
 

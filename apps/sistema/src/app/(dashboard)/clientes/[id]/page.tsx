@@ -244,11 +244,12 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {client.editavel ? (
-                <ActivityForm clientId={client.id} />
+              {client.podeRegistrar ? (
+                <ActivityForm clientId={client.id} assumeAoRegistrar={client.registrarAssume} />
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Assuma o atendimento para registrar contatos nesta empresa.
+                  Esta empresa está em atendimento por {client.ownerName}. Só o responsável
+                  registra contatos enquanto durar a prioridade.
                 </p>
               )}
 
