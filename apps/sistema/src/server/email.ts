@@ -218,7 +218,7 @@ export function renderEmailLayout(options: {
           <tr>
             <td style="border-top:1px solid #e5e7eb;padding:16px 28px;color:#6b7280;font-size:11px;line-height:1.5;">
               ${footerNote ? `${escapeHtml(footerNote)}<br><br>` : ""}
-              CLESIENE CAVALCANTE DA SILVA · CNPJ 28.402.051/0001-69<br>
+              Cleci Personaliza Ltda · CNPJ 28.402.051/0001-69<br>
               Porto Nacional - TO · Este é um e-mail automático, não responda.
             </td>
           </tr>

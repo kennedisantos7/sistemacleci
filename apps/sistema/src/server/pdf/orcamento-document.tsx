@@ -4,7 +4,7 @@ import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
 
 // Dados fixos da empresa — cabeçalho impresso da planilha.
 const EMPRESA = {
-  razao: "CLESIENE CAVALCANTE DA SILVA",
+  razao: "Cleci Personaliza Ltda",
   cnpj: "28.402.051/0001-69",
   fone: "(63) 99103-5968 ou (63) 99234-9085",
   email: "clecipersonaliza@gmail.com",
@@ -289,12 +289,12 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
         <View style={styles.tableHeader}>
           <Text style={styles.colCode}>Código</Text>
           <Text style={styles.colDesc}>Descrição</Text>
-          <Text style={styles.colValue}>Valor</Text>
+          <Text style={styles.colValue}>Base cálc.</Text>
           <Text style={styles.colUnit}>Unid.</Text>
           <Text style={styles.colDim}>La.</Text>
           <Text style={styles.colDim}>Com.</Text>
           <Text style={styles.colArea}>M²</Text>
-          <Text style={styles.colPartial}>Parcial</Text>
+          <Text style={styles.colPartial}>Valor unit.</Text>
           <Text style={styles.colQty}>Qtd</Text>
           <Text style={styles.colTotal}>Total</Text>
         </View>
