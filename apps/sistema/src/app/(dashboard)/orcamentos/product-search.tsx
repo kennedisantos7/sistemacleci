@@ -92,14 +92,26 @@ export function ProductSearch({
     };
   }, [query, open]);
 
-  // Clique fora fecha a lista.
+  /**
+   * A lista NÃO fecha ao clicar fora. Fechava, e qualquer toque para rolar a
+   * tela ou tocar em outro campo derrubava o resultado no meio da escolha —
+   * especialmente no celular, onde o dedo encosta em qualquer lugar.
+   *
+   * Ela sai quando: um produto é escolhido, o texto é apagado, o vendedor
+   * aperta Esc ou clica no X da própria lista.
+   *
+   * A única exceção é abrir a busca de OUTRO item: duas listas empilhadas na
+   * tela não ajudam ninguém, então a anterior se fecha.
+   */
   useEffect(() => {
     if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (!boxRef.current?.contains(event.target as Node)) setOpen(false);
+    function onFocusIn(event: FocusEvent) {
+      const alvo = event.target as HTMLElement | null;
+      if (!alvo || boxRef.current?.contains(alvo)) return;
+      if (alvo.getAttribute("role") === "combobox") setOpen(false);
     }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
   }, [open]);
 
   // Uma entrada por (produto, unidade): escolher "por m²" ou "por pacote" é um
@@ -182,15 +194,30 @@ export function ProductSearch({
       </div>
 
       {open && query.trim().length >= 2 ? (
-        <ul
-          id={listId}
-          role="listbox"
-          // bg-card (não bg-popover): o tema deste projeto define apenas
-          // background/card/muted/primary/secondary. "popover" não existe aqui,
-          // e classe inexistente vira fundo transparente — a lista ficava
-          // legível por cima do que estivesse atrás dela.
-          className="absolute z-30 mt-1 max-h-80 w-[min(34rem,calc(100vw-3rem))] overflow-auto rounded-md border border-border bg-card p-1 text-card-foreground shadow-xl"
-        >
+        // bg-card (não bg-popover): o tema deste projeto define apenas
+        // background/card/muted/primary/secondary. "popover" não existe aqui,
+        // e classe inexistente vira fundo transparente — a lista ficava
+        // ilegível por cima do que estivesse atrás dela.
+        <div className="absolute z-30 mt-1 w-[min(34rem,calc(100vw-3rem))] overflow-hidden rounded-md border border-border bg-card text-card-foreground shadow-xl">
+          {/* Como a lista não fecha mais sozinha, precisa de uma saída visível. */}
+          <div className="flex items-center justify-between gap-2 border-b border-border bg-muted/40 px-2 py-1.5">
+            <span className="text-xs text-muted-foreground">
+              {escolhas.length > 0
+                ? `${escolhas.length} opç${escolhas.length === 1 ? "ão" : "ões"} — toque para escolher`
+                : "Resultado da busca"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              aria-label="Fechar a lista de produtos"
+              title="Fechar"
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <ul id={listId} role="listbox" className="max-h-72 overflow-auto p-1">
           {loading && options.length === 0 ? (
             <li className="px-2 py-3 text-sm text-muted-foreground">Buscando...</li>
           ) : options.length === 0 ? (
@@ -251,7 +278,8 @@ export function ProductSearch({
               );
             })
           )}
-        </ul>
+          </ul>
+        </div>
       ) : null}
     </div>
   );
