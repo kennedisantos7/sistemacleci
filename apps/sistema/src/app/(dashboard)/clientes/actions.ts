@@ -17,6 +17,7 @@ import {
   type ClientInput,
 } from "@/server/services/clients";
 import { STAFF_ROLES } from "@/lib/rbac";
+import { mensagemDoErro } from "@/server/errors";
 
 export type ClientFormState = { error?: string };
 
@@ -73,7 +74,7 @@ export async function updateClientAction(
   try {
     await updateClient(user, clientId, parsed.data as ClientInput);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar." };
+    return { error: mensagemDoErro(err, "Erro ao salvar.") };
   }
   revalidatePath("/clientes");
   redirect(`/clientes/${clientId}`);
@@ -201,6 +202,6 @@ export async function quickCreateClientAction(
       client: { id: client.id, name: client.name, companyName: client.companyName },
     };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao cadastrar o cliente." };
+    return { error: mensagemDoErro(err, "Erro ao cadastrar o cliente.") };
   }
 }

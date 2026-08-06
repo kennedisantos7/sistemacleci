@@ -11,6 +11,7 @@ import {
   updatePriceItem,
   setPriceItemActive,
 } from "@/server/services/price-items";
+import { mensagemDoErro } from "@/server/errors";
 
 export type PriceItemFormState = { error?: string };
 
@@ -56,7 +57,7 @@ export async function createPriceItemAction(
   try {
     await createPriceItem(parsed.data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar o produto." };
+    return { error: mensagemDoErro(err, "Erro ao salvar o produto.") };
   }
 
   revalidatePath("/admin/tabela-precos");
@@ -77,7 +78,7 @@ export async function updatePriceItemAction(
   try {
     await updatePriceItem(id, parsed.data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar o produto." };
+    return { error: mensagemDoErro(err, "Erro ao salvar o produto.") };
   }
 
   revalidatePath("/admin/tabela-precos");

@@ -7,6 +7,7 @@ import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
 import { parseReaisToCents } from "@/lib/money";
 import { createProduct, updateProduct, deleteProduct } from "@/server/services/products";
+import { mensagemDoErro } from "@/server/errors";
 
 const stringArray = z.array(z.string().trim().min(1)).max(50);
 
@@ -108,7 +109,7 @@ export async function createProductAction(
   try {
     await createProduct(result.data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar." };
+    return { error: mensagemDoErro(err, "Erro ao salvar.") };
   }
   revalidatePath("/admin/produtos");
   redirect("/admin/produtos");
@@ -128,7 +129,7 @@ export async function updateProductAction(
   try {
     await updateProduct(productId, result.data);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar." };
+    return { error: mensagemDoErro(err, "Erro ao salvar.") };
   }
   revalidatePath("/admin/produtos");
   redirect("/admin/produtos");

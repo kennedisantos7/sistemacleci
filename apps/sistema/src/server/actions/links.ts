@@ -5,6 +5,7 @@ import { z } from "zod";
 import { requireUser } from "@/server/session";
 import { createAffiliateLink, setLinkActive } from "@/server/services/links";
 import { ROLE_HOME } from "@/lib/rbac";
+import { mensagemDoErro } from "@/server/errors";
 
 const createSchema = z.object({
   slug: z.string().max(200).optional(),
@@ -33,7 +34,7 @@ export async function createLinkAction(
   try {
     await createAffiliateLink({ userId: user.id, ...parsed.data });
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao criar link." };
+    return { error: mensagemDoErro(err, "Erro ao criar link.") };
   }
 
   revalidatePath(`${ROLE_HOME[user.role]}/links`);

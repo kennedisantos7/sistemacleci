@@ -30,6 +30,8 @@ const ROTAS_PUBLICAS = {
     "responde {loggedIn:false} sem sessão; CORS restrito a SITE_URL",
   "apps/site/src/app/api/checkout/route.ts":
     "checkout do site é público por natureza; o preço vem do catálogo, nunca da requisição",
+  "apps/sistema/src/app/api/encerrar-sessao/route.ts":
+    "só apaga o cookie de quem chamou; exigir sessão válida seria circular — existe justamente para sessão inválida",
 };
 
 /** Arquivos de Server Action sem requireUser, por desenho. */

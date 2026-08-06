@@ -9,6 +9,7 @@ import { parseReaisToCents } from "@/lib/money";
 import { createSale, markSalePaid } from "@/server/services/sales";
 import { createPaymentLinkForSale } from "@/server/services/checkout";
 import { isMercadoPagoConfigured } from "@/server/mercadopago";
+import { mensagemDoErro } from "@/server/errors";
 
 const schema = z.object({
   amount: z.string().min(1),
@@ -72,7 +73,7 @@ export async function registerManualSaleAction(
     revalidatePath("/admin/vendas");
     return { success: "Venda registrada como pendente." };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao processar." };
+    return { error: mensagemDoErro(err, "Erro ao processar.") };
   } finally {
     void admin;
   }

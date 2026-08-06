@@ -13,6 +13,8 @@ const AVISOS: Record<string, string> = {
   bloqueada: "Esta conta está bloqueada. Fale com o administrador.",
   "sem-conta":
     "Não encontramos uma conta com esse e-mail do Google. Cadastre-se primeiro usando o mesmo endereço.",
+  "sessao-invalida":
+    "Sua sessão expirou porque a conta foi alterada ou removida. Entre novamente para continuar.",
 };
 
 export default async function LoginPage({

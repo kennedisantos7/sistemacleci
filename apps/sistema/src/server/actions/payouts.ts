@@ -5,6 +5,7 @@ import { prisma } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { FULL_ACCESS_ROLES, EARNER_ROLES } from "@/lib/rbac";
 import { requestPayout, approvePayout, payPayout, rejectPayout } from "@/server/services/payouts";
+import { mensagemDoErro } from "@/server/errors";
 
 async function audit(actorId: string, action: string, payoutId: string, metadata?: object) {
   await prisma.auditLog.create({
@@ -26,7 +27,7 @@ export async function requestPayoutAction(
     revalidatePath("/afiliado/saques");
     return { success: true };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao solicitar saque." };
+    return { error: mensagemDoErro(err, "Erro ao solicitar saque.") };
   }
 }
 

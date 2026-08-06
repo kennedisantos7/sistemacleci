@@ -27,6 +27,7 @@ import {
   validarPrazoEntrega,
   validarCidadeEntrega,
 } from "@/lib/budget-options";
+import { mensagemDoErro } from "@/server/errors";
 
 export type BudgetFormState = { error?: string };
 
@@ -127,7 +128,7 @@ export async function createBudgetAction(
     const budget = await createBudget(user, header, items, adjustments);
     budgetId = budget.id;
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar o orçamento." };
+    return { error: mensagemDoErro(err, "Erro ao salvar o orçamento.") };
   }
 
   revalidatePath("/orcamentos");
@@ -160,7 +161,7 @@ export async function updateBudgetAction(
   try {
     await updateBudget(user, budgetId, header, items, adjustments);
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Erro ao salvar o orçamento." };
+    return { error: mensagemDoErro(err, "Erro ao salvar o orçamento.") };
   }
 
   revalidatePath("/orcamentos");

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
 import { uploadMedia, isStorageConfigured } from "@/server/storage";
+import { mensagemDoErro } from "@/server/errors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url });
   } catch (err) {
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Falha no upload." },
+      { error: mensagemDoErro(err, "Falha no upload.") },
       { status: 400 },
     );
   }
