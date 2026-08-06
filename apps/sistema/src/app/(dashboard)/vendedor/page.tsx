@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { BudgetStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { getSellerDashboard } from "@/server/services/seller-dashboard";
 import { resolverPeriodo } from "@/lib/date-range";
@@ -9,16 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { formatCents, bpsToPercent } from "@/lib/money";
 import { PeriodFilter } from "./period-filter";
 import { SalesChart } from "./sales-chart";
+import { BUDGET_STATUS_LABEL } from "@/lib/budget-status";
 
 export const dynamic = "force-dynamic";
-
-const BUDGET_STATUS_LABEL: Record<BudgetStatus, string> = {
-  RASCUNHO: "Rascunho",
-  ENVIADO: "Enviado",
-  ACEITO: "Aceito",
-  RECUSADO: "Recusado",
-  EXPIRADO: "Expirado",
-};
 
 export default async function VendedorDashboard({
   searchParams,

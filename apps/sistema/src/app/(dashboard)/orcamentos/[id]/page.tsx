@@ -16,25 +16,11 @@ import {
   acceptBudgetAction,
   rejectBudgetAction,
   finalizeBudgetSaleAction,
+  deleteBudgetAction,
 } from "../actions";
+import { BUDGET_STATUS_LABEL, BUDGET_STATUS_STYLE } from "@/lib/budget-status";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL: Record<BudgetStatus, string> = {
-  RASCUNHO: "Rascunho",
-  ENVIADO: "Enviado",
-  ACEITO: "Aceito",
-  RECUSADO: "Recusado",
-  EXPIRADO: "Expirado",
-};
-
-const STATUS_STYLE: Record<BudgetStatus, string> = {
-  RASCUNHO: "bg-zinc-200 text-zinc-700",
-  ENVIADO: "bg-blue-100 text-blue-800",
-  ACEITO: "bg-green-100 text-green-800",
-  RECUSADO: "bg-red-100 text-red-800",
-  EXPIRADO: "bg-amber-100 text-amber-800",
-};
 
 export default async function OrcamentoDetailPage({
   params,
@@ -68,15 +54,16 @@ export default async function OrcamentoDetailPage({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
+          {/* Rosa, não âmbar: âmbar agora é o "Pendente". */}
           {overdue ? (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-800">
               Vencido
             </span>
           ) : null}
           <span
-            className={`rounded-full px-3 py-1 text-sm font-medium ${STATUS_STYLE[budget.status]}`}
+            className={`rounded-full px-3 py-1 text-sm font-medium ${BUDGET_STATUS_STYLE[budget.status]}`}
           >
-            {STATUS_LABEL[budget.status]}
+            {BUDGET_STATUS_LABEL[budget.status]}
           </span>
         </div>
       </header>
@@ -108,6 +95,18 @@ export default async function OrcamentoDetailPage({
               variant="outline"
               confirmMessage={`Marcar como enviado? O ${docLabel.toLowerCase()} não poderá mais ser editado (só voltando para rascunho).`}
             />
+            {/* Limpeza de rascunhos: só admin/desenvolvedor/gerente. Rascunho
+                não tem venda vinculada, então nada de histórico se perde. */}
+            {seesAll && (
+              <ConfirmSubmitButton
+                action={deleteBudgetAction}
+                hidden={{ budgetId: budget.id }}
+                label="Excluir rascunho"
+                pendingLabel="Excluindo..."
+                variant="destructive"
+                confirmMessage={`Excluir o rascunho #${budget.number}${budget.title ? ` (${budget.title})` : ""}? Essa ação não pode ser desfeita.`}
+              />
+            )}
           </>
         )}
 
@@ -184,10 +183,10 @@ export default async function OrcamentoDetailPage({
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="py-2 pr-2 font-semibold">Código</th>
                   <th className="py-2 pr-2 font-semibold">Descrição</th>
-                  <th className="py-2 pr-2 text-right font-semibold">Valor</th>
+                  <th className="py-2 pr-2 text-right font-semibold">Base cálc.</th>
                   <th className="py-2 pr-2 font-semibold">Un.</th>
                   <th className="py-2 pr-2 text-right font-semibold">M²</th>
-                  <th className="py-2 pr-2 text-right font-semibold">Parcial</th>
+                  <th className="py-2 pr-2 text-right font-semibold">Valor unit.</th>
                   <th className="py-2 pr-2 text-right font-semibold">Qtd</th>
                   <th className="py-2 text-right font-semibold">Total</th>
                 </tr>

@@ -6,15 +6,9 @@ import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/money";
 import { ManualSaleForm } from "./manual-sale-form";
 import { confirmManualSalePaidAction } from "@/server/actions/sales";
+import { SALE_STATUS_LABEL, SALE_STATUS_STYLE } from "@/lib/sale-status";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLE: Record<SaleStatus, string> = {
-  PENDENTE: "bg-amber-100 text-amber-800",
-  PAGO: "bg-green-100 text-green-800",
-  RECUSADO: "bg-red-100 text-red-800",
-  REEMBOLSADO: "bg-zinc-200 text-zinc-700",
-};
 
 export default async function AdminVendasPage() {
   await requireUser(STAFF_ROLES);
@@ -97,9 +91,9 @@ export default async function AdminVendasPage() {
                         </form>
                       )}
                       <span
-                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[s.status]}`}
+                        className={`rounded-full px-2 py-0.5 text-xs font-medium ${SALE_STATUS_STYLE[s.status]}`}
                       >
-                        {s.status}
+                        {SALE_STATUS_LABEL[s.status]}
                       </span>
                     </div>
                   </div>

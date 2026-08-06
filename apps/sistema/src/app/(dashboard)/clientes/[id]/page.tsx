@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ClientActivityType, BudgetStatus } from "@cleci/db";
+import { ClientActivityType } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { BUDGET_ROLES, isStaff } from "@/lib/rbac";
 import { getClientProfile, listTransferTargets } from "@/server/services/clients";
@@ -14,10 +14,12 @@ import {
   ReleaseClientButton,
   TransferClientForm,
 } from "../ownership-actions";
+import { BUDGET_STATUS_LABEL } from "@/lib/budget-status";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_STYLE = {
+/** Cores da titularidade da empresa — nada a ver com o status do orçamento. */
+const TITULARIDADE_STYLE = {
   livre: "bg-muted text-muted-foreground",
   bloqueada: "bg-primary/10 text-primary",
   disponivel: "bg-amber-100 text-amber-800",
@@ -32,14 +34,6 @@ const ATIVIDADE_LABEL: Record<ClientActivityType, string> = {
   PROPOSTA: "Proposta enviada",
   OBSERVACAO: "Observação",
   SISTEMA: "Sistema",
-};
-
-const BUDGET_STATUS_LABEL: Record<BudgetStatus, string> = {
-  RASCUNHO: "Rascunho",
-  ENVIADO: "Enviado",
-  ACEITO: "Aceito",
-  RECUSADO: "Recusado",
-  EXPIRADO: "Expirado",
 };
 
 function Campo({ label, value }: { label: string; value: string | null }) {
@@ -72,7 +66,7 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
           <h1 className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold">
             {titulo}
             <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLE[client.status.kind]}`}
+              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TITULARIDADE_STYLE[client.status.kind]}`}
             >
               {rotuloStatus(client.status)}
             </span>
