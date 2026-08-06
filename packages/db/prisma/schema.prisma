@@ -460,11 +460,20 @@ enum PriceUnit {
 model PriceItem {
   id String @id @default(cuid())
 
-  code        String    @unique // código da planilha, ex.: "2047"
+  code        String @unique // código da planilha, ex.: "2047"
   description String
-  unit        PriceUnit @default(UNIDADE)
-  priceCents  Int // valor unitário (ou por m² quando unit = M2)
-  group       String? // agrupador para busca, ex.: "Tapetes"
+
+  // Unidade e valor PRINCIPAIS: o que vem pré-selecionado no orçamento e o que
+  // aparece na listagem. É sempre um espelho de uma das linhas de `prices` —
+  // gravado junto, nunca editado por fora (ver price-items.ts).
+  unit       PriceUnit @default(UNIDADE)
+  priceCents Int // valor unitário (ou por m² quando unit = M2)
+
+  // Um mesmo produto pode ser vendido por m², por pacote e por unidade, com
+  // preço diferente em cada uma. O vendedor escolhe a unidade no orçamento.
+  prices PriceItemPrice[]
+
+  group String? // agrupador para busca, ex.: "Tapetes"
 
   // Descrição sem acento e em maiúsculas: ILIKE do Postgres não ignora acento,
   // então "acrescimo" só acha "ACRÉSCIMO" comparando por aqui.
@@ -482,6 +491,25 @@ model PriceItem {
   @@index([active, position])
   @@index([group])
   @@index([searchText])
+}
+
+// Um preço do produto em uma unidade de venda. Ex.: o mesmo tapete a R$ 89,90
+// o m² e a R$ 450,00 o pacote.
+model PriceItemPrice {
+  id          String    @id @default(cuid())
+  priceItemId String
+  priceItem   PriceItem @relation(fields: [priceItemId], references: [id], onDelete: Cascade)
+
+  unit       PriceUnit
+  priceCents Int
+
+  // Ordem de exibição na busca do orçamento.
+  position Int @default(0)
+
+  // Uma linha por unidade: não faz sentido o mesmo produto ter dois preços
+  // por m². Trocar o valor é editar a linha existente.
+  @@unique([priceItemId, unit])
+  @@index([priceItemId, position])
 }
 
 // ----------------- Orçamentos / Pedidos ---------------------

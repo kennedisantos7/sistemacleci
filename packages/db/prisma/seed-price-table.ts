@@ -200,7 +200,7 @@ async function main() {
       where: { code: it.code },
       select: { id: true },
     });
-    await prisma.priceItem.upsert({
+    const saved = await prisma.priceItem.upsert({
       where: { code: it.code },
       // Não sobrescreve active/group/position ajustados no painel.
       update: {
@@ -210,7 +210,18 @@ async function main() {
         searchText: it.searchText,
       },
       create: it,
+      select: { id: true },
     });
+
+    // A planilha traz uma unidade por produto. Garante a linha de preço dessa
+    // unidade sem tocar nas outras que o admin tenha cadastrado no painel —
+    // preços por pacote/m² adicionados à mão sobrevivem ao seed.
+    await prisma.priceItemPrice.upsert({
+      where: { priceItemId_unit: { priceItemId: saved.id, unit: it.unit } },
+      update: { priceCents: it.priceCents },
+      create: { priceItemId: saved.id, unit: it.unit, priceCents: it.priceCents, position: 0 },
+    });
+
     if (existing) updated++;
     else created++;
   }

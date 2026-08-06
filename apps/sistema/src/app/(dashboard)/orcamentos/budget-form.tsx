@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useRef, useState } from "react";
 import { PackageSearch, Plus, Trash2, X } from "lucide-react";
 import { createBudgetAction, updateBudgetAction, type BudgetFormState } from "./actions";
-import { ProductSearch, type ProductOption } from "./product-search";
+import { ProductSearch, type ProductOption, type PriceOption } from "./product-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -87,6 +87,13 @@ type ItemRow = {
   length: string;
   unitPrice: string; // reais ("380,00")
   quantity: string;
+  /**
+   * Tabela de preços do produto vinculado, por unidade. Guardada na linha para
+   * que trocar a unidade já traga o valor certo, sem ir ao servidor de novo.
+   * Vazia em item avulso ou em orçamento aberto para edição (o preço gravado é
+   * o que vale; o vendedor rebusca o produto se quiser outra unidade).
+   */
+  prices: PriceOption[];
 };
 
 type AdjustmentRow = { mode: AdjustmentKind; value: string };
@@ -142,6 +149,7 @@ function newRow(partial?: Partial<ItemRow>): ItemRow {
     length: "",
     unitPrice: "",
     quantity: "1",
+    prices: [],
     ...partial,
   };
 }
@@ -215,15 +223,32 @@ export function BudgetForm({
     setItems((rows) => rows.map((r) => (r.key === key ? { ...r, ...patch } : r)));
   }
 
-  /** Produto escolhido na busca: preenche a linha inteira. */
-  function applyProduct(key: string, option: ProductOption) {
+  /** Produto escolhido na busca: preenche a linha inteira.
+   *  `escolhido` é a unidade que o vendedor clicou. */
+  function applyProduct(key: string, option: ProductOption, escolhido: PriceOption) {
     updateItem(key, {
       priceItemId: option.id,
       code: option.code,
       description: option.description,
-      unit: option.unit,
+      unit: escolhido.unit,
       // Produto sem preço na tabela: campo fica em branco para o vendedor digitar.
-      unitPrice: option.priceCents > 0 ? centsToInput(option.priceCents) : "",
+      unitPrice: escolhido.priceCents > 0 ? centsToInput(escolhido.priceCents) : "",
+      prices: option.prices,
+    });
+  }
+
+  /**
+   * Trocar a unidade na linha: se o produto tiver valor cadastrado para a nova
+   * unidade, o preço acompanha. Sem valor para ela, o campo é mantido — apagar
+   * o que o vendedor digitou seria pior do que deixar um número a revisar.
+   */
+  function changeUnit(row: ItemRow, unit: BudgetUnit) {
+    const tabelado = row.prices.find((p) => p.unit === unit);
+    updateItem(row.key, {
+      unit,
+      ...(tabelado
+        ? { unitPrice: tabelado.priceCents > 0 ? centsToInput(tabelado.priceCents) : "" }
+        : {}),
     });
   }
 
@@ -559,12 +584,12 @@ export function BudgetForm({
           <div className={`hidden gap-2 px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground xl:grid ${GRID_COLS}`}>
             <span>Produto</span>
             <span>Descrição</span>
-            <span>Valor</span>
+            <span>Base cálc.</span>
             <span>Unidade</span>
             <span>La.</span>
             <span>Com.</span>
             <span>M²</span>
-            <span className="text-right">Parcial</span>
+            <span className="text-right">Valor unit.</span>
             <span>Qtd</span>
             <span className="text-right">Total</span>
             <span />
@@ -603,8 +628,8 @@ export function BudgetForm({
                       <ProductSearch
                         label={`item ${i + 1}`}
                         value={row.code ? { code: row.code, description: row.description } : null}
-                        onSelect={(option) => applyProduct(row.key, option)}
-                        onClear={() => updateItem(row.key, { priceItemId: null, code: null })}
+                        onSelect={(option, preco) => applyProduct(row.key, option, preco)}
+                        onClear={() => updateItem(row.key, { priceItemId: null, code: null, prices: [] })}
                         canManagePriceItems={canManagePriceItems}
                       />
                     </Field>
@@ -620,7 +645,7 @@ export function BudgetForm({
                       />
                     </Field>
 
-                    <Field label={isArea ? "Valor (R$/m²)" : "Valor (R$)"}>
+                    <Field label={isArea ? "Base de cálculo (R$/m²)" : "Base de cálculo (R$)"}>
                       <Input
                         aria-label={`Valor do item ${i + 1}`}
                         placeholder="0,00"
@@ -634,7 +659,7 @@ export function BudgetForm({
                       <select
                         aria-label={`Unidade do item ${i + 1}`}
                         value={row.unit}
-                        onChange={(e) => updateItem(row.key, { unit: e.target.value as BudgetUnit })}
+                        onChange={(e) => changeUnit(row, e.target.value as BudgetUnit)}
                         className="flex h-10 w-full rounded-md border border-border bg-background px-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       >
                         {UNITS.map((u) => (
@@ -673,7 +698,7 @@ export function BudgetForm({
                       </Computed>
                     </Field>
 
-                    <Field label="Valor parcial">
+                    <Field label="Valor unitário">
                       <Computed align="right">
                         {result ? formatCents(result.partialCents) : "—"}
                       </Computed>

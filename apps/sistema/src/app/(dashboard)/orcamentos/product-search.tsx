@@ -7,13 +7,33 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
 
+export type PriceOption = { unit: BudgetUnit; priceCents: number };
+
 export type ProductOption = {
   id: string;
   code: string;
   description: string;
   unit: BudgetUnit;
   priceCents: number;
+  /** Todas as unidades de venda do produto, com o valor de cada uma. */
+  prices: PriceOption[];
 };
+
+/** Cada unidade do produto vira uma opção clicável na lista. */
+type Escolha = { option: ProductOption; price: PriceOption };
+
+function achatar(options: ProductOption[]): Escolha[] {
+  return options.flatMap((option) => {
+    const precos = option.prices.length
+      ? option.prices
+      : [{ unit: option.unit, priceCents: option.priceCents }];
+    // Unidade principal primeiro — é a que a equipe usa na maioria das vezes.
+    const ordenados = [...precos].sort((a, b) =>
+      a.unit === option.unit ? -1 : b.unit === option.unit ? 1 : 0,
+    );
+    return ordenados.map((price) => ({ option, price }));
+  });
+}
 
 /**
  * Busca um produto da tabela de preços por código ou nome. Ao escolher, a linha
@@ -28,7 +48,7 @@ export function ProductSearch({
 }: {
   /** Produto já vinculado à linha (null = item avulso). */
   value: { code: string | null; description: string } | null;
-  onSelect: (option: ProductOption) => void;
+  onSelect: (option: ProductOption, price: PriceOption) => void;
   onClear: () => void;
   label: string;
   /** Staff vê o atalho para cadastrar o produto que não existe na tabela. */
@@ -82,24 +102,40 @@ export function ProductSearch({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  function choose(option: ProductOption) {
-    onSelect(option);
+  // Uma entrada por (produto, unidade): escolher "por m²" ou "por pacote" é um
+  // clique só, sem passo intermediário de selecionar a unidade depois.
+  const escolhas = achatar(options);
+
+  function choose(escolha: Escolha) {
+    onSelect(escolha.option, escolha.price);
     setQuery("");
     setOptions([]);
     setOpen(false);
   }
 
-  // Produto já escolhido: mostra o chip com o código, sem o campo de busca.
+  // Produto já escolhido: mostra código E nome. Só o código obrigava o vendedor
+  // a decorar a numeração para saber o que tinha posto na linha.
   if (value?.code) {
     return (
-      <div className="flex h-10 items-center gap-2 rounded-md border border-primary/40 bg-primary/5 px-2.5">
-        <span className="font-mono text-sm font-semibold text-primary">{value.code}</span>
+      <div
+        className="flex min-h-10 items-start gap-2 rounded-md border border-primary/40 bg-primary/5 px-2.5 py-1.5"
+        title={`${value.code} — ${value.description}`}
+      >
+        <span className="min-w-0 flex-1">
+          <span className="block font-mono text-xs font-semibold text-primary">{value.code}</span>
+          {value.description ? (
+            // line-clamp-2: nome comprido não estica a linha da planilha.
+            <span className="block text-xs leading-snug text-foreground line-clamp-2">
+              {value.description}
+            </span>
+          ) : null}
+        </span>
         <button
           type="button"
           onClick={onClear}
           aria-label={`Trocar o produto do ${label}`}
           title="Trocar produto"
-          className="ml-auto rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          className="shrink-0 rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
@@ -126,18 +162,18 @@ export function ProductSearch({
             setOpen(true);
           }}
           onKeyDown={(e) => {
-            if (!open || options.length === 0) return;
+            if (!open || escolhas.length === 0) return;
             if (e.key === "ArrowDown") {
               e.preventDefault();
-              setHighlight((h) => (h + 1) % options.length);
+              setHighlight((h) => (h + 1) % escolhas.length);
             } else if (e.key === "ArrowUp") {
               e.preventDefault();
-              setHighlight((h) => (h - 1 + options.length) % options.length);
+              setHighlight((h) => (h - 1 + escolhas.length) % escolhas.length);
             } else if (e.key === "Enter") {
               // Não deixa o Enter enviar o formulário enquanto a lista está aberta.
               e.preventDefault();
-              const option = options[highlight];
-              if (option) choose(option);
+              const escolha = escolhas[highlight];
+              if (escolha) choose(escolha);
             } else if (e.key === "Escape") {
               setOpen(false);
             }
@@ -173,34 +209,47 @@ export function ProductSearch({
               ) : null}
             </li>
           ) : (
-            options.map((option, index) => (
-              <li key={option.id} role="option" aria-selected={index === highlight}>
-                <button
-                  type="button"
-                  onMouseEnter={() => setHighlight(index)}
-                  onClick={() => choose(option)}
-                  className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm ${
-                    index === highlight ? "bg-primary/10" : ""
-                  }`}
+            escolhas.map(({ option, price }, index) => {
+              // A descrição só se repete na primeira unidade do produto; nas
+              // seguintes fica recuada, para a lista não virar um paredão.
+              const primeira = index === 0 || escolhas[index - 1]!.option.id !== option.id;
+              return (
+                <li
+                  key={`${option.id}-${price.unit}`}
+                  role="option"
+                  aria-selected={index === highlight}
                 >
-                  <span className="font-mono text-xs text-muted-foreground">{option.code}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate">{option.description}</span>
-                    <span className="block text-xs text-muted-foreground">
-                      {UNIT_LABEL[option.unit]} ·{" "}
-                      {option.priceCents > 0 ? (
-                        <>
-                          {formatCents(option.priceCents)}
-                          {option.unit === "M2" ? "/m²" : ""}
-                        </>
-                      ) : (
-                        <span className="text-amber-600">preço a definir</span>
-                      )}
+                  <button
+                    type="button"
+                    onMouseEnter={() => setHighlight(index)}
+                    onClick={() => choose({ option, price })}
+                    className={`flex w-full items-start gap-2 rounded px-2 py-1.5 text-left text-sm ${
+                      index === highlight ? "bg-primary/10" : ""
+                    }`}
+                  >
+                    <span className="w-10 shrink-0 font-mono text-xs text-muted-foreground">
+                      {primeira ? option.code : ""}
                     </span>
-                  </span>
-                </button>
-              </li>
-            ))
+                    <span className="min-w-0 flex-1">
+                      {primeira ? (
+                        <span className="block truncate">{option.description}</span>
+                      ) : null}
+                      <span className="block text-xs text-muted-foreground">
+                        {UNIT_LABEL[price.unit]} ·{" "}
+                        {price.priceCents > 0 ? (
+                          <>
+                            {formatCents(price.priceCents)}
+                            {price.unit === "M2" ? "/m²" : ""}
+                          </>
+                        ) : (
+                          <span className="text-amber-600">preço a definir</span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })
           )}
         </ul>
       ) : null}

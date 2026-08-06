@@ -88,8 +88,7 @@ export default async function TabelaPrecosPage({
                   <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                     <th className="py-2 pr-2 font-semibold">Código</th>
                     <th className="py-2 pr-2 font-semibold">Descrição</th>
-                    <th className="py-2 pr-2 font-semibold">Unidade</th>
-                    <th className="py-2 pr-2 text-right font-semibold">Valor</th>
+                    <th className="py-2 pr-2 font-semibold">Unidades e valores</th>
                     <th className="py-2 pr-2 font-semibold">Grupo</th>
                     <th className="py-2 text-right font-semibold">Ações</th>
                   </tr>
@@ -99,16 +98,27 @@ export default async function TabelaPrecosPage({
                     <tr key={item.id} className={item.active ? "" : "opacity-50"}>
                       <td className="py-2 pr-2 font-mono text-xs">{item.code}</td>
                       <td className="py-2 pr-2">{item.description}</td>
-                      <td className="py-2 pr-2 text-xs">{UNIT_LABEL[item.unit as BudgetUnit]}</td>
-                      <td className="py-2 pr-2 text-right tabular-nums">
-                        {item.priceCents > 0 ? (
-                          <>
-                            {formatCents(item.priceCents)}
-                            {item.unit === "M2" ? "/m²" : ""}
-                          </>
-                        ) : (
-                          <span className="text-amber-600">a definir</span>
-                        )}
+                      {/* Um produto pode ter valor em mais de uma unidade; a
+                          principal (a pré-selecionada no orçamento) vem em negrito. */}
+                      <td className="py-2 pr-2 text-xs">
+                        <div className="flex flex-col gap-0.5">
+                          {item.prices.map((p) => (
+                            <span
+                              key={p.unit}
+                              className={p.unit === item.unit ? "font-semibold" : ""}
+                            >
+                              {UNIT_LABEL[p.unit as BudgetUnit]}:{" "}
+                              {p.priceCents > 0 ? (
+                                <span className="tabular-nums">
+                                  {formatCents(p.priceCents)}
+                                  {p.unit === "M2" ? "/m²" : ""}
+                                </span>
+                              ) : (
+                                <span className="text-amber-600">a definir</span>
+                              )}
+                            </span>
+                          ))}
+                        </div>
                       </td>
                       <td className="py-2 pr-2 text-xs text-muted-foreground">
                         {item.group ?? "—"}

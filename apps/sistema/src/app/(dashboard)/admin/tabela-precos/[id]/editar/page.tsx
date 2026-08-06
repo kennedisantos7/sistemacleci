@@ -44,6 +44,10 @@ export default async function EditarPriceItemPage({
               description: item.description,
               unit: item.unit as BudgetUnit,
               priceCents: item.priceCents,
+              prices: item.prices.map((p) => ({
+                unit: p.unit as BudgetUnit,
+                priceCents: p.priceCents,
+              })),
               group: item.group,
               active: item.active,
             }}

@@ -12,29 +12,47 @@ import {
   setPriceItemActive,
 } from "@/server/services/price-items";
 import { mensagemDoErro } from "@/server/errors";
+import { parseReaisToCentsAllowZero } from "@/lib/money";
 
 export type PriceItemFormState = { error?: string };
 
+function ehUnidade(v: string): v is PriceUnit {
+  return (Object.values(PriceUnit) as string[]).includes(v);
+}
+
 function parseForm(formData: FormData) {
-  const priceRaw = String(formData.get("price") ?? "").trim();
-  const normalized = priceRaw.includes(",")
-    ? priceRaw.replace(/\./g, "").replace(",", ".")
-    : priceRaw;
-  const price = Number(normalized || "0");
-  if (!Number.isFinite(price) || price < 0) {
-    return { success: false as const, error: "Valor inválido (use o formato 123,45)." };
+  // O formulário manda as linhas de preço em JSON — quantidade variável.
+  let cru: unknown;
+  try {
+    cru = JSON.parse(String(formData.get("pricesJson") ?? "[]"));
+  } catch {
+    return { success: false as const, error: "Valores inválidos." };
+  }
+  if (!Array.isArray(cru) || cru.length === 0) {
+    return { success: false as const, error: "Informe pelo menos um valor de venda." };
+  }
+
+  const prices: Array<{ unit: PriceUnit; priceCents: number }> = [];
+  for (const linha of cru) {
+    const unidade = String((linha as { unit?: unknown }).unit ?? "");
+    if (!ehUnidade(unidade)) {
+      return { success: false as const, error: "Unidade de venda inválida." };
+    }
+    const centavos = parseReaisToCentsAllowZero(String((linha as { valor?: unknown }).valor ?? ""));
+    if (centavos === null) {
+      return { success: false as const, error: "Valor inválido (use o formato 1.234,56)." };
+    }
+    prices.push({ unit: unidade, priceCents: centavos });
   }
 
   const unitRaw = String(formData.get("unit") ?? "");
-  const unit = (Object.values(PriceUnit) as string[]).includes(unitRaw)
-    ? (unitRaw as PriceUnit)
-    : PriceUnit.UNIDADE;
+  const unit = ehUnidade(unitRaw) ? unitRaw : prices[0]!.unit;
 
   const parsed = priceItemSchema.safeParse({
     code: String(formData.get("code") ?? ""),
     description: String(formData.get("description") ?? ""),
     unit,
-    priceCents: Math.round(price * 100),
+    prices,
     group: String(formData.get("group") ?? "").trim() || null,
     active: formData.get("active") !== null,
   });
