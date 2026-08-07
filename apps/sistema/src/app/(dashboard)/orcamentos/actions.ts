@@ -11,6 +11,7 @@ import {
   createBudget,
   updateBudget,
   deleteBudget,
+  convertToPedido,
   getBudgetForActor,
   markBudgetSent,
   markBudgetAccepted,
@@ -240,6 +241,22 @@ export async function finalizeBudgetSaleAction(formData: FormData): Promise<void
     await markBudgetSaleFinalized(user, budgetId);
   } catch {
     // idem
+  }
+  revalidateBudget(budgetId);
+}
+
+/**
+ * Transforma o orçamento em pedido. Não existe o caminho inverso: o pedido é o
+ * documento que fecha a venda, e desfazer reescreveria o que o cliente recebeu.
+ */
+export async function convertToPedidoAction(formData: FormData): Promise<void> {
+  const user = await requireUser(BUDGET_ROLES);
+  const budgetId = String(formData.get("budgetId") ?? "");
+  if (!budgetId) return;
+  try {
+    await convertToPedido(user, budgetId);
+  } catch {
+    // Já era pedido ou fora do escopo — a tela recarregada mostra o real.
   }
   revalidateBudget(budgetId);
 }

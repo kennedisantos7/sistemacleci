@@ -90,6 +90,11 @@ const styles = StyleSheet.create({
   colTotal: { width: 54, textAlign: "right" },
   dimNote: { fontSize: 6, color: MUTED },
 
+  // Tabela enxuta do orçamento: colunas mais largas, texto maior.
+  colQtySimple: { width: 50, textAlign: "right" },
+  colUnitPriceSimple: { width: 80, textAlign: "right" },
+  colTotalSimple: { width: 80, textAlign: "right" },
+
   // Totais
   totalsWrap: { flexDirection: "row", justifyContent: "flex-end", marginTop: 8 },
   totalsBox: { width: 210 },
@@ -213,6 +218,21 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("pt-BR");
 }
 
+/**
+ * Medidas em uma linha só, para caber embaixo da descrição no orçamento.
+ * Ex.: "1,5 × 2 m · 3 m² · R$ 220,00/m²". Null quando o item não é por área.
+ */
+function medidasDoItem(item: OrcamentoPdfData["items"][number]): string | null {
+  if (item.unit !== "M2") return null;
+  const partes: string[] = [];
+  if (item.widthM != null && item.lengthM != null) {
+    partes.push(`${formatDecimal(item.widthM, 3)} × ${formatDecimal(item.lengthM, 3)} m`);
+  }
+  if (item.areaM2 != null) partes.push(`${formatDecimal(item.areaM2, 2)} m²`);
+  if (item.unitPriceCents > 0) partes.push(`${formatCents(item.unitPriceCents)}/m²`);
+  return partes.length ? partes.join(" · ") : null;
+}
+
 /** Junta partes não vazias — evita " · · " quando o cliente tem campos em branco. */
 function joinParts(parts: Array<string | null | undefined>, sep = " · "): string | null {
   const filled = parts.filter((p): p is string => Boolean(p && p.trim()));
@@ -233,7 +253,14 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
   return (
     <Document title={`${docLabel} #${data.number} — Cleci Personaliza`} author="Cleci Personaliza">
       <Page size="A4" style={styles.page}>
-        {/* Cabeçalho da empresa */}
+        {/*
+          Dois documentos, um componente.
+          - ORÇAMENTO: peça comercial. Só logo, cliente e valores. Sem CNPJ,
+            endereço, cláusulas e assinatura — nada disso vale nada antes de o
+            cliente decidir, e só tira o foco do preço.
+          - PEDIDO: documento que fecha a venda. Leva a empresa inteira, as
+            cláusulas e as assinaturas.
+        */}
         <View style={styles.header}>
           {data.logoSrc ? (
             <Image src={data.logoSrc} style={styles.logo} />
@@ -242,14 +269,18 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
               Cleci Personaliza
             </Text>
           )}
-          <View style={styles.company}>
-            <Text style={styles.companyName}>{EMPRESA.razao}</Text>
-            <Text style={styles.companyLine}>CNPJ: {EMPRESA.cnpj}</Text>
-            <Text style={styles.companyLine}>
-              Fone: {EMPRESA.fone} · {EMPRESA.email}
-            </Text>
-            <Text style={styles.companyLine}>{EMPRESA.endereco}</Text>
-          </View>
+          {isPedido ? (
+            <View style={styles.company}>
+              <Text style={styles.companyName}>{EMPRESA.razao}</Text>
+              <Text style={styles.companyLine}>CNPJ: {EMPRESA.cnpj}</Text>
+              <Text style={styles.companyLine}>
+                Fone: {EMPRESA.fone} · {EMPRESA.email}
+              </Text>
+              <Text style={styles.companyLine}>{EMPRESA.endereco}</Text>
+            </View>
+          ) : (
+            <View style={styles.company} />
+          )}
           <View style={styles.headerRight}>
             <Text style={styles.docTitle}>{docLabel}</Text>
             <Text style={styles.docNumber}>Nº {String(data.number).padStart(4, "0")}</Text>
@@ -264,27 +295,39 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
 
         {data.title ? <Text style={styles.title}>{data.title}</Text> : null}
 
-        {/* Cliente e condições */}
+        {/* Cliente e condições. No orçamento o bloco do cliente é enxuto: quem
+            vai ler já sabe quem é, e endereço/documento só interessam na hora
+            de emitir o pedido. */}
         <View style={styles.infoRow}>
           <View style={styles.infoBox}>
             <Text style={styles.infoLabel}>Cliente</Text>
             <Text style={[styles.infoLine, { fontFamily: "Helvetica-Bold" }]}>{client.name}</Text>
             {client.companyName ? <Text style={styles.infoLine}>{client.companyName}</Text> : null}
-            {client.document ? (
-              <Text style={[styles.infoLine, styles.infoMuted]}>CPF/CNPJ: {client.document}</Text>
-            ) : null}
-            {client.address ? (
-              <Text style={[styles.infoLine, styles.infoMuted]}>{client.address}</Text>
-            ) : null}
-            {localidade ? (
-              <Text style={[styles.infoLine, styles.infoMuted]}>{localidade}</Text>
-            ) : null}
-            {contatos ? <Text style={[styles.infoLine, styles.infoMuted]}>{contatos}</Text> : null}
-            {client.email ? (
-              <Text style={[styles.infoLine, styles.infoMuted]}>{client.email}</Text>
-            ) : null}
-            {client.contactName ? (
-              <Text style={[styles.infoLine, styles.infoMuted]}>Contato: {client.contactName}</Text>
+            {isPedido ? (
+              <>
+                {client.document ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>
+                    CPF/CNPJ: {client.document}
+                  </Text>
+                ) : null}
+                {client.address ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>{client.address}</Text>
+                ) : null}
+                {localidade ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>{localidade}</Text>
+                ) : null}
+                {contatos ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>{contatos}</Text>
+                ) : null}
+                {client.email ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>{client.email}</Text>
+                ) : null}
+                {client.contactName ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>
+                    Contato: {client.contactName}
+                  </Text>
+                ) : null}
+              </>
             ) : null}
           </View>
           <View style={styles.infoBox}>
@@ -304,41 +347,72 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
           </View>
         </View>
 
-        {/* Itens — mesmas colunas da planilha */}
-        <View style={styles.tableHeader}>
-          <Text style={styles.colCode}>Código</Text>
-          <Text style={styles.colDesc}>Descrição</Text>
-          <Text style={styles.colValue}>Base cálc.</Text>
-          <Text style={styles.colUnit}>Unid.</Text>
-          <Text style={styles.colDim}>La.</Text>
-          <Text style={styles.colDim}>Com.</Text>
-          <Text style={styles.colArea}>M²</Text>
-          <Text style={styles.colPartial}>Valor unit.</Text>
-          <Text style={styles.colQty}>Qtd</Text>
-          <Text style={styles.colTotal}>Total</Text>
-        </View>
-        {data.items.map((item) => (
-          <View key={item.id} style={styles.tableRow} wrap={false}>
-            <Text style={styles.colCode}>{item.code ?? "—"}</Text>
-            <Text style={styles.colDesc}>{item.description}</Text>
-            <Text style={styles.colValue}>{formatCents(item.unitPriceCents)}</Text>
-            <Text style={styles.colUnit}>{UNIT_LABEL[item.unit]}</Text>
-            <Text style={styles.colDim}>
-              {item.widthM != null ? formatDecimal(item.widthM, 3) : "—"}
-            </Text>
-            <Text style={styles.colDim}>
-              {item.lengthM != null ? formatDecimal(item.lengthM, 3) : "—"}
-            </Text>
-            <Text style={styles.colArea}>
-              {item.areaM2 != null ? formatDecimal(item.areaM2, 4) : "—"}
-            </Text>
-            <Text style={styles.colPartial}>{formatCents(item.partialCents)}</Text>
-            <Text style={styles.colQty}>{formatQuantity(item.quantity)}</Text>
-            <Text style={[styles.colTotal, { fontFamily: "Helvetica-Bold" }]}>
-              {formatCents(item.totalCents)}
-            </Text>
-          </View>
-        ))}
+        {/* Itens. O pedido leva as 10 colunas da planilha (é o documento de
+            produção); o orçamento leva 4, com as medidas embaixo da descrição —
+            o cliente quer ler o que vai receber e quanto custa. */}
+        {isPedido ? (
+          <>
+            <View style={styles.tableHeader}>
+              <Text style={styles.colCode}>Código</Text>
+              <Text style={styles.colDesc}>Descrição</Text>
+              <Text style={styles.colValue}>Base cálc.</Text>
+              <Text style={styles.colUnit}>Unid.</Text>
+              <Text style={styles.colDim}>La.</Text>
+              <Text style={styles.colDim}>Com.</Text>
+              <Text style={styles.colArea}>M²</Text>
+              <Text style={styles.colPartial}>Valor unit.</Text>
+              <Text style={styles.colQty}>Qtd</Text>
+              <Text style={styles.colTotal}>Total</Text>
+            </View>
+            {data.items.map((item) => (
+              <View key={item.id} style={styles.tableRow} wrap={false}>
+                <Text style={styles.colCode}>{item.code ?? "—"}</Text>
+                <Text style={styles.colDesc}>{item.description}</Text>
+                <Text style={styles.colValue}>{formatCents(item.unitPriceCents)}</Text>
+                <Text style={styles.colUnit}>{UNIT_LABEL[item.unit]}</Text>
+                <Text style={styles.colDim}>
+                  {item.widthM != null ? formatDecimal(item.widthM, 3) : "—"}
+                </Text>
+                <Text style={styles.colDim}>
+                  {item.lengthM != null ? formatDecimal(item.lengthM, 3) : "—"}
+                </Text>
+                <Text style={styles.colArea}>
+                  {item.areaM2 != null ? formatDecimal(item.areaM2, 4) : "—"}
+                </Text>
+                <Text style={styles.colPartial}>{formatCents(item.partialCents)}</Text>
+                <Text style={styles.colQty}>{formatQuantity(item.quantity)}</Text>
+                <Text style={[styles.colTotal, { fontFamily: "Helvetica-Bold" }]}>
+                  {formatCents(item.totalCents)}
+                </Text>
+              </View>
+            ))}
+          </>
+        ) : (
+          <>
+            <View style={styles.tableHeader}>
+              <Text style={styles.colDesc}>Descrição</Text>
+              <Text style={styles.colQtySimple}>Qtd</Text>
+              <Text style={styles.colUnitPriceSimple}>Valor unit.</Text>
+              <Text style={styles.colTotalSimple}>Total</Text>
+            </View>
+            {data.items.map((item) => {
+              const medidas = medidasDoItem(item);
+              return (
+                <View key={item.id} style={styles.tableRow} wrap={false}>
+                  <View style={styles.colDesc}>
+                    <Text>{item.description}</Text>
+                    {medidas ? <Text style={styles.dimNote}>{medidas}</Text> : null}
+                  </View>
+                  <Text style={styles.colQtySimple}>{formatQuantity(item.quantity)}</Text>
+                  <Text style={styles.colUnitPriceSimple}>{formatCents(item.partialCents)}</Text>
+                  <Text style={[styles.colTotalSimple, { fontFamily: "Helvetica-Bold" }]}>
+                    {formatCents(item.totalCents)}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
+        )}
 
         {/* Totais */}
         <View style={styles.totalsWrap}>
@@ -404,35 +478,41 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
           </View>
         ) : null}
 
-        {/* Cláusulas */}
-        <View style={styles.noteBox}>
-          {CLAUSULAS.map((clausula) => (
-            <Text key={clausula} style={styles.clausula}>
-              {clausula}
+        {/* Cláusulas e assinaturas: só no pedido. No orçamento nada disso vale
+            — não há o que assinar antes de o cliente decidir. */}
+        {isPedido ? (
+          <>
+            <View style={styles.noteBox}>
+              {CLAUSULAS.map((clausula) => (
+                <Text key={clausula} style={styles.clausula}>
+                  {clausula}
+                </Text>
+              ))}
+            </View>
+
+            <View style={styles.signRow} wrap={false}>
+              <View style={styles.signCol}>
+                <View style={styles.signLine} />
+                <Text style={styles.signLabel}>VENDEDOR</Text>
+                <Text style={styles.signName}>{data.vendedor.name ?? data.vendedor.email}</Text>
+              </View>
+              <View style={styles.signCol}>
+                <View style={styles.signLine} />
+                <Text style={styles.signLabel}>COMPRADOR</Text>
+                <Text style={styles.signName}>{client.name}</Text>
+              </View>
+            </View>
+          </>
+        ) : null}
+
+        {/* Rodapé com a empresa: só no pedido, pela mesma razão do cabeçalho. */}
+        {isPedido ? (
+          <View style={styles.footer} fixed>
+            <Text>
+              {EMPRESA.razao} · CNPJ {EMPRESA.cnpj} · {EMPRESA.endereco} · {EMPRESA.fone}
             </Text>
-          ))}
-        </View>
-
-        {/* Assinaturas */}
-        <View style={styles.signRow} wrap={false}>
-          <View style={styles.signCol}>
-            <View style={styles.signLine} />
-            <Text style={styles.signLabel}>VENDEDOR</Text>
-            <Text style={styles.signName}>{data.vendedor.name ?? data.vendedor.email}</Text>
           </View>
-          <View style={styles.signCol}>
-            <View style={styles.signLine} />
-            <Text style={styles.signLabel}>COMPRADOR</Text>
-            <Text style={styles.signName}>{client.name}</Text>
-          </View>
-        </View>
-
-        {/* Rodapé */}
-        <View style={styles.footer} fixed>
-          <Text>
-            {EMPRESA.razao} · CNPJ {EMPRESA.cnpj} · {EMPRESA.endereco} · {EMPRESA.fone}
-          </Text>
-        </View>
+        ) : null}
       </Page>
     </Document>
   );

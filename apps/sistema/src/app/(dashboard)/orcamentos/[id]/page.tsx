@@ -19,6 +19,7 @@ import {
   rejectBudgetAction,
   finalizeBudgetSaleAction,
   deleteBudgetAction,
+  convertToPedidoAction,
 } from "../actions";
 import { BUDGET_STATUS_LABEL, BUDGET_STATUS_STYLE } from "@/lib/budget-status";
 
@@ -84,6 +85,18 @@ export default async function OrcamentoDetailPage({
         >
           <FileDown className="h-4 w-4" /> Exportar PDF
         </a>
+
+        {/* Converter é caminho de mão única — o aviso está na confirmação. */}
+        {!design && budget.docType === "ORCAMENTO" && (
+          <ConfirmSubmitButton
+            action={convertToPedidoAction}
+            hidden={{ budgetId: budget.id }}
+            label="Converter em pedido"
+            pendingLabel="Convertendo..."
+            variant="outline"
+            confirmMessage="Converter este orçamento em pedido? O PDF passa a sair completo, com dados da empresa, cláusulas e assinatura. Um pedido não volta a ser orçamento."
+          />
+        )}
 
         {!design && budget.status === BudgetStatus.RASCUNHO && (
           <>

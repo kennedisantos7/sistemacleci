@@ -13,6 +13,7 @@ import { z } from "zod";
 import { markSalePaid } from "./sales";
 import { getPriceItemsByIds } from "./price-items";
 import { canSeeAllBudgets, isDesigner } from "@/lib/rbac";
+import { resolverDocType, podeConverterEmPedido } from "@/lib/doc-type";
 import { touchClientActivity } from "./clients";
 import {
   calcBudget,
@@ -317,9 +318,13 @@ export async function updateBudget(
 ) {
   const budget = await prisma.budget.findFirst({
     where: { id: budgetId, status: BudgetStatus.RASCUNHO, ...scopeWhere(actor) },
-    select: { id: true },
+    select: { id: true, docType: true },
   });
   if (!budget) throw new Error("Orçamento não encontrado ou já enviado (não editável).");
+
+  // Pedido não volta a ser orçamento. O formulário já trava o campo, mas a
+  // regra tem de valer aqui: uma requisição forjada não rebaixa o documento.
+  const docType = resolverDocType(budget.docType, header.docType);
 
   await assertClientInScope(actor, header.clientId);
   const data = await buildBudgetData(items, adjustments);
@@ -330,7 +335,7 @@ export async function updateBudget(
       where: { id: budgetId },
       data: {
         clientId: header.clientId,
-        docType: header.docType,
+        docType,
         title: header.title ?? null,
         note: header.note ?? null,
         validUntil: header.validUntil ?? null,
@@ -346,6 +351,31 @@ export async function updateBudget(
   const rotulo = atualizado.docType === BudgetDocType.PEDIDO ? "Pedido" : "Orçamento";
   await registrarNoCliente(actor, header.clientId, `${rotulo} #${atualizado.number} atualizado.`);
   return atualizado;
+}
+
+/**
+ * Converte um orçamento em pedido. Caminho de mão única: pedido NÃO volta a
+ * ser orçamento — o pedido é o documento que fecha a venda, com cláusulas e
+ * assinatura, e desfazer isso reescreveria o que o cliente já recebeu.
+ *
+ * A regra também está em `updateBudget`, que ignora a tentativa de rebaixar o
+ * tipo pelo formulário. Aqui é o caminho explícito.
+ */
+export async function convertToPedido(actor: BudgetActor, budgetId: string) {
+  const atual = await prisma.budget.findFirst({
+    where: { id: budgetId, ...scopeWhere(actor) },
+    select: { docType: true },
+  });
+  if (!atual) throw new Error("Orçamento não encontrado.");
+  if (!podeConverterEmPedido(atual.docType)) throw new Error("Este documento já é um pedido.");
+
+  const res = await prisma.budget.updateMany({
+    where: { id: budgetId, docType: BudgetDocType.ORCAMENTO, ...scopeWhere(actor) },
+    data: { docType: BudgetDocType.PEDIDO },
+  });
+  if (res.count === 0) {
+    throw new Error("Orçamento não encontrado ou já convertido em pedido.");
+  }
 }
 
 /** Exclui um orçamento em rascunho (nunca um já enviado/aceito). */

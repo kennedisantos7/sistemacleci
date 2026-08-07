@@ -177,6 +177,7 @@ export function BudgetForm({
   canManagePriceItems?: boolean;
 }) {
   const isEdit = Boolean(defaults?.id);
+  const jaEhPedido = defaults?.docType === "PEDIDO";
   const [state, action, pending] = useActionState(
     isEdit ? updateBudgetAction : createBudgetAction,
     initial,
@@ -433,15 +434,36 @@ export function BudgetForm({
           <label htmlFor="bf-doctype" className="text-sm font-medium">
             Documento
           </label>
-          <select
-            id="bf-doctype"
-            name="docType"
-            defaultValue={defaults?.docType ?? "ORCAMENTO"}
-            className="flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <option value="ORCAMENTO">Orçamento</option>
-            <option value="PEDIDO">Pedido</option>
-          </select>
+          {/* Pedido não volta a ser orçamento: editando um pedido, o campo fica
+              travado. O caminho de ida é o botão "Converter em pedido" na tela
+              do orçamento — o servidor recusa o rebaixamento de qualquer jeito. */}
+          {jaEhPedido ? (
+            <>
+              <input type="hidden" name="docType" value="PEDIDO" />
+              <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-sm">
+                Pedido
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Um pedido não volta a ser orçamento.
+              </p>
+            </>
+          ) : (
+            <>
+              <select
+                id="bf-doctype"
+                name="docType"
+                defaultValue="ORCAMENTO"
+                className={SELECT_CLASS}
+              >
+                <option value="ORCAMENTO">Orçamento</option>
+                <option value="PEDIDO">Pedido</option>
+              </select>
+              <p className="text-xs text-muted-foreground">
+                Orçamento sai enxuto, focado no valor. Pedido sai completo, com
+                dados da empresa e assinatura.
+              </p>
+            </>
+          )}
         </div>
         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
           <label htmlFor="bf-client" className="text-sm font-medium">
