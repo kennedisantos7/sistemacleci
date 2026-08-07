@@ -47,6 +47,7 @@ export function CreateUserForm({ canManageStaff = false }: { canManageStaff?: bo
         >
           <option value="VENDEDOR_FIXO">Vendedor</option>
           <option value="AFILIADO">Afiliado</option>
+          <option value="DESIGN">Design</option>
           {canManageStaff && (
             <>
               <option value="GERENTE">Gerente</option>

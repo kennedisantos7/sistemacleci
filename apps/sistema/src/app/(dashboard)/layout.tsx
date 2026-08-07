@@ -51,6 +51,8 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/afiliado/links", label: "Meus Links" },
     { href: "/afiliado/saques", label: "Saques" },
   ],
+  // O design só tem a fila. Os orçamentos ele abre a partir dela.
+  DESIGN: [{ href: "/design", label: "Fila de arte" }],
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -59,6 +61,7 @@ const ROLE_LABEL: Record<Role, string> = {
   GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
+  DESIGN: "Design",
 };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

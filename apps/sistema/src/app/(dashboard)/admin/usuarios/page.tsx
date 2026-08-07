@@ -1,6 +1,6 @@
 import { prisma, UserStatus, type Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES, SELLER_ROLES, isFullAccess } from "@/lib/rbac";
+import { STAFF_ROLES, MANAGED_BY_GERENTE_ROLES, isFullAccess } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreateUserForm } from "./create-user-form";
@@ -23,6 +23,7 @@ const ROLE_LABEL: Record<Role, string> = {
   GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
+  DESIGN: "Design",
 };
 
 const STATUS_STYLE: Record<UserStatus, string> = {
@@ -75,7 +76,7 @@ export default async function AdminUsersPage() {
         <CardContent>
           <div className="divide-y divide-border">
             {users.map((u) => {
-              const targetIsStaff = !SELLER_ROLES.includes(u.role);
+              const targetIsStaff = !MANAGED_BY_GERENTE_ROLES.includes(u.role);
               // Gerente não gerencia contas da equipe.
               const canManage = canManageStaff || !targetIsStaff;
 
@@ -112,6 +113,7 @@ export default async function AdminUsersPage() {
                           >
                             <option value="AFILIADO">Afiliado</option>
                             <option value="VENDEDOR_FIXO">Vendedor</option>
+                            <option value="DESIGN">Design</option>
                             {canManageStaff && (
                               <>
                                 <option value="GERENTE">Gerente</option>

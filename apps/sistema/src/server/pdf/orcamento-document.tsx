@@ -122,6 +122,20 @@ const styles = StyleSheet.create({
   noteText: { color: "#374151", lineHeight: 1.4 },
   clausula: { fontSize: 6.5, color: MUTED, marginTop: 2, lineHeight: 1.3 },
 
+  // Arte: moldura QUADRADA fixa. A imagem entra inteira (objectFit contain),
+  // então arte fora do 1:1 sobra margem em vez de ser cortada.
+  artBox: { marginTop: 12, alignItems: "center" },
+  artFrame: {
+    width: 260,
+    height: 260,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 3,
+    padding: 4,
+  },
+  artImage: { width: "100%", height: "100%", objectFit: "contain" },
+  artCaption: { fontSize: 7, color: MUTED, marginTop: 4, textAlign: "center" },
+
   // Assinaturas
   signRow: { flexDirection: "row", gap: 40, marginTop: 30 },
   signCol: { flex: 1, alignItems: "center" },
@@ -188,6 +202,11 @@ export type OrcamentoPdfData = {
   }>;
   /** Data URI do logo (ou null para omitir). */
   logoSrc: string | null;
+  /**
+   * Arte do design, quando o orçamento passou por lá. Null quando não passou —
+   * o fluxo é opcional e o PDF sai igual ao de antes nesse caso.
+   */
+  arte: { src: string; aprovada: boolean } | null;
 };
 
 function fmtDate(d: Date): string {
@@ -358,6 +377,24 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
             </View>
           </View>
         </View>
+
+        {/* Arte do design, quando existe. wrap={false} para a imagem não ser
+            partida no meio por uma quebra de página. */}
+        {data.arte ? (
+          <View style={styles.artBox} wrap={false}>
+            <Text style={styles.noteLabel}>
+              {data.arte.aprovada ? "Arte aprovada" : "Arte para aprovação"}
+            </Text>
+            <View style={styles.artFrame}>
+              <Image src={data.arte.src} style={styles.artImage} />
+            </View>
+            {!data.arte.aprovada ? (
+              <Text style={styles.artCaption}>
+                Confira a arte acima e confirme com o vendedor antes da produção.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         {/* Observações */}
         {data.note ? (

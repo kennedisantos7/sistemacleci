@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma, UserStatus, Role } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES, SELLER_ROLES, isFullAccess } from "@/lib/rbac";
+import { STAFF_ROLES, MANAGED_BY_GERENTE_ROLES, isFullAccess } from "@/lib/rbac";
 import { parsePercentToBps } from "@/lib/money";
 
 /**
@@ -15,7 +15,7 @@ import { parsePercentToBps } from "@/lib/money";
  */
 function canManageTarget(actorRole: Role, targetRole: Role): boolean {
   if (isFullAccess(actorRole)) return true;
-  return SELLER_ROLES.includes(targetRole); // gerente: só vendedor/afiliado
+  return MANAGED_BY_GERENTE_ROLES.includes(targetRole); // gerente: vendedor/afiliado/design
 }
 
 // Só existe 1 conta de ADMIN e 1 de DESENVOLVEDOR no sistema.
@@ -71,13 +71,14 @@ const ALL_ROLES: Role[] = [
   Role.GERENTE,
   Role.VENDEDOR_FIXO,
   Role.AFILIADO,
+  Role.DESIGN,
 ];
 
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO", "AFILIADO"]),
+  role: z.enum(["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO", "AFILIADO", "DESIGN"]),
 });
 
 export type CreateUserState = { error?: string; success?: string };
@@ -102,8 +103,8 @@ export async function createUserAction(
   const { name, email, password, role } = parsed.data;
 
   // Gerente não pode criar contas da equipe (anti-escalada de privilégio).
-  if (!isFullAccess(admin.role) && !SELLER_ROLES.includes(role)) {
-    return { error: "Você só pode criar contas de vendedor ou afiliado." };
+  if (!isFullAccess(admin.role) && !MANAGED_BY_GERENTE_ROLES.includes(role)) {
+    return { error: "Você só pode criar contas de vendedor, afiliado ou design." };
   }
 
   // Só pode existir 1 conta de ADMIN e 1 de DESENVOLVEDOR.
@@ -240,7 +241,7 @@ export async function updateUserRoleAction(formData: FormData) {
 
   // Gerente: só pode mexer em vendedor/afiliado e só atribuir esses papéis.
   if (!isFullAccess(admin.role)) {
-    if (!SELLER_ROLES.includes(target.role) || !SELLER_ROLES.includes(role)) return;
+    if (!MANAGED_BY_GERENTE_ROLES.includes(target.role) || !MANAGED_BY_GERENTE_ROLES.includes(role)) return;
   }
 
   // Só pode existir 1 conta de ADMIN e 1 de DESENVOLVEDOR.

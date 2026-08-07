@@ -23,6 +23,7 @@ enum Role {
   GERENTE
   VENDEDOR_FIXO
   AFILIADO
+  DESIGN // produz a arte dos pedidos enviados pelo vendedor
 }
 
 enum UserStatus {
@@ -63,6 +64,11 @@ model User {
   clients        Client[]
   clientActivities ClientActivity[]
   budgets        Budget[]
+
+  // Fluxo do design (relações nomeadas: o mesmo User aparece em três papéis).
+  designRequests  Budget[]    @relation("DesignRequestedBy")
+  designAssigned  Budget[]    @relation("DesignAssignedTo")
+  artsUploaded    BudgetArt[] @relation("ArtUploadedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -584,6 +590,27 @@ model Budget {
   saleId String? @unique
   sale   Sale?   @relation(fields: [saleId], references: [id])
 
+  // --- Arte (fluxo do design) ---------------------------------------------
+  // OPCIONAL e paralelo ao status: designStatus null = nunca foi para o
+  // design, e o orçamento segue seu caminho normal sem nada disso. Por isso é
+  // um campo à parte, e não mais um valor dentro de BudgetStatus.
+  designStatus      DesignStatus?
+  designRequestedAt DateTime?
+  designDeliveredAt DateTime?
+  /** Briefing do vendedor para o designer. */
+  designBrief       String?       @db.VarChar(2000)
+  /** Resposta do designer ao entregar (ou ao pedir informação). */
+  designerNote      String?       @db.VarChar(2000)
+
+  designRequestedById String?
+  designRequestedBy   User?   @relation("DesignRequestedBy", fields: [designRequestedById], references: [id], onDelete: SetNull)
+  // Designer que assumiu. SetNull: tirar o designer do sistema não apaga o
+  // pedido de arte nem o histórico do orçamento.
+  designerId          String?
+  designer            User?   @relation("DesignAssignedTo", fields: [designerId], references: [id], onDelete: SetNull)
+
+  arts BudgetArt[]
+
   sentAt      DateTime?
   respondedAt DateTime?
 
@@ -592,6 +619,56 @@ model Budget {
 
   @@index([vendedorId, status])
   @@index([clientId])
+  // Fila do design: busca por estado, mais recente primeiro.
+  @@index([designStatus, designRequestedAt])
+}
+
+/**
+ * Etapas da arte. Independentes do BudgetStatus — um orçamento pode estar em
+ * rascunho, pendente ou aceito e ter arte em qualquer uma destas etapas.
+ */
+enum DesignStatus {
+  SOLICITADO // vendedor mandou para o design
+  EM_PRODUCAO // designer assumiu
+  ENTREGUE // arte anexada, devolvida ao vendedor
+  REVISAO // vendedor (ou cliente) pediu ajuste
+  APROVADA // cliente aprovou a arte
+}
+
+/**
+ * Arte produzida pelo design. Uma linha POR VERSÃO: pedir revisão não apaga a
+ * anterior, então dá para ver quantas voltas a peça deu.
+ *
+ * O arquivo mora no próprio banco (bytea). É uma decisão temporária, tomada
+ * para não travar a entrega em configurar armazenamento externo — o código de
+ * upload em S3 já existe (server/storage.ts) mas o ambiente não tem as
+ * credenciais. Migrar depois é trocar `data` por uma URL.
+ * ATENÇÃO: nunca selecione `data` em listagem — são megabytes por linha.
+ */
+model BudgetArt {
+  id       String @id @default(cuid())
+  budgetId String
+  budget   Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  data      Bytes
+  mimeType  String
+  sizeBytes Int
+  /** Dimensões informadas no envio — só para exibir e avisar se não é quadrada. */
+  widthPx  Int?
+  heightPx Int?
+
+  /** 1, 2, 3... na ordem em que o design entregou. */
+  version Int
+  /** A versão que vale hoje: é a que sai no PDF. */
+  current Boolean @default(true)
+
+  uploadedById String?
+  uploadedBy   User?   @relation("ArtUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@unique([budgetId, version])
+  @@index([budgetId, current])
 }
 
 model BudgetItem {

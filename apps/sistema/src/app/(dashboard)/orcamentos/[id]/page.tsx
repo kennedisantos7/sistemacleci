@@ -9,7 +9,9 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { formatCents, formatQuantity, formatDecimal } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
-import { BUDGET_ROLES, canSeeAllBudgets } from "@/lib/rbac";
+import { BUDGET_VIEW_ROLES, canSeeAllBudgets, isDesigner } from "@/lib/rbac";
+import { getDesignPanel } from "@/server/services/design";
+import { DesignCard } from "../../design/design-card";
 import {
   sendBudgetAction,
   revertBudgetAction,
@@ -27,7 +29,7 @@ export default async function OrcamentoDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const user = await requireUser(BUDGET_ROLES);
+  const user = await requireUser(BUDGET_VIEW_ROLES);
   const { id } = await params;
 
   const budget = await getBudgetForActor(user, id);
@@ -37,6 +39,10 @@ export default async function OrcamentoDetailPage({
   const saleFinalized = budget.sale?.status === SaleStatus.PAGO;
   const docLabel = budget.docType === "PEDIDO" ? "Pedido" : "Orçamento";
   const seesAll = canSeeAllBudgets(user.role);
+  // O design abre a mesma tela, mas sem as transições comerciais: aceitar,
+  // recusar e finalizar venda são decisões do vendedor.
+  const design = isDesigner(user.role);
+  const painelArte = await getDesignPanel(user, id);
 
   return (
     <div className="space-y-6">
@@ -79,7 +85,7 @@ export default async function OrcamentoDetailPage({
           <FileDown className="h-4 w-4" /> Exportar PDF
         </a>
 
-        {budget.status === BudgetStatus.RASCUNHO && (
+        {!design && budget.status === BudgetStatus.RASCUNHO && (
           <>
             <Link
               href={`/orcamentos/${budget.id}/editar`}
@@ -110,7 +116,7 @@ export default async function OrcamentoDetailPage({
           </>
         )}
 
-        {budget.status === BudgetStatus.ENVIADO && (
+        {!design && budget.status === BudgetStatus.ENVIADO && (
           <>
             <ConfirmSubmitButton
               action={acceptBudgetAction}
@@ -140,7 +146,7 @@ export default async function OrcamentoDetailPage({
           </>
         )}
 
-        {budget.status === BudgetStatus.ACEITO && budget.sale && !saleFinalized && (
+        {!design && budget.status === BudgetStatus.ACEITO && budget.sale && !saleFinalized && (
           <ConfirmSubmitButton
             action={finalizeBudgetSaleAction}
             hidden={{ budgetId: budget.id }}
@@ -170,6 +176,8 @@ export default async function OrcamentoDetailPage({
           ) : null}
         </p>
       ) : null}
+
+      {painelArte ? <DesignCard budgetId={budget.id} panel={painelArte} /> : null}
 
       {/* Itens */}
       <Card>

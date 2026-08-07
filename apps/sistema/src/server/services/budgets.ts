@@ -12,7 +12,7 @@ import {
 import { z } from "zod";
 import { markSalePaid } from "./sales";
 import { getPriceItemsByIds } from "./price-items";
-import { canSeeAllBudgets } from "@/lib/rbac";
+import { canSeeAllBudgets, isDesigner } from "@/lib/rbac";
 import { touchClientActivity } from "./clients";
 import {
   calcBudget,
@@ -30,7 +30,12 @@ import {
 export type BudgetActor = { id: string; role: Role; name?: string | null; email?: string };
 
 function scopeWhere(actor: BudgetActor): Prisma.BudgetWhereInput {
-  return canSeeAllBudgets(actor.role) ? {} : { vendedorId: actor.id };
+  if (canSeeAllBudgets(actor.role)) return {};
+  // O design abre o orçamento inteiro (é o que ele precisa para fazer a arte),
+  // mas só os que foram enviados para o design. Orçamento que nunca entrou no
+  // fluxo é invisível para ele.
+  if (isDesigner(actor.role)) return { designStatus: { not: null } };
+  return { vendedorId: actor.id };
 }
 
 function clientScopeWhere(actor: BudgetActor): Prisma.ClientWhereInput {

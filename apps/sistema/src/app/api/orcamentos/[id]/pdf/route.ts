@@ -2,14 +2,16 @@ import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/server/session";
 import { getBudgetForActor } from "@/server/services/budgets";
 import { renderOrcamentoPdf } from "@/server/pdf/render-orcamento-pdf";
-import { BUDGET_ROLES } from "@/lib/rbac";
+import { BUDGET_VIEW_ROLES } from "@/lib/rbac";
+import { getCurrentArt } from "@/server/services/design";
+import { DesignStatus } from "@cleci/db";
 import type { BudgetUnit } from "@/lib/budget-math";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
-  const user = await requireUser(BUDGET_ROLES);
+  const user = await requireUser(BUDGET_VIEW_ROLES);
   const { id } = await ctx.params;
 
   // Escopado pelo papel: vendedor só exporta o próprio; equipe exporta todos.
@@ -18,7 +20,18 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  // Arte atual, quando existe. Vai como data URI: o @react-pdf nao busca URL
+  // que exige sessao, e o arquivo esta no banco (nao ha URL publica).
+  const art = await getCurrentArt(budget.id);
+  const arte = art
+    ? {
+        src: `data:${art.mimeType};base64,${Buffer.from(art.data).toString("base64")}`,
+        aprovada: budget.designStatus === DesignStatus.APROVADA,
+      }
+    : null;
+
   const pdf = await renderOrcamentoPdf({
+    arte,
     number: budget.number,
     docType: budget.docType,
     createdAt: budget.createdAt,
