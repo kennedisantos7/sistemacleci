@@ -177,7 +177,8 @@ export function BudgetForm({
   canManagePriceItems?: boolean;
 }) {
   const isEdit = Boolean(defaults?.id);
-  const jaEhPedido = defaults?.docType === "PEDIDO";
+  const docType = defaults?.docType ?? "ORCAMENTO";
+  const ehPedido = docType === "PEDIDO";
   const [state, action, pending] = useActionState(
     isEdit ? updateBudgetAction : createBudgetAction,
     initial,
@@ -430,40 +431,21 @@ export function BudgetForm({
 
       {/* Cabeçalho */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* O tipo vem da seção (/orcamentos ou /pedidos), não de um select: são
+            documentos diferentes, com listas separadas. O caminho entre eles é
+            o botão "Converter em pedido", de mão única — e o servidor recusa o
+            rebaixamento de qualquer jeito. */}
         <div className="space-y-1">
-          <label htmlFor="bf-doctype" className="text-sm font-medium">
-            Documento
-          </label>
-          {/* Pedido não volta a ser orçamento: editando um pedido, o campo fica
-              travado. O caminho de ida é o botão "Converter em pedido" na tela
-              do orçamento — o servidor recusa o rebaixamento de qualquer jeito. */}
-          {jaEhPedido ? (
-            <>
-              <input type="hidden" name="docType" value="PEDIDO" />
-              <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-sm">
-                Pedido
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Um pedido não volta a ser orçamento.
-              </p>
-            </>
-          ) : (
-            <>
-              <select
-                id="bf-doctype"
-                name="docType"
-                defaultValue="ORCAMENTO"
-                className={SELECT_CLASS}
-              >
-                <option value="ORCAMENTO">Orçamento</option>
-                <option value="PEDIDO">Pedido</option>
-              </select>
-              <p className="text-xs text-muted-foreground">
-                Orçamento sai enxuto, focado no valor. Pedido sai completo, com
-                dados da empresa e assinatura.
-              </p>
-            </>
-          )}
+          <p className="text-sm font-medium">Documento</p>
+          <input type="hidden" name="docType" value={docType} />
+          <div className="flex h-10 items-center rounded-md border border-border bg-muted px-3 text-sm">
+            {ehPedido ? "Pedido" : "Orçamento"}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {ehPedido
+              ? "Sai completo, com dados da empresa, cláusulas e assinatura. Um pedido não volta a ser orçamento."
+              : "Sai enxuto, focado no valor do serviço. Pode virar pedido depois."}
+          </p>
         </div>
         <div className="space-y-1 sm:col-span-2 lg:col-span-1">
           <label htmlFor="bf-client" className="text-sm font-medium">
@@ -586,7 +568,7 @@ export function BudgetForm({
           <div>
             <h2 className="flex items-center gap-2 text-base font-bold">
               <PackageSearch className="h-5 w-5 text-primary" />
-              Produtos do orçamento
+              Produtos do {ehPedido ? "pedido" : "orçamento"}
             </h2>
             <p className="text-xs text-muted-foreground">
               Busque pelo código ou pelo nome — valor, unidade e cálculo vêm preenchidos.
@@ -825,7 +807,11 @@ export function BudgetForm({
       {state.error ? <p className="text-sm text-red-600">{state.error}</p> : null}
 
       <Button type="button" disabled={pending} onClick={handleSubmit}>
-        {pending ? "Salvando..." : isEdit ? "Salvar alterações" : "Criar orçamento"}
+        {pending
+          ? "Salvando..."
+          : isEdit
+            ? "Salvar alterações"
+            : `Criar ${ehPedido ? "pedido" : "orçamento"}`}
       </Button>
     </form>
   );

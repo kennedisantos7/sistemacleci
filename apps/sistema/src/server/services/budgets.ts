@@ -223,13 +223,20 @@ export function getBudgetForActor(actor: BudgetActor, budgetId: string) {
 /** Lista os orçamentos visíveis para o papel. */
 export function listBudgetsForActor(
   actor: BudgetActor,
-  options: { status?: BudgetStatus; search?: string; take?: number } = {},
+  options: {
+    status?: BudgetStatus;
+    /** Orçamento e pedido têm seções separadas; sem filtro, lista os dois. */
+    docType?: BudgetDocType;
+    search?: string;
+    take?: number;
+  } = {},
 ) {
-  const { status, search, take = 100 } = options;
+  const { status, docType, search, take = 100 } = options;
   return prisma.budget.findMany({
     where: {
       ...scopeWhere(actor),
       ...(status ? { status } : {}),
+      ...(docType ? { docType } : {}),
       ...(search
         ? {
             OR: [

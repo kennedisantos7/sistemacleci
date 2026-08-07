@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { BudgetDocType } from "@cleci/db";
-import { resolverDocType, podeConverterEmPedido, DOC_TYPE_LABEL } from "./doc-type";
+import { resolverDocType, podeConverterEmPedido, DOC_TYPE_LABEL, docPath } from "./doc-type";
 
 const { ORCAMENTO, PEDIDO } = BudgetDocType;
 
@@ -40,5 +40,18 @@ describe("DOC_TYPE_LABEL", () => {
   it("nomeia os dois documentos", () => {
     expect(DOC_TYPE_LABEL.ORCAMENTO).toBe("Orçamento");
     expect(DOC_TYPE_LABEL.PEDIDO).toBe("Pedido");
+  });
+});
+
+describe("docPath", () => {
+  it("cada documento mora na sua seção", () => {
+    expect(docPath(ORCAMENTO)).toBe("/orcamentos");
+    expect(docPath(PEDIDO)).toBe("/pedidos");
+  });
+
+  it("monta subrotas", () => {
+    expect(docPath(ORCAMENTO, "abc")).toBe("/orcamentos/abc");
+    expect(docPath(PEDIDO, "abc", "editar")).toBe("/pedidos/abc/editar");
+    expect(docPath(PEDIDO, "novo")).toBe("/pedidos/novo");
   });
 });

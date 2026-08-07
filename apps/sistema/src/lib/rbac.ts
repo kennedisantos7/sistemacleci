@@ -65,6 +65,7 @@ export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   // O design abre o orçamento (vê como ele é), mas as páginas de criar/editar
   // exigem BUDGET_ROLES e o barram lá dentro.
   { prefix: "/orcamentos", roles: BUDGET_VIEW_ROLES },
+  { prefix: "/pedidos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/clientes", roles: BUDGET_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },

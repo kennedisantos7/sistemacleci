@@ -29,6 +29,7 @@ import {
   validarCidadeEntrega,
 } from "@/lib/budget-options";
 import { mensagemDoErro } from "@/server/errors";
+import { DOC_TYPE_BASE, docPath } from "@/lib/doc-type";
 
 export type BudgetFormState = { error?: string };
 
@@ -124,16 +125,16 @@ export async function createBudgetAction(
   const adjustments = parseAdjustments(formData);
   if ("error" in adjustments) return adjustments;
 
-  let budgetId: string;
+  let destino: string;
   try {
     const budget = await createBudget(user, header, items, adjustments);
-    budgetId = budget.id;
+    destino = docPath(budget.docType, budget.id);
   } catch (err) {
-    return { error: mensagemDoErro(err, "Erro ao salvar o orçamento.") };
+    return { error: mensagemDoErro(err, "Erro ao salvar o documento.") };
   }
 
-  revalidatePath("/orcamentos");
-  redirect(`/orcamentos/${budgetId}`);
+  revalidateSecoes();
+  redirect(destino);
 }
 
 export async function updateBudgetAction(
@@ -159,15 +160,16 @@ export async function updateBudgetAction(
   const adjustments = parseAdjustments(formData);
   if ("error" in adjustments) return adjustments;
 
+  let destino: string;
   try {
-    await updateBudget(user, budgetId, header, items, adjustments);
+    const atualizado = await updateBudget(user, budgetId, header, items, adjustments);
+    destino = docPath(atualizado.docType, atualizado.id);
   } catch (err) {
-    return { error: mensagemDoErro(err, "Erro ao salvar o orçamento.") };
+    return { error: mensagemDoErro(err, "Erro ao salvar o documento.") };
   }
 
-  revalidatePath("/orcamentos");
-  revalidatePath(`/orcamentos/${budgetId}`);
-  redirect(`/orcamentos/${budgetId}`);
+  revalidateBudget(budgetId);
+  redirect(destino);
 }
 
 /** Busca de produtos da tabela de preços (autocomplete do formulário). */
@@ -178,9 +180,19 @@ export async function searchPriceItemsAction(search: string): Promise<PriceItemO
 
 // --- Transições de status (usadas com ConfirmSubmitButton / forms simples) ---
 
+/**
+ * As duas listas. Sempre as duas: a conversão move o documento de uma seção
+ * para a outra, então revalidar só a de origem deixaria a outra desatualizada.
+ */
+function revalidateSecoes() {
+  revalidatePath(DOC_TYPE_BASE.ORCAMENTO);
+  revalidatePath(DOC_TYPE_BASE.PEDIDO);
+}
+
 function revalidateBudget(budgetId: string) {
-  revalidatePath("/orcamentos");
-  revalidatePath(`/orcamentos/${budgetId}`);
+  revalidateSecoes();
+  revalidatePath(`${DOC_TYPE_BASE.ORCAMENTO}/${budgetId}`);
+  revalidatePath(`${DOC_TYPE_BASE.PEDIDO}/${budgetId}`);
   revalidatePath("/vendedor");
   revalidatePath("/admin");
 }
@@ -259,17 +271,22 @@ export async function convertToPedidoAction(formData: FormData): Promise<void> {
     // Já era pedido ou fora do escopo — a tela recarregada mostra o real.
   }
   revalidateBudget(budgetId);
+  // O documento mudou de seção: leva o vendedor junto.
+  redirect(docPath(BudgetDocType.PEDIDO, budgetId));
 }
 
 export async function deleteBudgetAction(formData: FormData): Promise<void> {
   const user = await requireUser(BUDGET_ROLES);
   const budgetId = String(formData.get("budgetId") ?? "");
   if (!budgetId) return;
+  // Lê o tipo antes de excluir para voltar à seção certa.
+  const atual = await getBudgetForActor(user, budgetId);
+  const destino = docPath(atual?.docType ?? BudgetDocType.ORCAMENTO);
   try {
     await deleteBudget(user, budgetId);
   } catch {
     // idem — só rascunho é excluível
   }
-  revalidatePath("/orcamentos");
-  redirect("/orcamentos");
+  revalidateSecoes();
+  redirect(destino);
 }

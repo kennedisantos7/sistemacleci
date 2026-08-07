@@ -17,7 +17,9 @@ export type DesignState = { error?: string };
 function revalidar(budgetId: string) {
   revalidatePath("/design");
   revalidatePath(`/orcamentos/${budgetId}`);
+  revalidatePath(`/pedidos/${budgetId}`);
   revalidatePath("/orcamentos");
+  revalidatePath("/pedidos");
 }
 
 function texto(formData: FormData, key: string, max = 2000): string | null {

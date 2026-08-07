@@ -3,6 +3,7 @@ import { requireUser } from "@/server/session";
 import { DESIGN_ROLES } from "@/lib/rbac";
 import { listDesignQueue, countDesignQueue } from "@/server/services/design";
 import { DESIGN_STATUS_LABEL, DESIGN_STATUS_STYLE } from "@/lib/design-flow";
+import { docPath } from "@/lib/doc-type";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -78,7 +79,7 @@ export default async function DesignPage({
               {itens.map((b) => (
                 <Link
                   key={b.id}
-                  href={`/orcamentos/${b.id}`}
+                  href={docPath(b.docType, b.id)}
                   className="flex flex-col gap-1 py-3 transition-colors hover:bg-muted/40 sm:px-2"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">

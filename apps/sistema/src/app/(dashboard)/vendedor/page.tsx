@@ -9,6 +9,7 @@ import { formatCents, bpsToPercent } from "@/lib/money";
 import { PeriodFilter } from "./period-filter";
 import { SalesChart } from "./sales-chart";
 import { BUDGET_STATUS_LABEL } from "@/lib/budget-status";
+import { docPath } from "@/lib/doc-type";
 
 export const dynamic = "force-dynamic";
 
@@ -221,7 +222,7 @@ export default async function VendedorDashboard({
               {d.orcamentosRecentes.map((b) => (
                 <Link
                   key={b.id}
-                  href={`/orcamentos/${b.id}`}
+                  href={docPath(b.docType, b.id)}
                   className="flex items-center justify-between gap-3 py-2.5 hover:bg-muted/50"
                 >
                   <span className="min-w-0">
@@ -245,6 +246,9 @@ export default async function VendedorDashboard({
           <div className="flex flex-wrap gap-4 text-sm">
             <Link href="/orcamentos" className="text-primary hover:underline">
               Ver todos os orçamentos →
+            </Link>
+            <Link href="/pedidos" className="text-primary hover:underline">
+              Ver pedidos →
             </Link>
             <Link href="/clientes" className="text-primary hover:underline">
               Ver clientes →

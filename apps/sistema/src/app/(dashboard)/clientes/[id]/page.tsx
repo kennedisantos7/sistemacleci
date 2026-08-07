@@ -15,6 +15,7 @@ import {
   TransferClientForm,
 } from "../ownership-actions";
 import { BUDGET_STATUS_LABEL } from "@/lib/budget-status";
+import { docPath } from "@/lib/doc-type";
 
 export const dynamic = "force-dynamic";
 
@@ -207,7 +208,7 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
                   {client.budgets.map((b) => (
                     <Link
                       key={b.id}
-                      href={`/orcamentos/${b.id}`}
+                      href={docPath(b.docType, b.id)}
                       className="flex items-center justify-between gap-3 py-2.5 hover:bg-muted/50"
                     >
                       <span className="min-w-0">
