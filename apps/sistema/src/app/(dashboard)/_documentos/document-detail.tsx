@@ -84,13 +84,15 @@ export async function DocumentDetail({
 
       {/* Ações */}
       <div className="flex flex-wrap items-center gap-2">
+        {/* Sem target="_blank": a rota responde com Content-Disposition
+            attachment, então o arquivo baixa direto. Abrir aba nova só deixava
+            uma aba em branco no celular. */}
         <a
           href={`/api/orcamentos/${budget.id}/pdf`}
-          target="_blank"
-          rel="noopener noreferrer"
+          download
           className={buttonVariants({ variant: "outline", size: "sm" })}
         >
-          <FileDown className="h-4 w-4" /> Exportar PDF
+          <FileDown className="h-4 w-4" /> Baixar PDF
         </a>
 
         {/* Converter é caminho de mão única — o aviso está na confirmação. */}
@@ -326,7 +328,7 @@ function TotalLine({ label, cents }: { label: string; cents: number }) {
 
 function Info({ label, value }: { label: string; value: string | null }) {
   return (
-    <p>
+    <p className="min-w-0 break-words">
       <span className="text-muted-foreground">{label}:</span> {value || "—"}
     </p>
   );

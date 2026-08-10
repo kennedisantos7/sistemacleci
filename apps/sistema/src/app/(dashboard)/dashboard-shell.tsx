@@ -69,8 +69,14 @@ function SidebarContent({
 }
 
 /**
- * Casca responsiva do painel: sidebar fixa no desktop (md+) e drawer com
- * botão hambúrguer no mobile.
+ * Casca responsiva do painel: sidebar fixa no desktop (lg+) e drawer com
+ * botão hambúrguer abaixo disso.
+ *
+ * O corte é em lg (1024px), não md (768px), por causa do iPad em pé: a 768px a
+ * sidebar comia 256px e sobravam ~460px de conteúdo, mas as telas já aplicavam
+ * os layouts de duas/três colunas de `sm:`/`md:` — daí campo passando por cima
+ * de campo. Em pé o iPad usa o drawer e a largura inteira; deitado (1024px)
+ * ganha a sidebar.
  */
 export function DashboardShell({
   items,
@@ -97,9 +103,9 @@ export function DashboardShell({
   }, [open]);
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
+    <div className="flex min-h-screen flex-col lg:flex-row">
       {/* Top bar (mobile) */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-card px-4 py-3 lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
@@ -121,7 +127,7 @@ export function DashboardShell({
       {/* Drawer (mobile) */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 md:hidden",
+          "fixed inset-0 z-50 bg-black/50 transition-opacity duration-300 lg:hidden",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={close}
@@ -140,11 +146,11 @@ export function DashboardShell({
       </div>
 
       {/* Sidebar (desktop) */}
-      <aside className="hidden w-64 flex-col border-r border-border bg-card md:flex">
+      <aside className="hidden w-64 flex-col border-r border-border bg-card lg:flex">
         <SidebarContent items={items} userName={userName} roleLabel={roleLabel} />
       </aside>
 
-      <main className="min-w-0 flex-1 bg-muted/30 p-4 sm:p-6 md:p-8">{children}</main>
+      <main className="min-w-0 flex-1 bg-muted/30 p-4 sm:p-6 lg:p-8">{children}</main>
     </div>
   );
 }

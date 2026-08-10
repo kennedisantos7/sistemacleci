@@ -79,12 +79,33 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     })),
   });
 
-  const slug = budget.docType === "PEDIDO" ? "pedido" : "orcamento";
+  const tipo = budget.docType === "PEDIDO" ? "pedido" : "orcamento";
+  const cliente = slugParaNomeDeArquivo(budget.client.companyName ?? budget.client.name);
+  const nome = [tipo, budget.number, cliente].filter(Boolean).join("-");
+
+  // attachment: baixa direto no aparelho em vez de abrir o visualizador. No
+  // celular, o "inline" abria uma aba e deixava o arquivo preso no navegador.
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="${slug}-${budget.number}.pdf"`,
+      "Content-Disposition": `attachment; filename="${nome}.pdf"`,
       "Cache-Control": "no-store",
     },
   });
+}
+
+/**
+ * Nome do cliente vira pedaço do nome do arquivo. Só ASCII minúsculo, dígito e
+ * hífen: o valor entra num cabeçalho HTTP, então aspas, quebra de linha e
+ * acento ficam de fora — não é cosmético, é o que impede injeção no header.
+ */
+function slugParaNomeDeArquivo(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/g, "");
 }

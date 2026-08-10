@@ -39,9 +39,11 @@ const ATIVIDADE_LABEL: Record<ClientActivityType, string> = {
 
 function Campo({ label, value }: { label: string; value: string | null }) {
   return (
-    <div>
+    // min-w-0 + break-words: e-mail e endereço não têm espaço para quebrar, e
+    // sem isso a célula do grid estoura por cima da coluna vizinha.
+    <div className="min-w-0">
       <dt className="text-xs uppercase tracking-wide text-muted-foreground">{label}</dt>
-      <dd className="text-sm">{value || "—"}</dd>
+      <dd className="break-words text-sm">{value || "—"}</dd>
     </div>
   );
 }
