@@ -1,4 +1,8 @@
 import type { Config } from "tailwindcss";
+// `import`, e não `require`: a partir do Node 22/24 este .ts é carregado como
+// ESM (type stripping nativo) e ali `require` não existe — o dev quebrava com
+// "ReferenceError: require is not defined" ao compilar a primeira página.
+import animate from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
@@ -43,7 +47,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 };
 
 export default config;

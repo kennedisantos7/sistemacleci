@@ -28,6 +28,15 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
+# playwright (e2e)
+playwright-report/
+test-results/
+blob-report/
+# Padrao com barra no meio e ancorado na raiz, e a suite mora em apps/e2e/.
+# Sem o **/ estes dois nao pegariam nada — e o .auth guarda sessao autenticada.
+**/playwright/.cache/
+**/playwright/.auth/
+
 # misc
 coverage/
 *.tsbuildinfo
