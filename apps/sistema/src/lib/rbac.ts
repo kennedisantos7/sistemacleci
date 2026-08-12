@@ -9,31 +9,17 @@ export const STAFF_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE"];
 export const SELLER_ROLES: Role[] = ["VENDEDOR_FIXO", "AFILIADO"];
 /** Quem acumula comissão e pode solicitar saque (afiliado e desenvolvedor). */
 export const EARNER_ROLES: Role[] = ["AFILIADO", "DESENVOLVEDOR"];
-/** Quem monta orçamento/pedido e gerencia clientes. Afiliado e design ficam de fora. */
+/** Quem monta orçamento/pedido e gerencia clientes. O afiliado fica de fora. */
 export const BUDGET_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO"];
-/**
- * Quem trabalha a arte. O designer só enxerga orçamentos que foram enviados
- * para o design (ver o escopo em services/budgets.ts) — a equipe administrativa
- * entra junto para acompanhar a fila.
- */
-export const DESIGN_ROLES: Role[] = ["DESIGN", "ADMIN", "DESENVOLVEDOR", "GERENTE"];
-/**
- * Pode ABRIR um orçamento. Inclui o design, cujo escopo de leitura é restrito
- * aos que pediram arte; criar/editar continua fechado em BUDGET_ROLES.
- */
-export const BUDGET_VIEW_ROLES: Role[] = [...BUDGET_ROLES, "DESIGN"];
-
-/** É a conta de design (e não a equipe administrativa acompanhando). */
-export function isDesigner(role: Role | undefined): boolean {
-  return role === "DESIGN";
-}
+/** Pode ABRIR um orçamento. Mesmo grupo que cria/edita. */
+export const BUDGET_VIEW_ROLES: Role[] = BUDGET_ROLES;
 
 /**
  * Contas que o gerente pode criar e gerenciar. São os papéis operacionais —
  * contas da equipe administrativa (admin/desenvolvedor/gerente) só o
  * admin/desenvolvedor mexe.
  */
-export const MANAGED_BY_GERENTE_ROLES: Role[] = [...SELLER_ROLES, "DESIGN"];
+export const MANAGED_BY_GERENTE_ROLES: Role[] = SELLER_ROLES;
 
 /** Acesso irrestrito (admin/desenvolvedor). */
 export function isFullAccess(role: Role | undefined): boolean {
@@ -59,14 +45,13 @@ export function canSeeAllBudgets(role: Role | undefined): boolean {
 
 /** Prefixo de rota -> roles autorizadas. A primeira correspondência vence. */
 export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
-  // Fila da arte. Antes de /orcamentos porque não é prefixo dele.
-  { prefix: "/design", roles: DESIGN_ROLES },
   // Orçamentos/clientes são compartilhados pela equipe de venda + administração.
-  // O design abre o orçamento (vê como ele é), mas as páginas de criar/editar
-  // exigem BUDGET_ROLES e o barram lá dentro.
   { prefix: "/orcamentos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/pedidos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/clientes", roles: BUDGET_ROLES },
+  // Preço é decisão de dono: o gerente monta orçamento com a tabela, mas não
+  // altera a tabela. Antes de /admin porque é prefixo dele.
+  { prefix: "/admin/tabela-precos", roles: FULL_ACCESS_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
   // O desenvolvedor usa /afiliado/saques para sacar a própria participação.
@@ -80,7 +65,6 @@ export const ROLE_HOME: Record<Role, string> = {
   GERENTE: "/admin",
   VENDEDOR_FIXO: "/vendedor",
   AFILIADO: "/afiliado",
-  DESIGN: "/design",
 };
 
 /** Retorna as roles exigidas para uma rota protegida, ou null se for pública. */

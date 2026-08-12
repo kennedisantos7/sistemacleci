@@ -1,20 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
   Building2,
   ClipboardList,
   FileText,
-  LayoutDashboard,
   Link2,
   Package,
-  Palette,
   Percent,
   Tags,
   Target,
   TrendingUp,
+  Trophy,
   Users,
   Wallet,
   type LucideIcon,
@@ -28,22 +28,26 @@ type Item = { href: string; label: string };
  * atravessa a fronteira servidor→cliente como prop: o menu é montado no
  * servidor e só o `href` viaja.
  */
+/**
+ * O Dashboard de cada papel usa o monograma da Cleci no lugar de um glifo
+ * genérico — é a "casa" do painel. O PNG é o CP recortado do logotipo, com
+ * fundo transparente, para não virar um quadrado branco sobre o item ativo.
+ */
+const LOGO_ROUTES = new Set(["/admin", "/vendedor", "/afiliado"]);
+
 const ICONS: Record<string, LucideIcon> = {
-  "/admin": LayoutDashboard,
   "/admin/usuarios": Users,
   "/admin/produtos": Package,
   "/admin/tabela-precos": Tags,
   "/admin/vendas": TrendingUp,
+  "/admin/vendedores": Trophy,
   "/admin/metas": Target,
   "/admin/saques": Banknote,
   "/admin/comissoes": Percent,
   "/orcamentos": FileText,
   "/pedidos": ClipboardList,
   "/clientes": Building2,
-  "/design": Palette,
-  "/vendedor": LayoutDashboard,
   "/vendedor/links": Link2,
-  "/afiliado": LayoutDashboard,
   "/afiliado/links": Link2,
   "/afiliado/saques": Wallet,
 };
@@ -87,7 +91,19 @@ export function SidebarNav({
                 active ? "h-6 opacity-100" : "h-0 opacity-0",
               )}
             />
-            {Icon ? (
+            {LOGO_ROUTES.has(item.href) ? (
+              <Image
+                src="/logo-cleci-icone.png"
+                // Decorativo: o rótulo "Dashboard" ao lado já diz o que é.
+                alt=""
+                width={16}
+                height={16}
+                className={cn(
+                  "h-4 w-4 shrink-0 transition-transform duration-200",
+                  active ? "scale-110" : "group-hover:scale-110",
+                )}
+              />
+            ) : Icon ? (
               <Icon
                 className={cn(
                   "h-4 w-4 shrink-0 transition-transform duration-200",

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { getPriceItem } from "@/server/services/price-items";
+import { listCategoryNames } from "@/server/services/products";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PriceItemForm } from "../../price-item-form";
 import type { BudgetUnit } from "@/lib/budget-math";
@@ -14,10 +15,10 @@ export default async function EditarPriceItemPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
   const { id } = await params;
 
-  const item = await getPriceItem(id);
+  const [item, categorias] = await Promise.all([getPriceItem(id), listCategoryNames()]);
   if (!item) notFound();
 
   return (
@@ -38,6 +39,7 @@ export default async function EditarPriceItemPage({
         </CardHeader>
         <CardContent>
           <PriceItemForm
+            categorias={categorias}
             defaults={{
               id: item.id,
               code: item.code,

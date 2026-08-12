@@ -9,15 +9,14 @@ import { buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { formatCents, formatQuantity, formatDecimal } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
-import { BUDGET_VIEW_ROLES, canSeeAllBudgets, isDesigner } from "@/lib/rbac";
-import { getDesignPanel } from "@/server/services/design";
+import { BUDGET_VIEW_ROLES, canSeeAllBudgets } from "@/lib/rbac";
 import { DOC_TYPE_LABEL, docPath } from "@/lib/doc-type";
-import { DesignCard } from "../design/design-card";
 import {
   sendBudgetAction,
   revertBudgetAction,
   acceptBudgetAction,
   rejectBudgetAction,
+  reopenBudgetAction,
   finalizeBudgetSaleAction,
   deleteBudgetAction,
   convertToPedidoAction,
@@ -46,10 +45,6 @@ export async function DocumentDetail({
   const saleFinalized = budget.sale?.status === SaleStatus.PAGO;
   const docLabel = DOC_TYPE_LABEL[budget.docType];
   const seesAll = canSeeAllBudgets(user.role);
-  // O design abre a mesma tela, mas sem as transições comerciais: aceitar,
-  // recusar e finalizar venda são decisões do vendedor.
-  const design = isDesigner(user.role);
-  const painelArte = await getDesignPanel(user, id);
   const base = docPath(budget.docType);
 
   return (
@@ -96,7 +91,7 @@ export async function DocumentDetail({
         </a>
 
         {/* Converter é caminho de mão única — o aviso está na confirmação. */}
-        {!design && budget.docType === "ORCAMENTO" && (
+        {budget.docType === "ORCAMENTO" && (
           <ConfirmSubmitButton
             action={convertToPedidoAction}
             hidden={{ budgetId: budget.id }}
@@ -107,7 +102,7 @@ export async function DocumentDetail({
           />
         )}
 
-        {!design && budget.status === BudgetStatus.RASCUNHO && (
+        {budget.status === BudgetStatus.RASCUNHO && (
           <>
             <Link
               href={`${base}/${budget.id}/editar`}
@@ -138,7 +133,7 @@ export async function DocumentDetail({
           </>
         )}
 
-        {!design && budget.status === BudgetStatus.ENVIADO && (
+        {budget.status === BudgetStatus.ENVIADO && (
           <>
             <ConfirmSubmitButton
               action={acceptBudgetAction}
@@ -168,7 +163,32 @@ export async function DocumentDetail({
           </>
         )}
 
-        {!design && budget.status === BudgetStatus.ACEITO && budget.sale && !saleFinalized && (
+        {/* Recusado não é ponto final: o cliente pode voltar atrás, e a recusa
+            pode ter sido clique errado. Daqui dá para registrar o aceite (que
+            cria a venda, igual ao caminho normal) ou voltar para pendente. */}
+        {budget.status === BudgetStatus.RECUSADO && (
+          <>
+            <ConfirmSubmitButton
+              action={acceptBudgetAction}
+              hidden={{ budgetId: budget.id }}
+              label="Cliente aceitou"
+              pendingLabel="Registrando..."
+              variant="outline"
+              confirmMessage="O cliente voltou atrás e aceitou? Isso tira o documento de recusado e cria a venda correspondente."
+            />
+            <form action={reopenBudgetAction}>
+              <input type="hidden" name="budgetId" value={budget.id} />
+              <button
+                type="submit"
+                className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+              >
+                Voltar para pendente
+              </button>
+            </form>
+          </>
+        )}
+
+        {budget.status === BudgetStatus.ACEITO && budget.sale && !saleFinalized && (
           <ConfirmSubmitButton
             action={finalizeBudgetSaleAction}
             hidden={{ budgetId: budget.id }}
@@ -198,8 +218,6 @@ export async function DocumentDetail({
           ) : null}
         </p>
       ) : null}
-
-      {painelArte ? <DesignCard budgetId={budget.id} panel={painelArte} /> : null}
 
       {/* Itens */}
       <Card>

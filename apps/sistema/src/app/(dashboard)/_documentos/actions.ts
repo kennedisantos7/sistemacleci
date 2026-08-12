@@ -18,6 +18,7 @@ import {
   markBudgetRejected,
   markBudgetSaleFinalized,
   revertBudgetToDraft,
+  reopenBudget,
   type BudgetAdjustmentsInput,
   type BudgetHeaderInput,
   type BudgetItemInput,
@@ -239,6 +240,19 @@ export async function rejectBudgetAction(formData: FormData): Promise<void> {
   if (!budgetId) return;
   try {
     await markBudgetRejected(user, budgetId);
+  } catch {
+    // idem
+  }
+  revalidateBudget(budgetId);
+}
+
+/** Desfaz a recusa: o documento volta para pendente. */
+export async function reopenBudgetAction(formData: FormData): Promise<void> {
+  const user = await requireUser(BUDGET_ROLES);
+  const budgetId = String(formData.get("budgetId") ?? "");
+  if (!budgetId) return;
+  try {
+    await reopenBudget(user, budgetId);
   } catch {
     // idem
   }

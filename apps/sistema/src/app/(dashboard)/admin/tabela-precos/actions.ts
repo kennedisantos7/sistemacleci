@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { PriceUnit } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import {
   priceItemSchema,
   createPriceItem,
@@ -67,7 +67,7 @@ export async function createPriceItemAction(
   _prev: PriceItemFormState,
   formData: FormData,
 ): Promise<PriceItemFormState> {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
 
   const parsed = parseForm(formData);
   if (!parsed.success) return { error: parsed.error };
@@ -86,7 +86,7 @@ export async function updatePriceItemAction(
   _prev: PriceItemFormState,
   formData: FormData,
 ): Promise<PriceItemFormState> {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
   const id = String(formData.get("priceItemId") ?? "");
   if (!id) return { error: "Produto inválido." };
 
@@ -108,7 +108,7 @@ export async function updatePriceItemAction(
  * e desativar apenas o tira da busca do vendedor.
  */
 export async function togglePriceItemAction(formData: FormData): Promise<void> {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
   const id = String(formData.get("priceItemId") ?? "");
   if (!id) return;
   const active = String(formData.get("active") ?? "") === "1";

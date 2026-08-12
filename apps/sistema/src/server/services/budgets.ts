@@ -12,7 +12,7 @@ import {
 import { z } from "zod";
 import { markSalePaid } from "./sales";
 import { getPriceItemsByIds } from "./price-items";
-import { canSeeAllBudgets, isDesigner } from "@/lib/rbac";
+import { canSeeAllBudgets } from "@/lib/rbac";
 import { resolverDocType, podeConverterEmPedido } from "@/lib/doc-type";
 import { touchClientActivity } from "./clients";
 import {
@@ -32,10 +32,6 @@ export type BudgetActor = { id: string; role: Role; name?: string | null; email?
 
 function scopeWhere(actor: BudgetActor): Prisma.BudgetWhereInput {
   if (canSeeAllBudgets(actor.role)) return {};
-  // O design abre o orçamento inteiro (é o que ele precisa para fazer a arte),
-  // mas só os que foram enviados para o design. Orçamento que nunca entrou no
-  // fluxo é invisível para ele.
-  if (isDesigner(actor.role)) return { designStatus: { not: null } };
   return { vendedorId: actor.id };
 }
 
@@ -416,17 +412,21 @@ export async function revertBudgetToDraft(actor: BudgetActor, budgetId: string) 
 }
 
 /**
- * ENVIADO -> ACEITO. Cria a venda correspondente (origin ORCAMENTO, status
- * PENDENTE — "aceito" significa aprovação do cliente, não dinheiro em caixa).
- * A venda fica no nome do vendedor dono do orçamento, não de quem clicou.
- * Idempotente: recusa se já existe venda vinculada.
+ * ENVIADO (ou RECUSADO) -> ACEITO. Cria a venda correspondente (origin
+ * ORCAMENTO, status PENDENTE — "aceito" significa aprovação do cliente, não
+ * dinheiro em caixa). A venda fica no nome do vendedor dono do orçamento, não
+ * de quem clicou. Idempotente: recusa se já existe venda vinculada.
+ *
+ * Aceitar a partir de RECUSADO é de propósito: cliente que disse não e depois
+ * voltou atrás é rotina, e sem isso o orçamento ficava preso no "Recusado" —
+ * o mesmo vale para quem clicou no botão errado.
  */
 export async function markBudgetAccepted(actor: BudgetActor, budgetId: string) {
   return prisma.$transaction(async (tx) => {
     const budget = await tx.budget.findFirst({
       where: {
         id: budgetId,
-        status: BudgetStatus.ENVIADO,
+        status: { in: [BudgetStatus.ENVIADO, BudgetStatus.RECUSADO] },
         saleId: null,
         ...scopeWhere(actor),
       },
@@ -465,6 +465,18 @@ export async function markBudgetRejected(actor: BudgetActor, budgetId: string) {
     data: { status: BudgetStatus.RECUSADO, respondedAt: new Date() },
   });
   if (res.count === 0) throw new Error("Orçamento não pode ser recusado neste estado.");
+}
+
+/**
+ * RECUSADO -> ENVIADO. Desfaz a recusa e devolve o orçamento para "pendente",
+ * de onde ele volta a seguir a trilha normal (aceitar, editar, reenviar).
+ */
+export async function reopenBudget(actor: BudgetActor, budgetId: string) {
+  const res = await prisma.budget.updateMany({
+    where: { id: budgetId, status: BudgetStatus.RECUSADO, saleId: null, ...scopeWhere(actor) },
+    data: { status: BudgetStatus.ENVIADO, respondedAt: null },
+  });
+  if (res.count === 0) throw new Error("Orçamento não pode ser reaberto neste estado.");
 }
 
 /** Marca a venda do orçamento aceito como finalizada (paga). */

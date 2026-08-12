@@ -194,55 +194,103 @@ export function getPriceItem(id: string) {
   });
 }
 
-export async function createPriceItem(data: PriceItemInput) {
-  const duplicate = await prisma.priceItem.findUnique({
-    where: { code: data.code },
-    select: { id: true },
+/**
+ * Outro produto já usa este código? A comparação IGNORA maiúsculas/minúsculas:
+ * a unique do banco é sensível a caixa, então "TAP-01" e "tap-01" entrariam
+ * como dois produtos — e para quem lê a tabela, ou busca no orçamento, é o
+ * mesmo código. Inclui inativos de propósito: código de produto desativado
+ * continua preso ao histórico dos orçamentos antigos.
+ */
+async function codigoEmUso(code: string, exceptId?: string) {
+  return prisma.priceItem.findFirst({
+    where: {
+      code: { equals: code, mode: "insensitive" },
+      ...(exceptId ? { NOT: { id: exceptId } } : {}),
+    },
+    select: { code: true, description: true, active: true },
   });
-  if (duplicate) throw new Error(`Já existe um produto com o código ${data.code}.`);
+}
+
+/**
+ * Mensagem do código repetido. A descrição entra cortada porque `mensagemDoErro`
+ * descarta texto acima de 200 caracteres como erro interno — e descrição de
+ * produto vai até 300.
+ */
+function erroCodigoEmUso(existente: { code: string; description: string; active: boolean }): Error {
+  const nome = existente.description.slice(0, 60);
+  return new Error(
+    `O código ${existente.code} já é do produto "${nome}"${existente.active ? "" : " (desativado)"}. Use outro código.`,
+  );
+}
+
+/** A unique do banco estourou no código (corrida entre dois cadastros). */
+function ehCodigoDuplicado(err: unknown): boolean {
+  const e = err as Prisma.PrismaClientKnownRequestError;
+  return (
+    e?.code === "P2002" && (e.meta?.target as string[] | undefined)?.includes("code") === true
+  );
+}
+
+export async function createPriceItem(data: PriceItemInput) {
+  const emUso = await codigoEmUso(data.code);
+  if (emUso) throw erroCodigoEmUso(emUso);
 
   const last = await prisma.priceItem.findFirst({
     orderBy: { position: "desc" },
     select: { position: true },
   });
   const { prices, ...campos } = data;
-  return prisma.priceItem.create({
-    data: {
-      ...campos,
-      // Espelho da unidade principal — mantido junto, nunca à parte.
-      priceCents: precoPrincipal(data),
-      group: data.group ?? null,
-      searchText: normalizeSearch(data.description),
-      position: (last?.position ?? 0) + 1,
-      prices: { create: linhasDePreco(data) },
-    },
-  });
+  try {
+    return await prisma.priceItem.create({
+      data: {
+        ...campos,
+        // Espelho da unidade principal — mantido junto, nunca à parte.
+        priceCents: precoPrincipal(data),
+        group: data.group ?? null,
+        searchText: normalizeSearch(data.description),
+        position: (last?.position ?? 0) + 1,
+        prices: { create: linhasDePreco(data) },
+      },
+    });
+  } catch (err) {
+    // Consultar e depois inserir não é atômico: dois cadastros simultâneos com
+    // o mesmo código passam os dois pela checagem. Quem perde a corrida recebe
+    // a mesma frase, e não um erro genérico do Prisma.
+    if (ehCodigoDuplicado(err)) {
+      throw new Error(`Já existe um produto com o código ${data.code}.`);
+    }
+    throw err;
+  }
 }
 
 export async function updatePriceItem(id: string, data: PriceItemInput) {
-  const duplicate = await prisma.priceItem.findFirst({
-    where: { code: data.code, NOT: { id } },
-    select: { id: true },
-  });
-  if (duplicate) throw new Error(`Já existe um produto com o código ${data.code}.`);
+  const emUso = await codigoEmUso(data.code, id);
+  if (emUso) throw erroCodigoEmUso(emUso);
 
   const { prices, ...campos } = data;
   // Troca o conjunto inteiro de preços numa transação: apagar e recriar evita
   // ter de casar linha a linha, e a unique (produto, unidade) impediria uma
   // atualização parcial em que duas linhas trocam de unidade entre si.
-  return prisma.$transaction(async (tx) => {
-    await tx.priceItemPrice.deleteMany({ where: { priceItemId: id } });
-    return tx.priceItem.update({
-      where: { id },
-      data: {
-        ...campos,
-        priceCents: precoPrincipal(data),
-        group: data.group ?? null,
-        searchText: normalizeSearch(data.description),
-        prices: { create: linhasDePreco(data) },
-      },
+  try {
+    return await prisma.$transaction(async (tx) => {
+      await tx.priceItemPrice.deleteMany({ where: { priceItemId: id } });
+      return tx.priceItem.update({
+        where: { id },
+        data: {
+          ...campos,
+          priceCents: precoPrincipal(data),
+          group: data.group ?? null,
+          searchText: normalizeSearch(data.description),
+          prices: { create: linhasDePreco(data) },
+        },
+      });
     });
-  });
+  } catch (err) {
+    if (ehCodigoDuplicado(err)) {
+      throw new Error(`Já existe um produto com o código ${data.code}.`);
+    }
+    throw err;
+  }
 }
 
 /**

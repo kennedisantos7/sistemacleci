@@ -46,7 +46,14 @@ function linhasIniciais(defaults?: PriceItemDefaults): LinhaPreco[] {
   ];
 }
 
-export function PriceItemForm({ defaults }: { defaults?: PriceItemDefaults }) {
+export function PriceItemForm({
+  defaults,
+  categorias = [],
+}: {
+  defaults?: PriceItemDefaults;
+  /** Categorias do site, na ordem do menu (vêm do banco). */
+  categorias?: string[];
+}) {
   const isEdit = Boolean(defaults?.id);
   const [state, action, pending] = useActionState(
     isEdit ? updatePriceItemAction : createPriceItemAction,
@@ -57,6 +64,12 @@ export function PriceItemForm({ defaults }: { defaults?: PriceItemDefaults }) {
   const [principal, setPrincipal] = useState<BudgetUnit>(
     () => defaults?.unit ?? linhasIniciais(defaults)[0]!.unit,
   );
+
+  // Produto antigo pode estar num grupo que não é categoria do site (veio da
+  // planilha). Mantemos o valor na lista para editar o preço não apagá-lo.
+  const atual = defaults?.group?.trim();
+  const opcoesCategoria =
+    atual && !categorias.includes(atual) ? [...categorias, atual] : categorias;
 
   const usadas = new Set(linhas.map((l) => l.unit));
   const disponiveis = UNITS.filter((u) => !usadas.has(u));
@@ -98,14 +111,26 @@ export function PriceItemForm({ defaults }: { defaults?: PriceItemDefaults }) {
       </div>
       <div className="space-y-1">
         <label htmlFor="pi-group" className="text-sm font-medium">
-          Grupo
+          Categorias
         </label>
-        <Input
+        <select
           id="pi-group"
           name="group"
-          placeholder="ex.: Tapetes"
           defaultValue={defaults?.group ?? ""}
-        />
+          className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+        >
+          <option value="">Sem categoria</option>
+          {opcoesCategoria.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+        {categorias.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            Nenhuma categoria cadastrada no site ainda.
+          </p>
+        ) : null}
       </div>
       <div className="space-y-1 sm:col-span-2">
         <label htmlFor="pi-description" className="text-sm font-medium">

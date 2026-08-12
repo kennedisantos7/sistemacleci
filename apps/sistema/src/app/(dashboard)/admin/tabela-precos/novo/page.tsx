@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { listCategoryNames } from "@/server/services/products";
 import { PriceItemForm } from "../price-item-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function NovoPriceItemPage() {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
+  const categorias = await listCategoryNames();
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -24,7 +26,7 @@ export default async function NovoPriceItemPage() {
           <CardDescription>O código precisa ser único na tabela.</CardDescription>
         </CardHeader>
         <CardContent>
-          <PriceItemForm />
+          <PriceItemForm categorias={categorias} />
         </CardContent>
       </Card>
 

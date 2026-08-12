@@ -41,6 +41,20 @@ export function listCategoriesWithSubs() {
   });
 }
 
+/**
+ * Só os nomes das categorias do site, na ordem do menu. É o que a tabela de
+ * preços usa para classificar o produto — lá a categoria é gravada pelo nome
+ * (coluna `group`), não por id, porque a tabela de preços é independente do
+ * catálogo: nem todo produto orçado tem página no site.
+ */
+export async function listCategoryNames(): Promise<string[]> {
+  const rows = await prisma.category.findMany({
+    orderBy: { position: "asc" },
+    select: { name: true },
+  });
+  return rows.map((c) => c.name);
+}
+
 export function listProducts(opts?: { search?: string; categoryId?: string }) {
   const where: Prisma.ProductWhereInput = {
     ...(opts?.search ? { title: { contains: opts.search, mode: "insensitive" } } : {}),

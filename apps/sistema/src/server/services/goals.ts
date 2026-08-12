@@ -49,6 +49,47 @@ export async function getGoalProgress(userId: string, period = currentPeriod()):
   return { period, targetCents, achievedCents, percent };
 }
 
+/**
+ * Meta e realizado de vários usuários de uma vez. Duas consultas agrupadas no
+ * lugar de duas por vendedor — é o que o painel da equipe usa para não fazer
+ * N+1 conforme o time cresce.
+ */
+export async function getGoalProgressMany(
+  userIds: string[],
+  period = currentPeriod(),
+): Promise<Map<string, GoalProgress>> {
+  const vazio = new Map<string, GoalProgress>();
+  if (userIds.length === 0) return vazio;
+
+  const { start, end } = periodRange(period);
+  const [goals, vendas] = await Promise.all([
+    prisma.salesGoal.findMany({
+      where: { userId: { in: userIds }, year: period.year, month: period.month },
+      select: { userId: true, targetCents: true },
+    }),
+    prisma.sale.groupBy({
+      by: ["userId"],
+      where: { userId: { in: userIds }, status: SaleStatus.PAGO, paidAt: { gte: start, lt: end } },
+      _sum: { amountCents: true },
+    }),
+  ]);
+
+  const alvoPor = new Map(goals.map((g) => [g.userId, g.targetCents]));
+  const feitoPor = new Map(vendas.map((v) => [v.userId, v._sum.amountCents ?? 0]));
+
+  for (const userId of userIds) {
+    const targetCents = alvoPor.get(userId) ?? 0;
+    const achievedCents = feitoPor.get(userId) ?? 0;
+    vazio.set(userId, {
+      period,
+      targetCents,
+      achievedCents,
+      percent: targetCents > 0 ? Math.round((achievedCents / targetCents) * 100) : 0,
+    });
+  }
+  return vazio;
+}
+
 /** Define/atualiza a meta de um usuário para o período. */
 export async function upsertGoal(userId: string, period: Period, targetCents: number) {
   return prisma.salesGoal.upsert({
@@ -66,10 +107,10 @@ export async function listVendedorGoals(period = currentPeriod()) {
     select: { id: true, name: true, email: true },
   });
 
-  return Promise.all(
-    vendedores.map(async (v) => {
-      const progress = await getGoalProgress(v.id, period);
-      return { ...v, ...progress };
-    }),
+  const progresso = await getGoalProgressMany(
+    vendedores.map((v) => v.id),
+    period,
   );
+
+  return vendedores.map((v) => ({ ...v, ...progresso.get(v.id)! }));
 }

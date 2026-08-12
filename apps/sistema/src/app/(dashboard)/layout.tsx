@@ -13,6 +13,7 @@ const ADMIN_NAV = [
   { href: "/clientes", label: "Clientes" },
   { href: "/admin/tabela-precos", label: "Tabela de preços" },
   { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/vendedores", label: "Painel de vendas" },
   { href: "/admin/metas", label: "Metas" },
   { href: "/admin/saques", label: "Saques" },
 ];
@@ -25,7 +26,8 @@ const DEV_NAV = [
 ];
 
 // Gerente: gestão de vendedores/vendas/metas, sem o financeiro sensível
-// (comissões e saques ficam só para admin/desenvolvedor).
+// (comissões e saques ficam só para admin/desenvolvedor) e sem a tabela de
+// preços — ele monta orçamento com ela, mas quem altera preço é o dono.
 const GERENTE_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
@@ -33,8 +35,8 @@ const GERENTE_NAV = [
   { href: "/orcamentos", label: "Orçamentos" },
   { href: "/pedidos", label: "Pedidos" },
   { href: "/clientes", label: "Clientes" },
-  { href: "/admin/tabela-precos", label: "Tabela de preços" },
   { href: "/admin/vendas", label: "Vendas" },
+  { href: "/admin/vendedores", label: "Painel de vendas" },
   { href: "/admin/metas", label: "Metas" },
 ];
 
@@ -54,8 +56,6 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/afiliado/links", label: "Meus Links" },
     { href: "/afiliado/saques", label: "Saques" },
   ],
-  // O design só tem a fila. Os orçamentos ele abre a partir dela.
-  DESIGN: [{ href: "/design", label: "Fila de arte" }],
 };
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -64,7 +64,6 @@ const ROLE_LABEL: Record<Role, string> = {
   GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
-  DESIGN: "Design",
 };
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {

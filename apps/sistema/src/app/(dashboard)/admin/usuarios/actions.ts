@@ -12,10 +12,17 @@ import { parsePercentToBps } from "@/lib/money";
  * Regra de gestão: admin/desenvolvedor gerenciam qualquer conta; gerente só
  * pode gerenciar vendedores e afiliados (nunca contas da equipe). Retorna true
  * se `actorRole` pode agir sobre uma conta de `targetRole`.
+ *
+ * Exceção acima de todas: a conta de DESENVOLVEDOR só é gerenciada pelo próprio
+ * desenvolvedor — nem o admin encosta nela. Como o papel é singleton e ninguém
+ * age sobre a própria conta por aqui, na prática ela fica intocável pelo painel
+ * (excluir, bloquear, trocar papel e resetar senha). É de propósito: é a conta
+ * dona do sistema, e o caminho para mexer nela é o banco.
  */
 function canManageTarget(actorRole: Role, targetRole: Role): boolean {
+  if (targetRole === Role.DESENVOLVEDOR) return actorRole === Role.DESENVOLVEDOR;
   if (isFullAccess(actorRole)) return true;
-  return MANAGED_BY_GERENTE_ROLES.includes(targetRole); // gerente: vendedor/afiliado/design
+  return MANAGED_BY_GERENTE_ROLES.includes(targetRole); // gerente: vendedor/afiliado
 }
 
 // Só existe 1 conta de ADMIN e 1 de DESENVOLVEDOR no sistema.
@@ -71,14 +78,13 @@ const ALL_ROLES: Role[] = [
   Role.GERENTE,
   Role.VENDEDOR_FIXO,
   Role.AFILIADO,
-  Role.DESIGN,
 ];
 
 const createSchema = z.object({
   name: z.string().min(2).max(120),
   email: z.string().email(),
   password: z.string().min(8),
-  role: z.enum(["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO", "AFILIADO", "DESIGN"]),
+  role: z.enum(["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO", "AFILIADO"]),
 });
 
 export type CreateUserState = { error?: string; success?: string };
@@ -104,7 +110,7 @@ export async function createUserAction(
 
   // Gerente não pode criar contas da equipe (anti-escalada de privilégio).
   if (!isFullAccess(admin.role) && !MANAGED_BY_GERENTE_ROLES.includes(role)) {
-    return { error: "Você só pode criar contas de vendedor, afiliado ou design." };
+    return { error: "Você só pode criar contas de vendedor ou afiliado." };
   }
 
   // Só pode existir 1 conta de ADMIN e 1 de DESENVOLVEDOR.
@@ -193,6 +199,9 @@ export async function deleteUserAction(
     select: { role: true, email: true },
   });
   if (!target) return { error: "Conta não encontrada." };
+  if (target.role === Role.DESENVOLVEDOR && admin.role !== Role.DESENVOLVEDOR) {
+    return { error: "A conta de desenvolvedor só pode ser excluída pelo próprio desenvolvedor." };
+  }
   if (!canManageTarget(admin.role, target.role)) {
     return { error: "Você não pode gerenciar esta conta." };
   }
@@ -238,6 +247,10 @@ export async function updateUserRoleAction(formData: FormData) {
 
   const target = await prisma.user.findUnique({ where: { id: targetId }, select: { role: true } });
   if (!target) return;
+
+  // Sem isto, o admin rebaixaria o desenvolvedor a vendedor e o excluiria em
+  // seguida — a proteção da conta de desenvolvedor tem que valer aqui também.
+  if (!canManageTarget(admin.role, target.role)) return;
 
   // Gerente: só pode mexer em vendedor/afiliado e só atribuir esses papéis.
   if (!isFullAccess(admin.role)) {

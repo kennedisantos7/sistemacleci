@@ -23,7 +23,6 @@ const ROLE_LABEL: Record<Role, string> = {
   GERENTE: "Gerente",
   VENDEDOR_FIXO: "Vendedor",
   AFILIADO: "Afiliado",
-  DESIGN: "Design",
 };
 
 const STATUS_STYLE: Record<UserStatus, string> = {
@@ -77,8 +76,12 @@ export default async function AdminUsersPage() {
           <div className="divide-y divide-border">
             {users.map((u) => {
               const targetIsStaff = !MANAGED_BY_GERENTE_ROLES.includes(u.role);
+              // A conta de desenvolvedor é do desenvolvedor: nem o admin mexe.
+              const targetIsDev = u.role === "DESENVOLVEDOR";
               // Gerente não gerencia contas da equipe.
-              const canManage = canManageStaff || !targetIsStaff;
+              const canManage = targetIsDev
+                ? admin.role === "DESENVOLVEDOR"
+                : canManageStaff || !targetIsStaff;
 
               return (
                 <div
@@ -101,7 +104,9 @@ export default async function AdminUsersPage() {
                     {u.id === admin.id ? (
                       <span className="text-xs text-muted-foreground">(você)</span>
                     ) : !canManage ? (
-                      <span className="text-xs text-muted-foreground">(equipe)</span>
+                      <span className="text-xs text-muted-foreground">
+                        {targetIsDev ? "(conta do desenvolvedor)" : "(equipe)"}
+                      </span>
                     ) : (
                       <>
                         <form action={updateUserRoleAction} className="flex items-center gap-1">
@@ -113,7 +118,6 @@ export default async function AdminUsersPage() {
                           >
                             <option value="AFILIADO">Afiliado</option>
                             <option value="VENDEDOR_FIXO">Vendedor</option>
-                            <option value="DESIGN">Design</option>
                             {canManageStaff && (
                               <>
                                 <option value="GERENTE">Gerente</option>

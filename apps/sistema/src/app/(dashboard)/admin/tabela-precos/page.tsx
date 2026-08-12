@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { listPriceItems } from "@/server/services/price-items";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -16,7 +16,7 @@ export default async function TabelaPrecosPage({
 }: {
   searchParams: Promise<{ q?: string; inativos?: string }>;
 }) {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
   const { q, inativos } = await searchParams;
   const search = q?.trim() || undefined;
   const includeInactive = inativos === "1";
@@ -89,7 +89,7 @@ export default async function TabelaPrecosPage({
                     <th className="py-2 pr-2 font-semibold">Código</th>
                     <th className="py-2 pr-2 font-semibold">Descrição</th>
                     <th className="py-2 pr-2 font-semibold">Unidades e valores</th>
-                    <th className="py-2 pr-2 font-semibold">Grupo</th>
+                    <th className="py-2 pr-2 font-semibold">Categoria</th>
                     <th className="py-2 text-right font-semibold">Ações</th>
                   </tr>
                 </thead>
