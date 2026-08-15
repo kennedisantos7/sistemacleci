@@ -2,148 +2,160 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
+import { PriceUnit } from "@cleci/db";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
-import { parseReaisToCents } from "@/lib/money";
-import { createProduct, updateProduct, deleteProduct } from "@/server/services/products";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import {
+  priceItemSchema,
+  createPriceItem,
+  updatePriceItem,
+  setPriceItemActive,
+} from "@/server/services/price-items";
+import { publishToSite, unpublishFromSite } from "@/server/services/catalog-publish";
 import { mensagemDoErro } from "@/server/errors";
+import { parseReaisToCentsAllowZero } from "@/lib/money";
 
-const stringArray = z.array(z.string().trim().min(1)).max(50);
+export type PriceItemFormState = { error?: string };
 
-const variantSchema = z.object({
-  name: z.string().trim().min(2, "Informe o nome da linha.").max(80),
-  image: z.string().url("Imagem da linha inválida.").optional().or(z.literal("")),
-  description: z.string().trim().max(2000).optional(),
-  note: z.string().trim().max(200).optional(),
-  sizes: stringArray.default([]),
-  codes: stringArray.default([]),
-});
+function ehUnidade(v: string): v is PriceUnit {
+  return (Object.values(PriceUnit) as string[]).includes(v);
+}
 
-const productSchema = z.object({
-  categoryId: z.string().min(1, "Selecione a categoria."),
-  subcategoryId: z.string().optional(),
-  title: z.string().trim().min(2, "Informe o título.").max(160),
-  description: z.string().trim().max(2000).optional(),
-  imageUrl: z.string().url("Envie a imagem principal."),
-  gallery: stringArray,
-  sizes: stringArray,
-  codes: stringArray,
-  variants: z.array(variantSchema).max(20),
-  badge: z.string().trim().max(40).optional(),
-  code: z.string().trim().max(60).optional(),
-  active: z.boolean(),
-});
-
-export type ProductFormState = { error?: string };
-
-function jsonArray(formData: FormData, field: string): unknown {
-  try {
-    return JSON.parse(String(formData.get(field) ?? "[]"));
-  } catch {
-    return null;
-  }
+/** A seção Produtos vive em duas telas; salvar mexe nas duas. */
+function revalidarProdutos() {
+  revalidatePath("/admin/produtos");
+  revalidatePath("/admin/produtos/site");
 }
 
 function parseForm(formData: FormData) {
-  const priceRaw = String(formData.get("price") ?? "").trim();
-  let priceCents: number | null = null;
-  if (priceRaw) {
-    priceCents = parseReaisToCents(priceRaw);
-    if (priceCents == null) return { error: "Preço inválido. Use o formato 123,45." as string };
+  // O formulário manda as linhas de preço em JSON — quantidade variável.
+  let cru: unknown;
+  try {
+    cru = JSON.parse(String(formData.get("pricesJson") ?? "[]"));
+  } catch {
+    return { success: false as const, error: "Valores inválidos." };
+  }
+  if (!Array.isArray(cru) || cru.length === 0) {
+    return { success: false as const, error: "Informe pelo menos um valor de venda." };
   }
 
-  const parsed = productSchema.safeParse({
-    categoryId: formData.get("categoryId"),
-    subcategoryId: formData.get("subcategoryId") || undefined,
-    title: formData.get("title"),
-    description: formData.get("description") || undefined,
-    imageUrl: formData.get("imageUrl") || "",
-    gallery: jsonArray(formData, "gallery"),
-    sizes: jsonArray(formData, "sizes"),
-    codes: jsonArray(formData, "codes"),
-    variants: jsonArray(formData, "variants"),
-    badge: formData.get("badge") || undefined,
-    code: formData.get("code") || undefined,
-    active: formData.get("active") === "on" || formData.get("active") === "true",
+  const prices: Array<{ unit: PriceUnit; priceCents: number }> = [];
+  for (const linha of cru) {
+    const unidade = String((linha as { unit?: unknown }).unit ?? "");
+    if (!ehUnidade(unidade)) {
+      return { success: false as const, error: "Unidade de venda inválida." };
+    }
+    const centavos = parseReaisToCentsAllowZero(String((linha as { valor?: unknown }).valor ?? ""));
+    if (centavos === null) {
+      return { success: false as const, error: "Valor inválido (use o formato 1.234,56)." };
+    }
+    prices.push({ unit: unidade, priceCents: centavos });
+  }
+
+  const unitRaw = String(formData.get("unit") ?? "");
+  const unit = ehUnidade(unitRaw) ? unitRaw : prices[0]!.unit;
+
+  const parsed = priceItemSchema.safeParse({
+    code: String(formData.get("code") ?? ""),
+    description: String(formData.get("description") ?? ""),
+    unit,
+    prices,
+    imageUrl: String(formData.get("imageUrl") ?? "").trim() || null,
+    categoryId: String(formData.get("categoryId") ?? "").trim() || null,
+    subcategoryId: String(formData.get("subcategoryId") ?? "").trim() || null,
+    active: formData.get("active") !== null,
   });
-  if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
-  }
 
-  const d = parsed.data;
+  if (!parsed.success) {
+    return { success: false as const, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
   return {
-    data: {
-      categoryId: d.categoryId,
-      subcategoryId: d.subcategoryId || null,
-      title: d.title,
-      description: d.description || null,
-      priceCents,
-      imageUrl: d.imageUrl,
-      gallery: d.gallery,
-      sizes: d.sizes,
-      codes: d.codes,
-      variants: d.variants.map((v) => ({
-        name: v.name,
-        image: v.image || null,
-        description: v.description || null,
-        note: v.note || null,
-        sizes: v.sizes,
-        codes: v.codes,
-      })),
-      badge: d.badge || null,
-      code: d.code || null,
-      active: d.active,
-    },
+    success: true as const,
+    data: parsed.data,
+    /** Chave "Subir no site" — tratada depois de salvar o cadastro. */
+    noSite: formData.get("noSite") !== null,
   };
 }
 
-export async function createProductAction(
-  _prev: ProductFormState,
+export async function createPriceItemAction(
+  _prev: PriceItemFormState,
   formData: FormData,
-): Promise<ProductFormState> {
-  await requireUser(STAFF_ROLES);
-  const result = parseForm(formData);
-  if ("error" in result) return { error: result.error };
+): Promise<PriceItemFormState> {
+  await requireUser(FULL_ACCESS_ROLES);
+
+  const parsed = parseForm(formData);
+  if (!parsed.success) return { error: parsed.error };
 
   try {
-    await createProduct(result.data);
+    const criado = await createPriceItem(parsed.data);
+    if (parsed.noSite) await publishToSite(criado.id);
   } catch (err) {
-    return { error: mensagemDoErro(err, "Erro ao salvar.") };
+    return { error: mensagemDoErro(err, "Erro ao salvar o produto.") };
   }
-  revalidatePath("/admin/produtos");
+
+  revalidarProdutos();
   redirect("/admin/produtos");
 }
 
-export async function updateProductAction(
-  _prev: ProductFormState,
+export async function updatePriceItemAction(
+  _prev: PriceItemFormState,
   formData: FormData,
-): Promise<ProductFormState> {
-  await requireUser(STAFF_ROLES);
-  const productId = String(formData.get("productId") ?? "");
-  if (!productId) return { error: "Produto inválido." };
+): Promise<PriceItemFormState> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const id = String(formData.get("priceItemId") ?? "");
+  if (!id) return { error: "Produto inválido." };
 
-  const result = parseForm(formData);
-  if ("error" in result) return { error: result.error };
+  const parsed = parseForm(formData);
+  if (!parsed.success) return { error: parsed.error };
 
   try {
-    await updateProduct(productId, result.data);
+    await updatePriceItem(id, parsed.data);
+    // A chave manda: ligada publica (ou republica), desligada tira do ar.
+    // Publicar já reescreve título, preço, foto e categoria na vitrine, então
+    // editar o cadastro de um produto publicado o mantém em dia.
+    if (parsed.noSite) await publishToSite(id);
+    else await unpublishFromSite(id);
   } catch (err) {
-    return { error: mensagemDoErro(err, "Erro ao salvar.") };
+    return { error: mensagemDoErro(err, "Erro ao salvar o produto.") };
   }
-  revalidatePath("/admin/produtos");
+
+  revalidarProdutos();
   redirect("/admin/produtos");
 }
 
-export async function deleteProductAction(formData: FormData): Promise<void> {
-  await requireUser(STAFF_ROLES);
-  const productId = String(formData.get("productId") ?? "");
-  if (!productId) return;
+/**
+ * Ativa/desativa o produto no orçamento. Nunca apaga: orçamentos antigos ficam
+ * vinculados ao produto, e desativar apenas o tira da busca do vendedor.
+ */
+export async function togglePriceItemAction(formData: FormData): Promise<void> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const id = String(formData.get("priceItemId") ?? "");
+  if (!id) return;
+  const active = String(formData.get("active") ?? "") === "1";
+
   try {
-    await deleteProduct(productId);
+    await setPriceItemActive(id, active);
+    // Produto fora da tabela não fica exposto na vitrine.
+    if (!active) await unpublishFromSite(id);
   } catch {
-    // ignora (ex.: já removido)
+    // Produto já removido — a tela recarregada mostra o estado real.
   }
-  revalidatePath("/admin/produtos");
-  redirect("/admin/produtos");
+  revalidarProdutos();
+}
+
+/** Chave "Subir no site" acionada direto da lista, sem abrir o cadastro. */
+export async function toggleSiteAction(formData: FormData): Promise<void> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const id = String(formData.get("priceItemId") ?? "");
+  if (!id) return;
+  const publicar = String(formData.get("noSite") ?? "") === "1";
+
+  try {
+    if (publicar) await publishToSite(id);
+    else await unpublishFromSite(id);
+  } catch {
+    // Falta foto ou categoria: o aviso completo aparece ao abrir o cadastro,
+    // que é onde dá para resolver.
+  }
+  revalidarProdutos();
 }

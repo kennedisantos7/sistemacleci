@@ -121,6 +121,61 @@ async function headWithGuard(start: URL): Promise<Response> {
   throw new Error("redirecionamentos demais");
 }
 
+/**
+ * Baixa os bytes de uma imagem para uso no servidor — hoje, a miniatura que
+ * entra no PDF do orçamento/pedido.
+ *
+ * Passa pela MESMA guarda do `checkMediaLink`: a URL foi digitada por um
+ * usuário e o fetch parte do servidor, então host privado continua barrado a
+ * cada redirecionamento. Devolve `null` em qualquer problema (link fora do ar,
+ * resposta que não é imagem, arquivo grande demais) — quem chama decide o que
+ * fazer, e no PDF a decisão é seguir sem a foto.
+ */
+export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Buffer | null> {
+  const url = parseUrl(raw);
+  if (!url) return null;
+
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    let res: Response;
+    try {
+      await assertPublicHost(current.hostname);
+      res = await fetch(current, {
+        redirect: "manual",
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        headers: { "user-agent": "cleci-pdf" },
+      });
+    } catch {
+      return null;
+    }
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      if (!location) return null;
+      const next = parseUrl(new URL(location, current).toString());
+      if (!next) return null;
+      current = next;
+      continue;
+    }
+
+    if (!res.ok) return null;
+    if (kindOf(res.headers.get("content-type") ?? "") !== "image") return null;
+
+    // Content-length quando existe evita baixar à toa; quando não existe, o
+    // corte vem do tamanho real depois de ler.
+    const declarado = Number(res.headers.get("content-length") ?? 0);
+    if (declarado > maxBytes) return null;
+
+    try {
+      const bytes = Buffer.from(await res.arrayBuffer());
+      return bytes.byteLength > maxBytes ? null : bytes;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /** Confere se a URL entrega mesmo uma imagem ou vídeo. */
 export async function checkMediaLink(raw: string): Promise<CheckResult> {
   const url = parseUrl(raw);

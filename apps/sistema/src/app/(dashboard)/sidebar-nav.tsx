@@ -11,7 +11,6 @@ import {
   Link2,
   Package,
   Percent,
-  Tags,
   Target,
   TrendingUp,
   Trophy,
@@ -38,7 +37,6 @@ const LOGO_ROUTES = new Set(["/admin", "/vendedor", "/afiliado"]);
 const ICONS: Record<string, LucideIcon> = {
   "/admin/usuarios": Users,
   "/admin/produtos": Package,
-  "/admin/tabela-precos": Tags,
   "/admin/vendas": TrendingUp,
   "/admin/vendedores": Trophy,
   "/admin/metas": Target,

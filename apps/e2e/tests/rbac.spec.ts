@@ -21,7 +21,7 @@ const ROTAS = [
   "/admin/comissoes",
   "/admin/saques",
   "/admin/vendedores",
-  "/admin/tabela-precos",
+  "/admin/produtos",
   "/orcamentos",
   "/pedidos",
   "/clientes",
@@ -35,7 +35,7 @@ type Rota = (typeof ROTAS)[number];
 const PERMITIDAS: Record<Papel, Rota[]> = {
   admin: [
     "/admin", "/admin/usuarios", "/admin/saques", "/admin/vendedores",
-    "/admin/tabela-precos", "/orcamentos", "/pedidos", "/clientes",
+    "/admin/produtos", "/orcamentos", "/pedidos", "/clientes",
   ],
   dev: ROTAS.filter((r) => r !== "/vendedor") as Rota[],
   gerente: ["/admin", "/admin/usuarios", "/admin/vendedores", "/orcamentos", "/pedidos", "/clientes"],
@@ -48,16 +48,16 @@ const PERMITIDAS: Record<Papel, Rota[]> = {
 const MENU: Record<Papel, string[]> = {
   admin: [
     "/admin", "/admin/usuarios", "/admin/produtos", "/orcamentos", "/pedidos",
-    "/clientes", "/admin/tabela-precos", "/admin/vendas", "/admin/vendedores",
-    "/admin/metas", "/admin/saques",
+    "/clientes", "/admin/vendas", "/admin/vendedores", "/admin/metas", "/admin/saques",
   ],
   dev: [
     "/admin", "/admin/usuarios", "/admin/produtos", "/orcamentos", "/pedidos",
-    "/clientes", "/admin/tabela-precos", "/admin/vendas", "/admin/vendedores",
-    "/admin/metas", "/admin/saques", "/admin/comissoes", "/afiliado/saques",
+    "/clientes", "/admin/vendas", "/admin/vendedores", "/admin/metas", "/admin/saques",
+    "/admin/comissoes", "/afiliado/saques",
   ],
+  // Produtos saiu do menu do gerente: o cadastro carrega preço.
   gerente: [
-    "/admin", "/admin/usuarios", "/admin/produtos", "/orcamentos", "/pedidos",
+    "/admin", "/admin/usuarios", "/orcamentos", "/pedidos",
     "/clientes", "/admin/vendas", "/admin/vendedores", "/admin/metas",
   ],
   vendedor: ["/vendedor", "/orcamentos", "/pedidos", "/clientes", "/vendedor/links"],

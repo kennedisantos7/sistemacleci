@@ -3,6 +3,7 @@ import { requireUser } from "@/server/session";
 import { getBudgetForActor } from "@/server/services/budgets";
 import { renderOrcamentoPdf } from "@/server/pdf/render-orcamento-pdf";
 import { BUDGET_VIEW_ROLES } from "@/lib/rbac";
+import { carregarMiniaturas } from "@/server/pdf/product-thumbs";
 import type { BudgetUnit } from "@/lib/budget-math";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   if (!budget) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
+
+  // Fotos dos produtos: baixadas, reduzidas e embutidas. Link fora do ar sai
+  // do mapa e o item aparece sem imagem — o PDF nunca deixa de ser gerado.
+  const miniaturas = await carregarMiniaturas(
+    budget.items.map((item) => item.priceItem?.imageUrl ?? null),
+  );
 
   const pdf = await renderOrcamentoPdf({
     number: budget.number,
@@ -63,6 +70,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
       unitPriceCents: item.unitPriceCents,
       partialCents: item.partialCents,
       totalCents: item.totalCents,
+      imageSrc: miniaturas.get(item.priceItem?.imageUrl ?? "") ?? null,
     })),
   });
 

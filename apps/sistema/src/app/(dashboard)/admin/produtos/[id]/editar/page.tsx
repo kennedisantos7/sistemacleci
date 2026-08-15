@@ -1,79 +1,76 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
-import { getProduct, listCategoriesWithSubs } from "@/server/services/products";
-import { isStorageConfigured } from "@/server/storage";
-import { Card, CardContent } from "@/components/ui/card";
-import { ProductForm } from "../../product-form";
-import { type VariantValue } from "../../variants-field";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import { getPriceItem } from "@/server/services/price-items";
+import { listCategoriesWithSubs } from "@/server/services/products";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PriceItemForm } from "../../product-item-form";
+import type { BudgetUnit } from "@/lib/budget-math";
 
 export const dynamic = "force-dynamic";
-
-/** A coluna é Json: normaliza para o formato do formulário. */
-function parseVariants(raw: unknown): VariantValue[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.flatMap((item) => {
-    if (!item || typeof item !== "object") return [];
-    const v = item as Record<string, unknown>;
-    if (typeof v.name !== "string") return [];
-    return [
-      {
-        name: v.name,
-        image: typeof v.image === "string" ? v.image : "",
-        description: typeof v.description === "string" ? v.description : "",
-        note: typeof v.note === "string" ? v.note : "",
-        sizes: Array.isArray(v.sizes) ? v.sizes.filter((s): s is string => typeof s === "string") : [],
-        codes: Array.isArray(v.codes) ? v.codes.filter((s): s is string => typeof s === "string") : [],
-      },
-    ];
-  });
-}
 
 export default async function EditarProdutoPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser(STAFF_ROLES);
+  await requireUser(FULL_ACCESS_ROLES);
   const { id } = await params;
 
-  const [product, categories] = await Promise.all([getProduct(id), listCategoriesWithSubs()]);
-  if (!product) notFound();
+  const [item, categorias] = await Promise.all([getPriceItem(id), listCategoriesWithSubs()]);
+  if (!item) notFound();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6">
       <header>
         <h1 className="text-2xl font-bold">Editar produto</h1>
-        <p className="text-muted-foreground">{product.title}</p>
+        <p className="text-muted-foreground">
+          {item.code} · {item.description}
+        </p>
       </header>
+
       <Card>
-        <CardContent className="pt-6">
-          <ProductForm
-            uploadEnabled={isStorageConfigured()}
-            categories={categories.map((c) => ({
+        <CardHeader>
+          <CardTitle>Dados do produto</CardTitle>
+          <CardDescription>
+            Orçamentos já gravados guardam o valor da época — mudar aqui não altera o histórico.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PriceItemForm
+            categorias={categorias.map((c) => ({
               id: c.id,
               name: c.name,
               subcategories: c.subcategories.map((s) => ({ id: s.id, name: s.name })),
             }))}
             defaults={{
-              id: product.id,
-              categoryId: product.categoryId,
-              subcategoryId: product.subcategoryId,
-              title: product.title,
-              description: product.description,
-              priceCents: product.priceCents,
-              imageUrl: product.imageUrl,
-              gallery: product.gallery,
-              sizes: product.sizes,
-              codes: product.codes,
-              variants: parseVariants(product.variants),
-              badge: product.badge,
-              code: product.code,
-              active: product.active,
+              id: item.id,
+              code: item.code,
+              description: item.description,
+              unit: item.unit as BudgetUnit,
+              priceCents: item.priceCents,
+              prices: item.prices.map((p) => ({
+                unit: p.unit as BudgetUnit,
+                priceCents: p.priceCents,
+              })),
+              group: item.group,
+              imageUrl: item.imageUrl,
+              categoryId: item.categoryId,
+              subcategoryId: item.subcategoryId,
+              // Publicado = tem vitrine E ela está no ar. Vitrine desligada
+              // conta como fora do site, senão a chave mentiria.
+              noSite: Boolean(item.siteProduct?.active),
+              siteProductId: item.siteProductId,
+              active: item.active,
             }}
           />
         </CardContent>
       </Card>
+
+      <Link href="/admin/produtos" className="text-sm text-primary hover:underline">
+        ← Voltar para Produtos
+      </Link>
     </div>
   );
 }

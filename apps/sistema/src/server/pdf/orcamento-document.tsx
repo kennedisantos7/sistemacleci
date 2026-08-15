@@ -84,6 +84,11 @@ const styles = StyleSheet.create({
   colValue: { width: 50, textAlign: "right" },
   colUnit: { width: 38, textAlign: "center" },
   colDim: { width: 30, textAlign: "right" },
+  // Foto do produto: quadrado fixo, a mesma altura da linha em todos os itens
+  // (senão a tabela fica com degraus). objectFit contain porque foto de
+  // produto raramente é 1:1 e cortar comeria pedaço da peça.
+  colImage: { width: 38, paddingRight: 4 },
+  itemImage: { width: 34, height: 34, objectFit: "contain" },
   colArea: { width: 34, textAlign: "right" },
   colPartial: { width: 52, textAlign: "right" },
   colQty: { width: 28, textAlign: "right" },
@@ -190,6 +195,11 @@ export type OrcamentoPdfData = {
     unitPriceCents: number;
     partialCents: number;
     totalCents: number;
+    /**
+     * Miniatura já embutida (data URI). Null quando o produto não tem foto ou
+     * o link falhou — nesse caso a célula sai vazia e o documento segue igual.
+     */
+    imageSrc: string | null;
   }>;
   /** Data URI do logo (ou null para omitir). */
   logoSrc: string | null;
@@ -335,6 +345,7 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
           <>
             <View style={styles.tableHeader}>
               <Text style={styles.colCode}>Código</Text>
+              <Text style={styles.colImage}>Imagem</Text>
               <Text style={styles.colDesc}>Descrição</Text>
               <Text style={styles.colValue}>Base cálc.</Text>
               <Text style={styles.colUnit}>Unid.</Text>
@@ -348,6 +359,9 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
             {data.items.map((item) => (
               <View key={item.id} style={styles.tableRow} wrap={false}>
                 <Text style={styles.colCode}>{item.code ?? "—"}</Text>
+                <View style={styles.colImage}>
+                  {item.imageSrc ? <Image src={item.imageSrc} style={styles.itemImage} /> : null}
+                </View>
                 <Text style={styles.colDesc}>{item.description}</Text>
                 <Text style={styles.colValue}>{formatCents(item.unitPriceCents)}</Text>
                 <Text style={styles.colUnit}>{UNIT_LABEL[item.unit]}</Text>
@@ -371,6 +385,7 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
         ) : (
           <>
             <View style={styles.tableHeader}>
+              <Text style={styles.colImage}>Imagem</Text>
               <Text style={styles.colDesc}>Descrição</Text>
               <Text style={styles.colQtySimple}>Qtd</Text>
               <Text style={styles.colUnitPriceSimple}>Valor unit.</Text>
@@ -380,6 +395,9 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
               const medidas = medidasDoItem(item);
               return (
                 <View key={item.id} style={styles.tableRow} wrap={false}>
+                  <View style={styles.colImage}>
+                    {item.imageSrc ? <Image src={item.imageSrc} style={styles.itemImage} /> : null}
+                  </View>
                   <View style={styles.colDesc}>
                     <Text>{item.description}</Text>
                     {medidas ? <Text style={styles.dimNote}>{medidas}</Text> : null}

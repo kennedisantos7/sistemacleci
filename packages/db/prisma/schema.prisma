@@ -313,6 +313,7 @@ model Category {
 
   subcategories Subcategory[]
   products      Product[]
+  priceItems    PriceItem[]
 
   @@index([position])
 }
@@ -326,7 +327,8 @@ model Subcategory {
   slug     String // usado no ?tipo=, ex.: "master"
   position Int    @default(0)
 
-  products Product[]
+  products   Product[]
+  priceItems PriceItem[]
 
   @@unique([categoryId, slug])
   @@index([categoryId])
@@ -358,6 +360,10 @@ model Product {
 
   active   Boolean @default(true)
   position Int     @default(0)
+
+  // Cadastro de Produtos que gerou esta vitrine, quando veio de lá. Produto
+  // antigo pode nao ter: continua editavel pela aba "somente no site".
+  priceItem PriceItem?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -473,7 +479,31 @@ model PriceItem {
   // preço diferente em cada uma. O vendedor escolhe a unidade no orçamento.
   prices PriceItemPrice[]
 
-  group String? // agrupador para busca, ex.: "Tapetes"
+  /**
+   * Agrupador legado, vindo da planilha ("Tapetes"). Quem manda hoje é
+   * `categoryId`; a coluna fica porque o importador ainda grava nela e é a
+   * unica classificacao de itens que nunca foram casados com o catalogo.
+   */
+  group String?
+
+  // --- Catálogo (a seção Produtos e a vitrine do site) ---------------------
+  /** Foto do produto: URL externa. Sai na busca do orçamento e no PDF. */
+  imageUrl String?
+
+  // Categoria/subtipo do site. Opcionais: item de planilha pode nunca ter
+  // sido classificado. SetNull para apagar categoria não apagar o produto.
+  categoryId    String?
+  category      Category?    @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  subcategoryId String?
+  subcategory   Subcategory? @relation(fields: [subcategoryId], references: [id], onDelete: SetNull)
+
+  /**
+   * Vitrine publicada a partir deste cadastro. Preenchido = "está no site".
+   * SetNull: apagar o produto do site não apaga o item de preço, que é o que
+   * o orçamento consome — só o desvincula.
+   */
+  siteProductId String?  @unique
+  siteProduct   Product? @relation(fields: [siteProductId], references: [id], onDelete: SetNull)
 
   // Descrição sem acento e em maiúsculas: ILIKE do Postgres não ignora acento,
   // então "acrescimo" só acha "ACRÉSCIMO" comparando por aqui.
@@ -491,6 +521,7 @@ model PriceItem {
   @@index([active, position])
   @@index([group])
   @@index([searchText])
+  @@index([categoryId, active])
 }
 
 // Um preço do produto em uma unidade de venda. Ex.: o mesmo tapete a R$ 89,90

@@ -1,0 +1,149 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { z } from "zod";
+import { requireUser } from "@/server/session";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import { parseReaisToCents } from "@/lib/money";
+import { createProduct, updateProduct, deleteProduct } from "@/server/services/products";
+import { mensagemDoErro } from "@/server/errors";
+
+const stringArray = z.array(z.string().trim().min(1)).max(50);
+
+const variantSchema = z.object({
+  name: z.string().trim().min(2, "Informe o nome da linha.").max(80),
+  image: z.string().url("Imagem da linha inválida.").optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional(),
+  note: z.string().trim().max(200).optional(),
+  sizes: stringArray.default([]),
+  codes: stringArray.default([]),
+});
+
+const productSchema = z.object({
+  categoryId: z.string().min(1, "Selecione a categoria."),
+  subcategoryId: z.string().optional(),
+  title: z.string().trim().min(2, "Informe o título.").max(160),
+  description: z.string().trim().max(2000).optional(),
+  imageUrl: z.string().url("Envie a imagem principal."),
+  gallery: stringArray,
+  sizes: stringArray,
+  codes: stringArray,
+  variants: z.array(variantSchema).max(20),
+  badge: z.string().trim().max(40).optional(),
+  code: z.string().trim().max(60).optional(),
+  active: z.boolean(),
+});
+
+export type ProductFormState = { error?: string };
+
+function jsonArray(formData: FormData, field: string): unknown {
+  try {
+    return JSON.parse(String(formData.get(field) ?? "[]"));
+  } catch {
+    return null;
+  }
+}
+
+function parseForm(formData: FormData) {
+  const priceRaw = String(formData.get("price") ?? "").trim();
+  let priceCents: number | null = null;
+  if (priceRaw) {
+    priceCents = parseReaisToCents(priceRaw);
+    if (priceCents == null) return { error: "Preço inválido. Use o formato 123,45." as string };
+  }
+
+  const parsed = productSchema.safeParse({
+    categoryId: formData.get("categoryId"),
+    subcategoryId: formData.get("subcategoryId") || undefined,
+    title: formData.get("title"),
+    description: formData.get("description") || undefined,
+    imageUrl: formData.get("imageUrl") || "",
+    gallery: jsonArray(formData, "gallery"),
+    sizes: jsonArray(formData, "sizes"),
+    codes: jsonArray(formData, "codes"),
+    variants: jsonArray(formData, "variants"),
+    badge: formData.get("badge") || undefined,
+    code: formData.get("code") || undefined,
+    active: formData.get("active") === "on" || formData.get("active") === "true",
+  });
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  }
+
+  const d = parsed.data;
+  return {
+    data: {
+      categoryId: d.categoryId,
+      subcategoryId: d.subcategoryId || null,
+      title: d.title,
+      description: d.description || null,
+      priceCents,
+      imageUrl: d.imageUrl,
+      gallery: d.gallery,
+      sizes: d.sizes,
+      codes: d.codes,
+      variants: d.variants.map((v) => ({
+        name: v.name,
+        image: v.image || null,
+        description: v.description || null,
+        note: v.note || null,
+        sizes: v.sizes,
+        codes: v.codes,
+      })),
+      badge: d.badge || null,
+      code: d.code || null,
+      active: d.active,
+    },
+  };
+}
+
+export async function createProductAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const result = parseForm(formData);
+  if ("error" in result) return { error: result.error };
+
+  try {
+    await createProduct(result.data);
+  } catch (err) {
+    return { error: mensagemDoErro(err, "Erro ao salvar.") };
+  }
+  revalidatePath("/admin/produtos/site");
+  redirect("/admin/produtos/site");
+}
+
+export async function updateProductAction(
+  _prev: ProductFormState,
+  formData: FormData,
+): Promise<ProductFormState> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const productId = String(formData.get("productId") ?? "");
+  if (!productId) return { error: "Produto inválido." };
+
+  const result = parseForm(formData);
+  if ("error" in result) return { error: result.error };
+
+  try {
+    await updateProduct(productId, result.data);
+  } catch (err) {
+    return { error: mensagemDoErro(err, "Erro ao salvar.") };
+  }
+  revalidatePath("/admin/produtos/site");
+  redirect("/admin/produtos/site");
+}
+
+export async function deleteProductAction(formData: FormData): Promise<void> {
+  await requireUser(FULL_ACCESS_ROLES);
+  const productId = String(formData.get("productId") ?? "");
+  if (!productId) return;
+  try {
+    await deleteProduct(productId);
+  } catch {
+    // ignora (ex.: já removido)
+  }
+  revalidatePath("/admin/produtos/site");
+  redirect("/admin/produtos/site");
+}

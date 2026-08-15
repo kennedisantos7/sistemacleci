@@ -15,6 +15,8 @@ export type ProductOption = {
   description: string;
   unit: BudgetUnit;
   priceCents: number;
+  /** Foto do cadastro, quando existe — ajuda a escolher o item certo. */
+  imageUrl?: string | null;
   /** Todas as unidades de venda do produto, com o valor de cada uma. */
   prices: PriceOption[];
 };
@@ -226,12 +228,12 @@ export function ProductSearch({
               <p>Você pode digitar a descrição e o valor à mão neste item.</p>
               {canManagePriceItems ? (
                 <a
-                  href="/admin/tabela-precos/novo"
+                  href="/admin/produtos/novo"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-block pt-1 font-medium text-primary hover:underline"
                 >
-                  Cadastrar produto na tabela de preços →
+                  Cadastrar produto →
                 </a>
               ) : null}
             </li>
@@ -254,6 +256,18 @@ export function ProductSearch({
                       index === highlight ? "bg-primary/10" : ""
                     }`}
                   >
+                    {/* Miniatura só na primeira linha do produto: as demais são
+                        outras unidades do mesmo item. */}
+                    {primeira && option.imageUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={option.imageUrl}
+                        alt=""
+                        className="h-8 w-8 shrink-0 rounded border border-border object-cover"
+                      />
+                    ) : (
+                      <span className="h-8 w-8 shrink-0" aria-hidden />
+                    )}
                     <span className="w-10 shrink-0 font-mono text-xs text-muted-foreground">
                       {primeira ? option.code : ""}
                     </span>

@@ -49,9 +49,9 @@ export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/orcamentos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/pedidos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/clientes", roles: BUDGET_ROLES },
-  // Preço é decisão de dono: o gerente monta orçamento com a tabela, mas não
-  // altera a tabela. Antes de /admin porque é prefixo dele.
-  { prefix: "/admin/tabela-precos", roles: FULL_ACCESS_ROLES },
+  // Produtos carrega preço, e preço é decisão de dono: o gerente monta
+  // orçamento com a tabela, mas não a altera. Antes de /admin, que é prefixo.
+  { prefix: "/admin/produtos", roles: FULL_ACCESS_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
   // O desenvolvedor usa /afiliado/saques para sacar a própria participação.

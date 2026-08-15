@@ -11,7 +11,6 @@ const ADMIN_NAV = [
   { href: "/orcamentos", label: "Orçamentos" },
   { href: "/pedidos", label: "Pedidos" },
   { href: "/clientes", label: "Clientes" },
-  { href: "/admin/tabela-precos", label: "Tabela de preços" },
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/vendedores", label: "Painel de vendas" },
   { href: "/admin/metas", label: "Metas" },
@@ -26,12 +25,12 @@ const DEV_NAV = [
 ];
 
 // Gerente: gestão de vendedores/vendas/metas, sem o financeiro sensível
-// (comissões e saques ficam só para admin/desenvolvedor) e sem a tabela de
-// preços — ele monta orçamento com ela, mas quem altera preço é o dono.
+// (comissões e saques ficam só para admin/desenvolvedor) e sem Produtos — o
+// cadastro carrega preço, e quem altera preço é o dono. Ele monta orçamento
+// com a tabela normalmente.
 const GERENTE_NAV = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/usuarios", label: "Usuários" },
-  { href: "/admin/produtos", label: "Produtos" },
   { href: "/orcamentos", label: "Orçamentos" },
   { href: "/pedidos", label: "Pedidos" },
   { href: "/clientes", label: "Clientes" },

@@ -39,6 +39,14 @@ const nextConfig = {
       { source: "/vendedor/orcamentos/:path*", destination: "/orcamentos/:path*", permanent: true },
       { source: "/vendedor/clientes", destination: "/clientes", permanent: true },
       { source: "/vendedor/clientes/:path*", destination: "/clientes/:path*", permanent: true },
+      // A tabela de preços virou a seção Produtos: mesmo cadastro, agora com
+      // foto, categoria e a chave de publicar no site.
+      { source: "/admin/tabela-precos", destination: "/admin/produtos", permanent: true },
+      {
+        source: "/admin/tabela-precos/:path*",
+        destination: "/admin/produtos/:path*",
+        permanent: true,
+      },
     ];
   },
 };

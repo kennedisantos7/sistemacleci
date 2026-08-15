@@ -203,7 +203,14 @@ export async function buildBudgetData(
 
 const BUDGET_INCLUDE = {
   client: true,
-  items: { orderBy: { position: "asc" } },
+  // A foto vem do produto, não do item: o item guarda o snapshot de preço e
+  // descrição (o histórico não pode mudar), mas a imagem é sempre a atual do
+  // cadastro — trocar a foto do produto vale para os documentos daqui em
+  // diante e para os antigos, que é o que se espera de uma foto de catálogo.
+  items: {
+    orderBy: { position: "asc" },
+    include: { priceItem: { select: { imageUrl: true } } },
+  },
   vendedor: { select: { id: true, name: true, email: true } },
   sale: { select: { id: true, status: true, paidAt: true } },
 } satisfies Prisma.BudgetInclude;

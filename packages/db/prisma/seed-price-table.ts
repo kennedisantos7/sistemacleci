@@ -7,8 +7,10 @@
  *   pnpm --filter @cleci/db seed:precos -- caminho/produtos.html
  *
  * Idempotente: faz upsert por `code`. Só o preço, a descrição e a unidade são
- * atualizados — `active`/`group`/`position` editados no painel são preservados.
- * A planilha continua sendo a fonte para reajustes: mudou lá, roda de novo.
+ * atualizados — o que foi editado no painel é preservado: `active`, `group`,
+ * `position`, a foto (`imageUrl`), a categoria/subtipo e a publicação no site
+ * (`siteProductId`). A planilha é fonte de PREÇO, não de catálogo; um reajuste
+ * geral não pode desfazer o cadastro feito na seção Produtos.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -202,7 +204,8 @@ async function main() {
     });
     const saved = await prisma.priceItem.upsert({
       where: { code: it.code },
-      // Não sobrescreve active/group/position ajustados no painel.
+      // Lista explícita: acrescentar campo aqui é decisão consciente. Foto,
+      // categoria e vínculo com o site ficam de fora de propósito.
       update: {
         description: it.description,
         unit: it.unit,

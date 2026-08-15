@@ -12,6 +12,8 @@ export type PriceItemOption = {
   /** Unidade principal — a que já vem selecionada ao escolher o produto. */
   unit: PriceUnit;
   priceCents: number;
+  /** Foto, quando cadastrada: some na busca e sai no PDF. */
+  imageUrl: string | null;
   /** Todas as unidades disponíveis, principal inclusa. */
   prices: PriceOption[];
 };
@@ -22,6 +24,7 @@ const SEARCH_SELECT = {
   description: true,
   unit: true,
   priceCents: true,
+  imageUrl: true,
   prices: {
     select: { unit: true, priceCents: true },
     orderBy: [{ position: "asc" }, { unit: "asc" }],
@@ -113,7 +116,7 @@ export async function getPriceItemsByIds(ids: string[]): Promise<Map<string, Pri
 }
 
 // ---------------------------------------------------------------------------
-// Administração da tabela de preços
+// Administração dos produtos (a seção Produtos)
 // ---------------------------------------------------------------------------
 
 export const priceItemSchema = z
@@ -135,7 +138,16 @@ export const priceItemSchema = z
         }),
       )
       .min(1, "Informe pelo menos um valor."),
-    group: z.string().trim().max(80).nullable().optional(),
+    /** Foto do produto. URL externa — o link é conferido antes de salvar. */
+    imageUrl: z
+      .string()
+      .trim()
+      .url("A foto precisa ser um link http(s) válido.")
+      .max(500)
+      .nullable()
+      .optional(),
+    categoryId: z.string().trim().min(1).nullable().optional(),
+    subcategoryId: z.string().trim().min(1).nullable().optional(),
     active: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
@@ -154,6 +166,13 @@ export const priceItemSchema = z
         path: ["unit"],
       });
     }
+    if (data.subcategoryId && !data.categoryId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Escolha a categoria antes do subtipo.",
+        path: ["subcategoryId"],
+      });
+    }
   });
 
 export type PriceItemInput = z.infer<typeof priceItemSchema>;
@@ -167,11 +186,30 @@ function linhasDePreco(data: PriceItemInput) {
   return data.prices.map((p, i) => ({ unit: p.unit, priceCents: p.priceCents, position: i }));
 }
 
-export function listPriceItems(options: { search?: string; includeInactive?: boolean } = {}) {
-  const { search, includeInactive } = options;
+/** Categoria, subtipo e situação no site — o que a lista de Produtos mostra. */
+const CATALOGO_INCLUDE = {
+  prices: { orderBy: [{ position: "asc" }, { unit: "asc" }] },
+  category: { select: { id: true, name: true } },
+  subcategory: { select: { id: true, name: true } },
+  siteProduct: { select: { id: true, active: true, title: true } },
+} satisfies Prisma.PriceItemInclude;
+
+export type PriceItemListFilters = {
+  search?: string;
+  includeInactive?: boolean;
+  categoryId?: string;
+  /** "no-site" só publicados; "fora" só os que não estão na vitrine. */
+  site?: "no-site" | "fora";
+};
+
+export function listPriceItems(options: PriceItemListFilters = {}) {
+  const { search, includeInactive, categoryId, site } = options;
   return prisma.priceItem.findMany({
     where: {
       ...(includeInactive ? {} : { active: true }),
+      ...(categoryId ? { categoryId } : {}),
+      ...(site === "no-site" ? { siteProductId: { not: null } } : {}),
+      ...(site === "fora" ? { siteProductId: null } : {}),
       ...(search
         ? {
             OR: [
@@ -183,15 +221,48 @@ export function listPriceItems(options: { search?: string; includeInactive?: boo
     },
     orderBy: [{ position: "asc" }, { description: "asc" }],
     take: 500,
-    include: { prices: { orderBy: [{ position: "asc" }, { unit: "asc" }] } },
+    include: CATALOGO_INCLUDE,
   });
 }
 
 export function getPriceItem(id: string) {
-  return prisma.priceItem.findUnique({
-    where: { id },
-    include: { prices: { orderBy: [{ position: "asc" }, { unit: "asc" }] } },
+  return prisma.priceItem.findUnique({ where: { id }, include: CATALOGO_INCLUDE });
+}
+
+/**
+ * Produtos da vitrine que NÃO vieram do cadastro unificado. Sem esta lista eles
+ * ficariam sem tela depois da unificação — existem desde antes, quando o
+ * catálogo do site era cadastrado à parte, e muitos não têm código.
+ */
+export function listUnlinkedSiteProducts(search?: string) {
+  return prisma.product.findMany({
+    where: {
+      priceItem: null,
+      ...(search ? { title: { contains: search, mode: "insensitive" } } : {}),
+    },
+    orderBy: [{ active: "desc" }, { position: "asc" }],
+    take: 200,
+    include: { category: { select: { name: true } }, subcategory: { select: { name: true } } },
   });
+}
+
+/**
+ * Subtipo tem de pertencer à categoria escolhida. É checado contra o banco
+ * porque o formulário manda ids e ninguém confia em `<select>` do navegador.
+ */
+async function validarCategoria(data: PriceItemInput) {
+  if (!data.categoryId) return;
+  const categoria = await prisma.category.findUnique({
+    where: { id: data.categoryId },
+    select: { id: true },
+  });
+  if (!categoria) throw new Error("Categoria inválida.");
+  if (!data.subcategoryId) return;
+  const sub = await prisma.subcategory.findFirst({
+    where: { id: data.subcategoryId, categoryId: data.categoryId },
+    select: { id: true },
+  });
+  if (!sub) throw new Error("O subtipo escolhido não é dessa categoria.");
 }
 
 /**
@@ -234,6 +305,7 @@ function ehCodigoDuplicado(err: unknown): boolean {
 export async function createPriceItem(data: PriceItemInput) {
   const emUso = await codigoEmUso(data.code);
   if (emUso) throw erroCodigoEmUso(emUso);
+  await validarCategoria(data);
 
   const last = await prisma.priceItem.findFirst({
     orderBy: { position: "desc" },
@@ -246,7 +318,9 @@ export async function createPriceItem(data: PriceItemInput) {
         ...campos,
         // Espelho da unidade principal — mantido junto, nunca à parte.
         priceCents: precoPrincipal(data),
-        group: data.group ?? null,
+        imageUrl: data.imageUrl ?? null,
+        categoryId: data.categoryId ?? null,
+        subcategoryId: data.subcategoryId ?? null,
         searchText: normalizeSearch(data.description),
         position: (last?.position ?? 0) + 1,
         prices: { create: linhasDePreco(data) },
@@ -266,6 +340,7 @@ export async function createPriceItem(data: PriceItemInput) {
 export async function updatePriceItem(id: string, data: PriceItemInput) {
   const emUso = await codigoEmUso(data.code, id);
   if (emUso) throw erroCodigoEmUso(emUso);
+  await validarCategoria(data);
 
   const { prices, ...campos } = data;
   // Troca o conjunto inteiro de preços numa transação: apagar e recriar evita
@@ -277,9 +352,15 @@ export async function updatePriceItem(id: string, data: PriceItemInput) {
       return tx.priceItem.update({
         where: { id },
         data: {
+          // `group` fica de fora de propósito: o formulário não o edita mais
+          // (quem classifica é categoryId), e gravar null aqui apagaria a
+          // classificação que veio da planilha em quem nunca foi casado com o
+          // catálogo. Sem a chave, o Prisma não toca na coluna.
           ...campos,
           priceCents: precoPrincipal(data),
-          group: data.group ?? null,
+          imageUrl: data.imageUrl ?? null,
+          categoryId: data.categoryId ?? null,
+          subcategoryId: data.subcategoryId ?? null,
           searchText: normalizeSearch(data.description),
           prices: { create: linhasDePreco(data) },
         },

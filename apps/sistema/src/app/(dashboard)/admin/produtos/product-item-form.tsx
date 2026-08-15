@@ -29,7 +29,20 @@ export type PriceItemDefaults = {
   priceCents?: number;
   prices?: Array<{ unit: BudgetUnit; priceCents: number }>;
   group?: string | null;
+  imageUrl?: string | null;
+  categoryId?: string | null;
+  subcategoryId?: string | null;
+  /** Já está publicado na vitrine? */
+  noSite?: boolean;
+  /** Id da vitrine, para o atalho dos detalhes de site. */
+  siteProductId?: string | null;
   active?: boolean;
+};
+
+export type CategoriaOpcao = {
+  id: string;
+  name: string;
+  subcategories: Array<{ id: string; name: string }>;
 };
 
 const centavosParaTexto = (c: number) => (c ? (c / 100).toFixed(2).replace(".", ",") : "");
@@ -51,8 +64,8 @@ export function PriceItemForm({
   categorias = [],
 }: {
   defaults?: PriceItemDefaults;
-  /** Categorias do site, na ordem do menu (vêm do banco). */
-  categorias?: string[];
+  /** Categorias do site com seus subtipos, na ordem do menu. */
+  categorias?: CategoriaOpcao[];
 }) {
   const isEdit = Boolean(defaults?.id);
   const [state, action, pending] = useActionState(
@@ -65,11 +78,18 @@ export function PriceItemForm({
     () => defaults?.unit ?? linhasIniciais(defaults)[0]!.unit,
   );
 
-  // Produto antigo pode estar num grupo que não é categoria do site (veio da
-  // planilha). Mantemos o valor na lista para editar o preço não apagá-lo.
-  const atual = defaults?.group?.trim();
-  const opcoesCategoria =
-    atual && !categorias.includes(atual) ? [...categorias, atual] : categorias;
+  // Categoria e foto ficam no estado porque a chave "Subir no site" depende
+  // das duas: sem elas o site não monta o card, então o aviso tem de aparecer
+  // enquanto se digita, não só depois de salvar.
+  const [categoryId, setCategoryId] = useState(defaults?.categoryId ?? "");
+  const [subcategoryId, setSubcategoryId] = useState(defaults?.subcategoryId ?? "");
+  const [imageUrl, setImageUrl] = useState(defaults?.imageUrl ?? "");
+  const [noSite, setNoSite] = useState(defaults?.noSite ?? false);
+
+  const subtipos = categorias.find((c) => c.id === categoryId)?.subcategories ?? [];
+  const faltaParaSite = [!imageUrl.trim() && "a foto", !categoryId && "a categoria"].filter(
+    (v): v is string => Boolean(v),
+  );
 
   const usadas = new Set(linhas.map((l) => l.unit));
   const disponiveis = UNITS.filter((u) => !usadas.has(u));
@@ -110,19 +130,23 @@ export function PriceItemForm({
         <Input id="pi-code" name="code" required defaultValue={defaults?.code ?? ""} />
       </div>
       <div className="space-y-1">
-        <label htmlFor="pi-group" className="text-sm font-medium">
-          Categorias
+        <label htmlFor="pi-category" className="text-sm font-medium">
+          Categoria
         </label>
         <select
-          id="pi-group"
-          name="group"
-          defaultValue={defaults?.group ?? ""}
+          id="pi-category"
+          name="categoryId"
+          value={categoryId}
+          onChange={(e) => {
+            setCategoryId(e.target.value);
+            setSubcategoryId(""); // subtipo da categoria anterior não vale mais
+          }}
           className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
         >
           <option value="">Sem categoria</option>
-          {opcoesCategoria.map((c) => (
-            <option key={c} value={c}>
-              {c}
+          {categorias.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
             </option>
           ))}
         </select>
@@ -142,6 +166,61 @@ export function PriceItemForm({
           required
           defaultValue={defaults?.description ?? ""}
         />
+      </div>
+
+      {/* Subtipo só faz sentido depois da categoria — e só se ela tiver algum. */}
+      {subtipos.length > 0 ? (
+        <div className="space-y-1">
+          <label htmlFor="pi-subcategory" className="text-sm font-medium">
+            Subtipo
+          </label>
+          <select
+            id="pi-subcategory"
+            name="subcategoryId"
+            value={subcategoryId}
+            onChange={(e) => setSubcategoryId(e.target.value)}
+            className="h-10 w-full rounded-md border border-border bg-background px-3 text-sm"
+          >
+            <option value="">Sem subtipo</option>
+            {subtipos.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <input type="hidden" name="subcategoryId" value="" />
+      )}
+
+      {/* --- Foto ------------------------------------------------------- */}
+      <div className="space-y-1 sm:col-span-2">
+        <label htmlFor="pi-image" className="text-sm font-medium">
+          Foto do produto
+        </label>
+        <div className="flex items-start gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={imageUrl.trim() || "/logo-cleci-icone.png"}
+            alt=""
+            className="h-16 w-16 shrink-0 rounded-md border border-border bg-muted object-contain p-1"
+          />
+          <div className="min-w-0 flex-1 space-y-1">
+            <Input
+              id="pi-image"
+              name="imageUrl"
+              type="url"
+              inputMode="url"
+              placeholder="https://..."
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Cole o link da imagem. Ela aparece na busca do orçamento e sai no PDF do
+              orçamento e do pedido.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* --- Valores por unidade de venda --- */}
@@ -241,6 +320,50 @@ export function PriceItemForm({
         />
         Ativo (aparece na busca do orçamento)
       </label>
+
+      {/* --- Vitrine do site --------------------------------------------- */}
+      <fieldset className="space-y-3 rounded-lg border border-border p-4 sm:col-span-2">
+        <legend className="px-1 text-sm font-medium">Site</legend>
+
+        <label className="flex items-start gap-2 text-sm">
+          <input
+            type="checkbox"
+            name="noSite"
+            checked={noSite}
+            onChange={(e) => setNoSite(e.target.checked)}
+            disabled={faltaParaSite.length > 0 && !noSite}
+            className="mt-0.5 h-4 w-4"
+          />
+          <span>
+            <span className="font-medium">Subir no site</span>
+            <span className="block text-xs text-muted-foreground">
+              Publica este produto na vitrine, na categoria escolhida acima.
+            </span>
+          </span>
+        </label>
+
+        {faltaParaSite.length > 0 ? (
+          <p className="text-xs text-amber-700">
+            Para subir no site, preencha {faltaParaSite.join(" e ")}.
+          </p>
+        ) : null}
+
+        {/* Galeria, bordas, linhas e selo são só da vitrine e ficam na tela
+            dela — trazer tudo para cá dobraria o tamanho deste formulário. */}
+        {noSite && defaults?.siteProductId ? (
+          <a
+            href={`/admin/produtos/site/${defaults.siteProductId}/editar`}
+            className="inline-block text-sm text-primary hover:underline"
+          >
+            Editar detalhes do site (galeria, tamanhos, bordas, linhas) →
+          </a>
+        ) : null}
+        {noSite && !defaults?.siteProductId ? (
+          <p className="text-xs text-muted-foreground">
+            Depois de salvar, o atalho para galeria, tamanhos e linhas aparece aqui.
+          </p>
+        ) : null}
+      </fieldset>
 
       {state.error ? <p className="text-sm text-red-600 sm:col-span-2">{state.error}</p> : null}
 
