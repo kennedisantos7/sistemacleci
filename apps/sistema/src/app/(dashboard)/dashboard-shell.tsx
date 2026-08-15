@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogOut, Menu, UserCog, X } from "lucide-react";
@@ -11,11 +12,22 @@ import { signOutAction } from "./actions";
 
 type Item = { href: string; label: string };
 
-function Wordmark() {
+/**
+ * Logotipo da Cleci. PNG com fundo transparente e recortado na caixa do
+ * conteudo (o JPG de origem tem margem branca em volta), então a altura pedida
+ * é a altura da marca — sem espaço morto e sem quadrado branco sobre o card.
+ * A largura acompanha por `w-auto`; o tamanho vem de quem usa.
+ */
+function Logo({ className }: { className?: string }) {
   return (
-    <span className="text-xl font-heading font-extrabold text-primary">
-      Cleci<span className="text-secondary">.</span>
-    </span>
+    <Image
+      src="/logo-cleci.png"
+      alt="Cleci Personaliza"
+      width={640}
+      height={516}
+      priority
+      className={cn("w-auto", className)}
+    />
   );
 }
 
@@ -35,7 +47,7 @@ function SidebarContent({
   return (
     <>
       <div className="flex items-center justify-between px-6 py-5">
-        <Wordmark />
+        <Logo className="h-16" />
         {onClose && (
           <button
             type="button"
@@ -114,7 +126,8 @@ export function DashboardShell({
         >
           <Menu className="h-6 w-6" />
         </button>
-        <Wordmark />
+        {/* Barra do celular é baixa (~48px): aqui a marca entra menor. */}
+        <Logo className="h-9" />
         <Link
           href="/conta"
           aria-label="Minha conta"
