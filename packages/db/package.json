@@ -17,6 +17,7 @@
     "seed:e2e": "tsx prisma/seed-e2e.ts",
     "seed:catalog": "tsx prisma/seed-catalog.ts",
     "seed:precos": "tsx prisma/seed-price-table.ts",
+    "seed:fotos": "tsx prisma/seed-product-photos.ts",
     "studio": "prisma studio",
     "typecheck": "tsc --noEmit"
   },

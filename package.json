@@ -19,6 +19,7 @@
     "db:migrate": "pnpm --filter @cleci/db migrate",
     "db:seed": "pnpm --filter @cleci/db seed",
     "db:seed:e2e": "pnpm --filter @cleci/db seed:e2e",
+    "db:seed:fotos": "pnpm --filter @cleci/db seed:fotos",
     "db:studio": "pnpm --filter @cleci/db studio",
     "format": "prettier --write \"**/*.{ts,tsx,md}\""
   },
