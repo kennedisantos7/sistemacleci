@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 export default async function PedidosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   return <DocumentList docType="PEDIDO" searchParams={searchParams} />;
 }

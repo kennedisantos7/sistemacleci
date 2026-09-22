@@ -2,22 +2,33 @@
 
 import { useRef } from "react";
 import { useFormStatus } from "react-dom";
-import { Button } from "@/components/ui/button";
+import { Button, type ButtonProps } from "@/components/ui/button";
 
 function SubmitButton({
   label,
   pendingLabel,
   variant,
+  size,
+  className,
   onRequestConfirm,
 }: {
   label: string;
   pendingLabel: string;
-  variant: "outline" | "destructive";
+  variant: "outline" | "destructive" | "default";
+  size: ButtonProps["size"];
+  className?: string;
   onRequestConfirm: () => void;
 }) {
   const { pending } = useFormStatus();
   return (
-    <Button type="button" size="sm" variant={variant} disabled={pending} onClick={onRequestConfirm}>
+    <Button
+      type="button"
+      size={size}
+      variant={variant}
+      className={className}
+      disabled={pending}
+      onClick={onRequestConfirm}
+    >
       {pending ? pendingLabel : label}
     </Button>
   );
@@ -35,13 +46,17 @@ export function ConfirmSubmitButton({
   label,
   pendingLabel = "Aguarde...",
   variant = "outline",
+  size = "sm",
+  className,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   hidden: Record<string, string>;
   confirmMessage: string;
   label: string;
   pendingLabel?: string;
-  variant?: "outline" | "destructive";
+  variant?: "outline" | "destructive" | "default";
+  size?: ButtonProps["size"];
+  className?: string;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -54,6 +69,8 @@ export function ConfirmSubmitButton({
         label={label}
         pendingLabel={pendingLabel}
         variant={variant}
+        size={size}
+        className={className}
         onRequestConfirm={() => {
           if (window.confirm(confirmMessage)) formRef.current?.requestSubmit();
         }}

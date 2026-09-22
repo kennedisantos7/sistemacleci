@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/server/session";
-import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import { PRODUCT_VIEW_ROLES, isFullAccess } from "@/lib/rbac";
 import { listPriceItems, type PriceItemListFilters } from "@/server/services/price-items";
 import { listCategoriesWithSubs } from "@/server/services/products";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +25,8 @@ export default async function AdminProdutosPage({
 }: {
   searchParams: Promise<{ q?: string; inativos?: string; categoria?: string; site?: string }>;
 }) {
-  await requireUser(FULL_ACCESS_ROLES);
+  const user = await requireUser(PRODUCT_VIEW_ROLES);
+  const canEdit = isFullAccess(user.role);
   const { q, inativos, categoria, site } = await searchParams;
 
   const search = q?.trim() || undefined;
@@ -50,9 +51,11 @@ export default async function AdminProdutosPage({
             Base do orçamento e do site: o vendedor busca estes produtos por código ou nome.
           </p>
         </div>
-        <Link href="/admin/produtos/novo" className={buttonVariants({ className: "w-fit" })}>
-          Novo produto
-        </Link>
+        {canEdit ? (
+          <Link href="/admin/produtos/novo" className={buttonVariants({ className: "w-fit" })}>
+            Novo produto
+          </Link>
+        ) : null}
       </header>
 
       {semPreco > 0 || semFoto > 0 ? (
@@ -134,7 +137,7 @@ export default async function AdminProdutosPage({
                     <th className="py-2 pr-2 font-semibold">Unidades e valores</th>
                     <th className="py-2 pr-2 font-semibold">Categoria</th>
                     <th className="py-2 pr-2 font-semibold">Site</th>
-                    <th className="py-2 text-right font-semibold">Ações</th>
+                    {canEdit ? <th className="py-2 text-right font-semibold">Ações</th> : null}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -188,7 +191,17 @@ export default async function AdminProdutosPage({
                           ) : null}
                         </td>
                         <td className="py-2 pr-2">
-                          {noSite ? (
+                          {!canEdit ? (
+                            <span
+                              className={
+                                noSite
+                                  ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+                                  : "text-xs text-muted-foreground"
+                              }
+                            >
+                              {noSite ? "no site" : "—"}
+                            </span>
+                          ) : noSite ? (
                             <form action={toggleSiteAction}>
                               <input type="hidden" name="priceItemId" value={item.id} />
                               <input type="hidden" name="noSite" value="0" />
@@ -220,26 +233,28 @@ export default async function AdminProdutosPage({
                             </span>
                           )}
                         </td>
-                        <td className="py-2 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            <Link
-                              href={`/admin/produtos/${item.id}/editar`}
-                              className="text-sm font-medium text-primary hover:underline"
-                            >
-                              Editar
-                            </Link>
-                            <form action={togglePriceItemAction}>
-                              <input type="hidden" name="priceItemId" value={item.id} />
-                              <input type="hidden" name="active" value={item.active ? "0" : "1"} />
-                              <button
-                                type="submit"
-                                className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+                        {canEdit ? (
+                          <td className="py-2 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <Link
+                                href={`/admin/produtos/${item.id}/editar`}
+                                className="text-sm font-medium text-primary hover:underline"
                               >
-                                {item.active ? "Desativar" : "Ativar"}
-                              </button>
-                            </form>
-                          </div>
-                        </td>
+                                Editar
+                              </Link>
+                              <form action={togglePriceItemAction}>
+                                <input type="hidden" name="priceItemId" value={item.id} />
+                                <input type="hidden" name="active" value={item.active ? "0" : "1"} />
+                                <button
+                                  type="submit"
+                                  className="text-sm text-muted-foreground underline-offset-2 hover:underline"
+                                >
+                                  {item.active ? "Desativar" : "Ativar"}
+                                </button>
+                              </form>
+                            </div>
+                          </td>
+                        ) : null}
                       </tr>
                     );
                   })}
@@ -250,21 +265,23 @@ export default async function AdminProdutosPage({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Atualizar em massa pela planilha</CardTitle>
-          <CardDescription>
-            Para um reajuste geral, edite a planilha <code>Orçamento_pedido/produtos.html</code> e
-            rode <code>pnpm --filter @cleci/db seed:precos</code>. O importador atualiza descrição,
-            unidade e valor por código, preservando foto, categoria e publicação no site.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Link href="/admin/produtos/site" className="text-sm text-primary hover:underline">
-            Ver vitrines que existem somente no site →
-          </Link>
-        </CardContent>
-      </Card>
+      {canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Atualizar em massa pela planilha</CardTitle>
+            <CardDescription>
+              Para um reajuste geral, edite a planilha <code>Orçamento_pedido/produtos.html</code> e
+              rode <code>pnpm --filter @cleci/db seed:precos</code>. O importador atualiza descrição,
+              unidade e valor por código, preservando foto, categoria e publicação no site.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/produtos/site" className="text-sm text-primary hover:underline">
+              Ver vitrines que existem somente no site →
+            </Link>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
   );
 }

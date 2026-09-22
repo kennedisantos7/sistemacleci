@@ -219,7 +219,7 @@ export function listPriceItems(options: PriceItemListFilters = {}) {
           }
         : {}),
     },
-    orderBy: [{ position: "asc" }, { description: "asc" }],
+    orderBy: [{ description: "asc" }],
     take: 500,
     include: CATALOGO_INCLUDE,
   });

@@ -7,6 +7,7 @@ import { getBudgetForActor, isBudgetOverdue } from "@/server/services/budgets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
+import { DraftLeaveGuard } from "@/components/draft-leave-guard";
 import { formatCents, formatQuantity, formatDecimal } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
 import { BUDGET_VIEW_ROLES, canSeeAllBudgets } from "@/lib/rbac";
@@ -77,6 +78,15 @@ export async function DocumentDetail({
         </div>
       </header>
 
+      {/* Se o documento ainda está em rascunho, avisa antes de sair da tela
+          sem enviar para o cliente (fechar/atualizar a aba ou clicar em
+          qualquer link de navegação). */}
+      {budget.status === BudgetStatus.RASCUNHO && (
+        <DraftLeaveGuard
+          message={`Este ${docLabel.toLowerCase()} ainda não foi enviado para o cliente. Se sair agora, ele fica parado como rascunho. Deseja sair mesmo assim?`}
+        />
+      )}
+
       {/* Ações */}
       <div className="flex flex-wrap items-center gap-2">
         {/* Sem target="_blank": a rota responde com Content-Disposition
@@ -106,6 +116,7 @@ export async function DocumentDetail({
           <>
             <Link
               href={`${base}/${budget.id}/editar`}
+              data-skip-leave-guard=""
               className={buttonVariants({ variant: "outline", size: "sm" })}
             >
               <Pencil className="h-4 w-4" /> Editar
@@ -115,7 +126,9 @@ export async function DocumentDetail({
               hidden={{ budgetId: budget.id }}
               label="Marcar como enviado"
               pendingLabel="Enviando..."
-              variant="outline"
+              variant="default"
+              size="lg"
+              className="bg-blue-600 font-semibold text-white shadow-sm hover:bg-blue-700"
               confirmMessage={`Marcar como enviado? O ${docLabel.toLowerCase()} não poderá mais ser editado (só voltando para rascunho).`}
             />
             {/* Limpeza de rascunhos: só admin/desenvolvedor/gerente. Rascunho
@@ -140,7 +153,9 @@ export async function DocumentDetail({
               hidden={{ budgetId: budget.id }}
               label="Cliente aceitou"
               pendingLabel="Registrando..."
-              variant="outline"
+              variant="default"
+              size="lg"
+              className="bg-green-600 font-semibold text-white shadow-sm hover:bg-green-700"
               confirmMessage="Registrar o aceite do cliente? Isso cria a venda correspondente."
             />
             <ConfirmSubmitButton
@@ -173,7 +188,9 @@ export async function DocumentDetail({
               hidden={{ budgetId: budget.id }}
               label="Cliente aceitou"
               pendingLabel="Registrando..."
-              variant="outline"
+              variant="default"
+              size="lg"
+              className="bg-green-600 font-semibold text-white shadow-sm hover:bg-green-700"
               confirmMessage="O cliente voltou atrás e aceitou? Isso tira o documento de recusado e cria a venda correspondente."
             />
             <form action={reopenBudgetAction}>
@@ -194,7 +211,9 @@ export async function DocumentDetail({
             hidden={{ budgetId: budget.id }}
             label="Marcar venda como finalizada"
             pendingLabel="Finalizando..."
-            variant="outline"
+            variant="default"
+            size="lg"
+            className="bg-emerald-600 font-semibold text-white shadow-sm hover:bg-emerald-700"
             confirmMessage="Confirmar que a venda foi finalizada (paga/entregue)?"
           />
         )}

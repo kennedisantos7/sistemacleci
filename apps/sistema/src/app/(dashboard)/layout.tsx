@@ -48,6 +48,7 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/orcamentos", label: "Orçamentos" },
     { href: "/pedidos", label: "Pedidos" },
     { href: "/clientes", label: "Clientes" },
+    { href: "/admin/produtos", label: "Produtos" },
     { href: "/vendedor/links", label: "Meus Links" },
   ],
   AFILIADO: [

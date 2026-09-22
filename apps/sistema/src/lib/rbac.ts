@@ -13,6 +13,14 @@ export const EARNER_ROLES: Role[] = ["AFILIADO", "DESENVOLVEDOR"];
 export const BUDGET_ROLES: Role[] = ["ADMIN", "DESENVOLVEDOR", "GERENTE", "VENDEDOR_FIXO"];
 /** Pode ABRIR um orçamento. Mesmo grupo que cria/edita. */
 export const BUDGET_VIEW_ROLES: Role[] = BUDGET_ROLES;
+/**
+ * Pode ABRIR a página de Produtos. O vendedor consulta a tabela (preço,
+ * código, foto) para montar o orçamento, mas quem edita é só o dono —
+ * ver PRODUCT_EDIT_ROLES.
+ */
+export const PRODUCT_VIEW_ROLES: Role[] = [...FULL_ACCESS_ROLES, "VENDEDOR_FIXO"];
+/** Pode criar/editar produto, ativar/desativar e publicar no site. */
+export const PRODUCT_EDIT_ROLES: Role[] = FULL_ACCESS_ROLES;
 
 /**
  * Contas que o gerente pode criar e gerenciar. São os papéis operacionais —
@@ -49,9 +57,10 @@ export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/orcamentos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/pedidos", roles: BUDGET_VIEW_ROLES },
   { prefix: "/clientes", roles: BUDGET_ROLES },
-  // Produtos carrega preço, e preço é decisão de dono: o gerente monta
-  // orçamento com a tabela, mas não a altera. Antes de /admin, que é prefixo.
-  { prefix: "/admin/produtos", roles: FULL_ACCESS_ROLES },
+  // Produtos carrega preço, e preço é decisão de dono: o vendedor consulta a
+  // tabela para montar orçamento, mas não a altera (edição fica restrita nas
+  // próprias actions). Antes de /admin, que é prefixo.
+  { prefix: "/admin/produtos", roles: PRODUCT_VIEW_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
   // O desenvolvedor usa /afiliado/saques para sacar a própria participação.

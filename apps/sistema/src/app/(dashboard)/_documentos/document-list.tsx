@@ -3,7 +3,8 @@ import { BudgetStatus, type BudgetDocType } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { isBudgetOverdue, listBudgetsForActor } from "@/server/services/budgets";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { BUDGET_ROLES, canSeeAllBudgets } from "@/lib/rbac";
 import { BUDGET_STATUS_LABEL, BUDGET_STATUS_STYLE, isBudgetStatus } from "@/lib/budget-status";
@@ -40,17 +41,23 @@ export async function DocumentList({
   searchParams,
 }: {
   docType: BudgetDocType;
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }) {
   const user = await requireUser(BUDGET_ROLES);
-  const { status } = await searchParams;
+  const { status, q } = await searchParams;
   const statusFilter = status && isBudgetStatus(status) ? status : undefined;
+  const search = q?.trim() || undefined;
   const seesAll = canSeeAllBudgets(user.role);
   const base = docPath(docType);
   const label = DOC_TYPE_LABEL[docType];
   const copy = COPY[docType];
 
-  const budgets = await listBudgetsForActor(user, { status: statusFilter, docType, take: 50 });
+  const budgets = await listBudgetsForActor(user, {
+    status: statusFilter,
+    docType,
+    search,
+    take: 50,
+  });
 
   return (
     <div className="space-y-6">
@@ -70,10 +77,14 @@ export async function DocumentList({
       <div className="flex flex-wrap gap-2">
         {FILTERS.map((f) => {
           const active = (statusFilter ?? "") === f.value;
+          const params = new URLSearchParams();
+          if (f.value) params.set("status", f.value);
+          if (search) params.set("q", search);
+          const qs = params.toString();
           return (
             <Link
               key={f.value}
-              href={f.value ? `${base}?status=${f.value}` : base}
+              href={qs ? `${base}?${qs}` : base}
               className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                 active
                   ? "bg-primary text-primary-foreground"
@@ -86,6 +97,19 @@ export async function DocumentList({
         })}
       </div>
 
+      <form method="GET" className="flex flex-col gap-2 sm:flex-row">
+        {statusFilter ? <input type="hidden" name="status" value={statusFilter} /> : null}
+        <Input
+          name="q"
+          placeholder={`Buscar por cliente, empresa ou título do ${label.toLowerCase()}`}
+          defaultValue={q ?? ""}
+          className="sm:max-w-sm"
+        />
+        <Button type="submit" variant="outline">
+          Buscar
+        </Button>
+      </form>
+
       <Card>
         <CardHeader>
           <CardTitle>
@@ -95,11 +119,13 @@ export async function DocumentList({
         <CardContent>
           {budgets.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {statusFilter
-                ? `Nenhum ${label.toLowerCase()} com este status.`
-                : seesAll
-                  ? `Nenhum ${label.toLowerCase()} criado ainda.`
-                  : `Você ainda não criou ${docType === "PEDIDO" ? "pedidos" : "orçamentos"}.`}
+              {search
+                ? `Nenhum ${label.toLowerCase()} encontrado para essa busca.`
+                : statusFilter
+                  ? `Nenhum ${label.toLowerCase()} com este status.`
+                  : seesAll
+                    ? `Nenhum ${label.toLowerCase()} criado ainda.`
+                    : `Você ainda não criou ${docType === "PEDIDO" ? "pedidos" : "orçamentos"}.`}
             </p>
           ) : (
             <div className="divide-y divide-border">
