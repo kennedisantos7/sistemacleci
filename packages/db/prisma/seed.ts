@@ -30,7 +30,6 @@ async function main() {
       role: Role.ADMIN,
       status: UserStatus.ATIVO,
       passwordHash,
-      emailVerified: new Date(),
     },
   });
   console.log(`✓ Admin pronto: ${admin.email}`);

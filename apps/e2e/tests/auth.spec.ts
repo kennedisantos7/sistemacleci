@@ -73,7 +73,7 @@ test.describe("Login por papel @escrita", () => {
     });
   }
 
-  test("conta com e-mail não confirmado não entra @escrita", async ({ page }) => {
+  test("conta aguardando aprovação do admin não entra @escrita", async ({ page }) => {
     await page.goto("/login");
     await page.getByLabel("E-mail").fill(CONTAS_BLOQUEADAS.pendente);
     await page.getByLabel("Senha").fill(senhaDeTeste());

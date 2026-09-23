@@ -14,11 +14,7 @@
     "SISTEMA_URL",
     "INGEST_API_KEY",
     "AUTH_GOOGLE_ID",
-    "AUTH_GOOGLE_SECRET",
-    "RESEND_API_KEY",
-    "BREVO_API_KEY",
-    "EMAIL_PROVIDER",
-    "EMAIL_FROM"
+    "AUTH_GOOGLE_SECRET"
   ],
   "tasks": {
     "build": {

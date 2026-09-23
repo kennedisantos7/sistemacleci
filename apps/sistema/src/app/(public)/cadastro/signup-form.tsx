@@ -14,32 +14,14 @@ export function SignupForm() {
   if (state.success) {
     return (
       <div className="space-y-4 text-center">
-        {state.emailSent ? (
-          <>
-            <p className="text-sm">
-              Cadastro recebido! Enviamos um e-mail para você <strong>confirmar seu endereço</strong>
-              . Confira a caixa de entrada (e o spam).
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Depois de confirmar, sua conta ainda passa pela aprovação do administrador — você será
-              avisado quando o acesso for liberado.
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm">
-              Cadastro recebido! Mas <strong>não conseguimos enviar o e-mail de confirmação</strong>{" "}
-              agora.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Peça um novo link na página de{" "}
-              <Link href="/verificar-email" className="text-primary underline">
-                reenvio de confirmação
-              </Link>
-              .
-            </p>
-          </>
-        )}
+        <p className="text-sm">
+          Cadastro recebido! Sua conta passa agora pela{" "}
+          <strong>aprovação do administrador</strong>.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Assim que for liberada, você entra no painel com o e-mail e a senha que acabou de
+          cadastrar.
+        </p>
         <Link href="/login" className="text-sm text-primary underline">
           Voltar para o login
         </Link>

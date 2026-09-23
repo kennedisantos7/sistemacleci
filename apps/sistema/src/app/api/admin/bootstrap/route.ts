@@ -57,7 +57,6 @@ export async function POST(req: NextRequest) {
         role: Role.ADMIN,
         status: UserStatus.ATIVO,
         passwordHash,
-        emailVerified: new Date(),
       },
     }),
     prisma.commissionConfig.upsert({

@@ -25,8 +25,7 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   } catch (error) {
     if (error instanceof AuthError) {
       return {
-        error:
-          "E-mail ou senha inválidos, conta não confirmada ou ainda não liberada pelo administrador.",
+        error: "E-mail ou senha inválidos, ou conta ainda não liberada pelo administrador.",
       };
     }
     // Re-lança o redirect interno do Next.js.

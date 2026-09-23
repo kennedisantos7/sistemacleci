@@ -5,7 +5,6 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma, Role, UserStatus } from "@cleci/db";
 import { rateLimit } from "@/server/security";
-import { sendVerificationEmail } from "@/server/services/email-verification";
 
 const schema = z
   .object({
@@ -22,8 +21,6 @@ const schema = z
 export type SignupState = {
   error?: string;
   success?: boolean;
-  /** false quando a conta foi criada mas o e-mail de confirmação não saiu. */
-  emailSent?: boolean;
 };
 
 export async function signupAction(_prev: SignupState, formData: FormData): Promise<SignupState> {
@@ -51,19 +48,15 @@ export async function signupAction(_prev: SignupState, formData: FormData): Prom
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const user = await prisma.user.create({
+  await prisma.user.create({
     data: {
       name,
       email,
       passwordHash,
       role: Role.AFILIADO,
-      status: UserStatus.PENDENTE, // aguarda aprovação do admin
-      // emailVerified fica nulo: o login só é liberado após confirmar o e-mail
-      // (prova de posse) E o admin aprovar a conta.
+      status: UserStatus.PENDENTE, // único portão: aguarda aprovação do admin
     },
   });
 
-  const emailSent = await sendVerificationEmail(user);
-
-  return { success: true, emailSent };
+  return { success: true };
 }

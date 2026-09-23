@@ -7,9 +7,9 @@
  * Seis papéis, cada um com menu, home e escopo de dados diferentes. Testar com
  * uma conta só deixa a maior fonte de bug do sistema sem cobertura.
  *
- * As contas nascem ATIVO e com emailVerified preenchido — sem os dois o login
- * é recusado (ver app/(public)/login/actions.ts). As duas últimas são a
- * exceção proposital: existem justamente para provar que NÃO logam.
+ * As contas nascem ATIVO — sem isso o login é recusado (ver
+ * app/(public)/login/actions.ts). As duas últimas são a exceção proposital:
+ * existem justamente para provar que NÃO logam.
  */
 import { PrismaClient, Role, UserStatus } from "@prisma/client";
 import bcrypt from "bcryptjs";
@@ -24,8 +24,6 @@ type Conta = {
   name: string;
   role: Role;
   status?: UserStatus;
-  /** null = e-mail não confirmado (conta que não deve conseguir logar). */
-  verificado?: boolean;
   affiliateCode?: string;
   /** Por que a conta existe, para quem for ler a lista depois. */
   cobre: string;
@@ -78,8 +76,7 @@ const CONTAS: Conta[] = [
     name: "Teste Pendente",
     role: Role.AFILIADO,
     status: UserStatus.PENDENTE,
-    verificado: false,
-    cobre: "não loga: aguardando confirmação de e-mail e liberação do admin",
+    cobre: "não loga: aguardando liberação do admin",
   },
   {
     email: `teste-bloqueado${DOMAIN}`,
@@ -151,7 +148,6 @@ async function main() {
 
   for (const c of CONTAS) {
     const status = c.status ?? UserStatus.ATIVO;
-    const emailVerified = c.verificado === false ? null : new Date();
 
     // upsert: rodar de novo não duplica nem quebra, só realinha o estado —
     // importante porque os próprios testes mexem em status de conta.
@@ -160,7 +156,6 @@ async function main() {
       role: c.role,
       status,
       passwordHash,
-      emailVerified,
       ...(c.affiliateCode ? { affiliateCode: c.affiliateCode } : {}),
     };
 
@@ -170,7 +165,7 @@ async function main() {
       create: { email: c.email, ...dados },
     });
 
-    const selo = status === UserStatus.ATIVO && emailVerified ? "loga" : "NÃO loga";
+    const selo = status === UserStatus.ATIVO ? "loga" : "NÃO loga";
     console.log(`  ✓ ${c.email.padEnd(32)} ${c.role.padEnd(14)} (${selo}) — ${c.cobre}`);
   }
 

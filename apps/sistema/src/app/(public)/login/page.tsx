@@ -61,12 +61,6 @@ export default async function LoginPage({
               Cadastre-se
             </Link>
           </p>
-          <p className="text-center text-xs text-muted-foreground">
-            Não recebeu o e-mail de confirmação?{" "}
-            <Link href="/verificar-email" className="text-primary underline">
-              Reenviar link
-            </Link>
-          </p>
         </CardContent>
       </Card>
     </main>

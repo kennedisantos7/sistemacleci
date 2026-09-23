@@ -59,7 +59,7 @@ conta só não cobre). Todas com a senha de `TEST_PASSWORD`:
 | `teste-vendedor@cleci.com.br` | VENDEDOR_FIXO | escopo "só os meus" |
 | `teste-vendedor2@cleci.com.br` | VENDEDOR_FIXO | par, prova o isolamento entre vendedores |
 | `teste-afiliado@cleci.com.br` | AFILIADO | links e saques; ref fixo `TESTE001` |
-| `teste-pendente@cleci.com.br` | AFILIADO | **não loga** — e-mail não confirmado |
+| `teste-pendente@cleci.com.br` | AFILIADO | **não loga** — aguardando aprovação do admin |
 | `teste-bloqueado@cleci.com.br` | VENDEDOR_FIXO | **não loga** — conta bloqueada |
 
 O seed tem trava: recusa rodar se a `DATABASE_URL` não parecer local (são contas

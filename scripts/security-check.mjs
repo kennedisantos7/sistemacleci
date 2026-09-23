@@ -39,8 +39,6 @@ const ACTIONS_PUBLICAS = {
   "apps/sistema/src/app/(public)/login/actions.ts": "login: quem chama ainda não tem sessão",
   "apps/sistema/src/app/(public)/cadastro/actions.ts":
     "auto-cadastro de afiliado; protegido por rate limit e nasce PENDENTE",
-  "apps/sistema/src/app/(public)/verificar-email/actions.ts":
-    "confirmação de e-mail por token; protegido por rate limit",
   "apps/sistema/src/app/(dashboard)/actions.ts":
     "apenas signOut — encerrar a própria sessão não exige autorização",
 };

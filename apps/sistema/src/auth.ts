@@ -32,12 +32,9 @@ const providers: Provider[] = [
       const user = await prisma.user.findUnique({ where: { email } });
       if (!user || !user.passwordHash) return null;
 
-      // Dois portões independentes:
-      //  1. e-mail confirmado (prova de posse do endereço)
-      //  2. conta ATIVA (aprovação do administrador)
-      // Contas anteriores a esta funcionalidade foram marcadas como
-      // verificadas na migração, então nada legado é barrado aqui.
-      if (!user.emailVerified) return null;
+      // Portão único: a conta precisa estar ATIVA, isto é, aprovada pelo
+      // administrador. Não há confirmação de e-mail — quem se cadastra já
+      // existe no sistema e fica só esperando a aprovação.
       if (user.status !== UserStatus.ATIVO) return null;
 
       const ok = await bcrypt.compare(password, user.passwordHash);
@@ -92,7 +89,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       const existing = await prisma.user.findUnique({
         where: { email },
-        select: { id: true, status: true, emailVerified: true },
+        select: { id: true, status: true },
       });
 
       // Primeiro acesso pelo Google: a conta ainda não existe. Barramos aqui
@@ -102,14 +99,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (existing.status !== UserStatus.ATIVO) {
         return `/login?erro=${existing.status === UserStatus.BLOQUEADO ? "bloqueada" : "pendente"}`;
-      }
-
-      // Login pelo Google prova a posse do e-mail: confirma quem ainda não era.
-      if (!existing.emailVerified) {
-        await prisma.user.update({
-          where: { id: existing.id },
-          data: { emailVerified: new Date() },
-        });
       }
 
       return true;
