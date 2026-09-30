@@ -15,6 +15,7 @@ const ADMIN_NAV = [
   { href: "/admin/vendedores", label: "Painel de vendas" },
   { href: "/admin/metas", label: "Metas" },
   { href: "/admin/saques", label: "Saques" },
+  { href: "/manual", label: "Manual de uso" },
 ];
 
 // Desenvolvedor: tudo do admin + taxas do programa + saque da própria parte.
@@ -37,6 +38,7 @@ const GERENTE_NAV = [
   { href: "/admin/vendas", label: "Vendas" },
   { href: "/admin/vendedores", label: "Painel de vendas" },
   { href: "/admin/metas", label: "Metas" },
+  { href: "/manual", label: "Manual de uso" },
 ];
 
 const NAV: Record<Role, Array<{ href: string; label: string }>> = {
@@ -50,11 +52,13 @@ const NAV: Record<Role, Array<{ href: string; label: string }>> = {
     { href: "/clientes", label: "Clientes" },
     { href: "/admin/produtos", label: "Produtos" },
     { href: "/vendedor/links", label: "Meus Links" },
+    { href: "/manual", label: "Manual de uso" },
   ],
   AFILIADO: [
     { href: "/afiliado", label: "Dashboard" },
     { href: "/afiliado/links", label: "Meus Links" },
     { href: "/afiliado/saques", label: "Saques" },
+    { href: "/manual", label: "Manual de uso" },
   ],
 };
 

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Banknote,
+  BookOpen,
   Building2,
   ClipboardList,
   FileText,
@@ -48,6 +49,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/vendedor/links": Link2,
   "/afiliado/links": Link2,
   "/afiliado/saques": Wallet,
+  "/manual": BookOpen,
 };
 
 export function SidebarNav({

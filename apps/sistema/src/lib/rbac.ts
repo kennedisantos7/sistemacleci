@@ -63,6 +63,8 @@ export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   { prefix: "/admin/produtos", roles: PRODUCT_VIEW_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
+  // Manual: cada papel de venda vê o seu, a equipe vê os dois.
+  { prefix: "/manual", roles: [...STAFF_ROLES, ...SELLER_ROLES] },
   // O desenvolvedor usa /afiliado/saques para sacar a própria participação.
   { prefix: "/afiliado", roles: EARNER_ROLES },
 ];
