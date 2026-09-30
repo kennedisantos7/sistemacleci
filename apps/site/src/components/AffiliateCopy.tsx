@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { Check, MessageCircle, CreditCard } from "lucide-react";
 import { useAffiliateCode } from "../lib/use-affiliate";
+import { useAccount } from "../lib/use-account";
 
 /**
  * Botões "Copiar meu link" exibidos em cada produto quando o modo afiliado
- * está ativo. Gera DOIS links com o ?ref= pessoal do afiliado:
+ * está ativo. Gera até DOIS links com o ?ref= pessoal do afiliado:
  *  - WhatsApp (fechamento): leva o cliente ao produto, que fecha no WhatsApp.
  *  - Pagamento (gateway): mesma página com o checkout online liberado (?pagar=1).
+ *    Só aparece com o gateway configurado no painel — sem ele, o link levaria
+ *    o cliente a um "Comprar agora" que falha.
  * A atribuição (ref) é capturada por cookie em ambos os casos.
  */
 export default function AffiliateCopy({
@@ -19,6 +22,7 @@ export default function AffiliateCopy({
   className?: string;
 }) {
   const code = useAffiliateCode();
+  const account = useAccount();
   const [copied, setCopied] = useState<"wa" | "pay" | null>(null);
 
   if (!code) return null;
@@ -55,14 +59,16 @@ export default function AffiliateCopy({
       </button>
 
       {/* Link de venda direta no gateway (comissão maior) */}
-      <button
-        type="button"
-        onClick={() => copy("pay")}
-        className="flex w-full items-center justify-center gap-2 rounded-DEFAULT border-2 border-[#1541FC] py-2.5 text-sm font-bold text-[#1541FC] transition-colors hover:bg-[#1541FC] hover:text-white"
-      >
-        {copied === "pay" ? <Check className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-        {copied === "pay" ? "Link copiado!" : "Copiar link (Pagamento)"}
-      </button>
+      {account?.checkoutOnline ? (
+        <button
+          type="button"
+          onClick={() => copy("pay")}
+          className="flex w-full items-center justify-center gap-2 rounded-DEFAULT border-2 border-[#1541FC] py-2.5 text-sm font-bold text-[#1541FC] transition-colors hover:bg-[#1541FC] hover:text-white"
+        >
+          {copied === "pay" ? <Check className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+          {copied === "pay" ? "Link copiado!" : "Copiar link (Pagamento)"}
+        </button>
+      ) : null}
     </div>
   );
 }

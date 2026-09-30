@@ -10,6 +10,8 @@ export type Account = {
   name?: string | null;
   home?: string;
   affiliateCode?: string | null;
+  /** O painel tem gateway configurado — sem isso não há link de pagamento. */
+  checkoutOnline?: boolean;
 };
 
 // Cache em escopo de módulo: vários componentes (Header, sync do modo afiliado)

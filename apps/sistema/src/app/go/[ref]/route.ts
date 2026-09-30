@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { prisma } from "@cleci/db";
+import { prisma, UserStatus } from "@cleci/db";
 import { env } from "@/env";
 
 // Shortlink de afiliado: conta o clique e redireciona (302) para o site
@@ -10,10 +10,14 @@ export const dynamic = "force-dynamic";
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ ref: string }> }) {
   const { ref } = await ctx.params;
 
-  const link = await prisma.affiliateLink.findUnique({ where: { ref } });
+  const link = await prisma.affiliateLink.findUnique({
+    where: { ref },
+    include: { user: { select: { status: true } } },
+  });
 
-  // Link inexistente ou desativado: manda para a home do site, sem atribuição.
-  if (!link || !link.active) {
+  // Link inexistente, desativado ou de conta não ativa: home do site, sem
+  // atribuição. Mandar o ref sobrescreveria (last-touch) uma indicação válida.
+  if (!link || !link.active || link.user.status !== UserStatus.ATIVO) {
     return NextResponse.redirect(env.SITE_URL, { status: 302 });
   }
 

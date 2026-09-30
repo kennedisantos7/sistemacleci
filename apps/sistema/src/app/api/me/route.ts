@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { env } from "@/env";
 import { ROLE_HOME, SELLER_ROLES } from "@/lib/rbac";
 import { ensureAffiliateCode } from "@/server/services/affiliate-code";
+import { isMercadoPagoConfigured } from "@/server/mercadopago";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -50,6 +51,9 @@ export async function GET(_req: NextRequest) {
       role: user.role,
       home: ROLE_HOME[user.role],
       affiliateCode,
+      // Sem gateway, o "link de pagamento" do modo afiliado levaria o cliente
+      // a um checkout que falha — o site esconde o botão.
+      checkoutOnline: isMercadoPagoConfigured(),
     }),
   );
 }

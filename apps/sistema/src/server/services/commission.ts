@@ -10,17 +10,6 @@ import {
 import { commissionFromBps } from "@/lib/money";
 import { getConfig } from "./config";
 
-/**
- * Taxa do afiliado (bps) conforme o canal da venda:
- *  - CHECKOUT (link de pagamento / gateway) => venda fechada, taxa maior;
- *  - WHATSAPP_MANUAL (link de WhatsApp)     => apenas indicação, taxa menor.
- * As taxas são FIXAS e só o DESENVOLVEDOR pode alterá-las.
- */
-export async function resolveAffiliateRateBps(origin: SaleOrigin): Promise<number> {
-  const config = await getConfig();
-  return origin === SaleOrigin.CHECKOUT ? config.afiliadoVendaBps : config.afiliadoIndicacaoBps;
-}
-
 /** Conta que recebe a participação do desenvolvedor (a mais antiga ativa). */
 async function getDeveloperUserId(): Promise<string | null> {
   const dev = await prisma.user.findFirst({
@@ -66,7 +55,8 @@ async function upsertCommission(
  * Regras:
  *  - Só vendas atribuídas a um AFILIADO geram comissão. Vendedor fixo é
  *    comissionado fora da plataforma (por enquanto).
- *  - Afiliado recebe a taxa do canal (venda no gateway x indicação WhatsApp).
+ *  - Afiliado recebe a taxa do canal: CHECKOUT (venda fechada no gateway) paga
+ *    mais que as demais origens (indicação pelo WhatsApp).
  *  - Desenvolvedor recebe sua participação sobre a mesma venda.
  */
 export async function createCommissionForSale(sale: Sale) {

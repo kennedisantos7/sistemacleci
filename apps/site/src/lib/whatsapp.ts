@@ -8,7 +8,30 @@ import { getAttributedRef } from "./attribution";
 export const WA_NUMBER = "556392349085";
 export const WA_BASE = `https://wa.me/${WA_NUMBER}`;
 
-/** Gera o link de WhatsApp com mensagem personalizada por categoria/produto */
+/** Marca de atribuição anexada à mensagem; o admin copia o código ao lançar a venda. */
+function refSuffix(): string {
+  const ref = getAttributedRef();
+  return ref ? `\n\n_(ref: ${ref})_` : "";
+}
+
+/**
+ * Link de contato genérico (cabeçalho, rodapé, home). Sem afiliado, abre a
+ * conversa em branco como sempre; com afiliado, já leva a saudação e o ref.
+ */
+export function buildContactLink(): string {
+  const suffix = refSuffix();
+  if (!suffix) return WA_BASE;
+  const message = `Olá! Vim pelo site da Cleci Personaliza.${suffix}`;
+  return `${WA_BASE}?text=${encodeURIComponent(message)}`;
+}
+
+/**
+ * Gera o link de WhatsApp com mensagem personalizada por categoria/produto.
+ *
+ * Lê o cookie de atribuição na hora da chamada. Chamada no render, sai sem o
+ * ref (no servidor não há cookie, e a hidratação mantém o href de lá) — por
+ * isso quem usa regrava o href no `onClick`.
+ */
 export function buildWaLink(
   productTitle: string,
   options?: {
@@ -70,11 +93,7 @@ export function buildWaLink(
     message = `Olá! Vim pelo site da Cleci Personaliza e tenho interesse em *${fullProductTitle}*${sizeInfo}${codeInfo}${installInfo}. Poderia me passar mais informações?`;
   }
 
-  // Anexa o código do afiliado (se houver) para atribuição da venda manual.
-  const ref = getAttributedRef();
-  if (ref) {
-    message += `\n\n_(ref: ${ref})_`;
-  }
+  message += refSuffix();
 
   // Retornando a URL com a mensagem codificada de forma limpa
   return `${WA_BASE}?text=${encodeURIComponent(message)}`;

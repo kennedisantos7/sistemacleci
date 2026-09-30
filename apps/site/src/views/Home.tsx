@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import HeroCarousel from "../components/ui/HeroCarousel";
 import Reveal from "../components/ui/Reveal";
 import ProductCard, { type Product } from "../components/ui/ProductCard";
+import WhatsAppContactLink from "../components/WhatsAppContactLink";
 
 // Importar todos os catálogos para compor a vitrine dinâmica
 import { TAPETES_CATALOG } from "../data/tapetes";
@@ -339,16 +340,11 @@ export default function Home({ products = ALL_PRODUCTS }: { products?: Product[]
                 Conte o que você precisa e a nossa equipe monta a solução ideal — com qualidade premium e entrega para todo o Brasil.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <a
-                  href="https://wa.me/556392349085"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group/cta w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-[#1541FC] font-bold px-8 py-4 rounded-DEFAULT shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]"
-                >
+                <WhatsAppContactLink className="group/cta w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-[#1541FC] font-bold px-8 py-4 rounded-DEFAULT shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98]">
                   <MessageCircle className="w-5 h-5" />
                   Falar no WhatsApp
                   <ArrowRight className="w-4 h-4 transition-transform group-hover/cta:translate-x-1" />
-                </a>
+                </WhatsAppContactLink>
                 <Link
                   href="/produtos"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-transparent border-2 border-white/60 text-white font-bold px-8 py-4 rounded-DEFAULT hover:bg-white/10 transition-colors"

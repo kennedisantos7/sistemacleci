@@ -6,7 +6,7 @@ import { prisma, SaleOrigin, SaleStatus } from "@cleci/db";
 import { requireUser } from "@/server/session";
 import { STAFF_ROLES } from "@/lib/rbac";
 import { parseReaisToCents } from "@/lib/money";
-import { createSale, markSalePaid } from "@/server/services/sales";
+import { createSale, markSalePaid, resolveAttribution } from "@/server/services/sales";
 import { createPaymentLinkForSale } from "@/server/services/checkout";
 import { isMercadoPagoConfigured } from "@/server/mercadopago";
 import { mensagemDoErro } from "@/server/errors";
@@ -40,6 +40,17 @@ export async function registerManualSaleAction(
 
   const amountCents = parseReaisToCents(parsed.data.amount);
   if (amountCents == null) return { error: "Valor inválido. Use o formato 123,45." };
+
+  // Código digitado errado não pode virar venda "sem afiliado" em silêncio —
+  // a comissão sumiria sem ninguém perceber.
+  if (parsed.data.ref) {
+    const { userId } = await resolveAttribution(parsed.data.ref);
+    if (!userId) {
+      return {
+        error: `Código de afiliado "${parsed.data.ref}" não encontrado ou de conta inativa. Confira o código que veio na mensagem (ref: ...).`,
+      };
+    }
+  }
 
   const sale = await createSale({
     amountCents,

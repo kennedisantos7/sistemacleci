@@ -1,5 +1,6 @@
 import { Facebook, Instagram, Mail } from "lucide-react";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
+import WhatsAppContactLink from "../WhatsAppContactLink";
 
 export default function Footer() {
   return (
@@ -46,9 +47,9 @@ export default function Footer() {
                 <a href="https://www.instagram.com/clecipersonaliza/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="w-10 h-10 bg-[#1541FC] rounded-lg flex items-center justify-center text-white hover:bg-[#1034D3] transition-colors shadow-sm">
                   <Instagram className="w-5 h-5" />
                 </a>
-                <a href="https://wa.me/556392349085" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp" className="w-10 h-10 bg-[#1541FC] rounded-lg flex items-center justify-center text-white hover:bg-[#1034D3] transition-colors shadow-sm">
+                <WhatsAppContactLink aria-label="WhatsApp" className="w-10 h-10 bg-[#1541FC] rounded-lg flex items-center justify-center text-white hover:bg-[#1034D3] transition-colors shadow-sm">
                   <WhatsAppIcon className="w-5 h-5" />
-                </a>
+                </WhatsAppContactLink>
               </div>
             </div>
 

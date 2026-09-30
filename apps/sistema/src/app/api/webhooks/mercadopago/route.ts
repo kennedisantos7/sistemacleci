@@ -43,20 +43,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true, ignored: true });
   }
 
-  // Idempotência: registra o evento; se já existe, foi processado antes.
-  try {
-    await prisma.webhookEvent.create({
-      data: {
-        gateway: "mercadopago",
-        eventId: dataId,
-        type: body.type,
-        payload: body as unknown as Prisma.InputJsonValue,
-      },
-    });
-  } catch {
-    // Violação de unique (gateway+eventId): evento duplicado -> ok.
-    return NextResponse.json({ received: true, duplicate: true });
-  }
+  // O registro é só auditoria — NÃO pula reprocessamento. O Mercado Pago reenvia
+  // o MESMO data.id a cada mudança de status (pendente → aprovado → estornado) e
+  // a cada nova tentativa depois de um 500. Descartar o repetido perdia a
+  // aprovação do Pix e o estorno. Reprocessar é seguro: o status vem sempre da
+  // API e as marcações de venda/comissão são idempotentes.
+  const payload = body as unknown as Prisma.InputJsonValue;
+  await prisma.webhookEvent.upsert({
+    where: { gateway_eventId: { gateway: "mercadopago", eventId: dataId } },
+    create: { gateway: "mercadopago", eventId: dataId, type: body.type, payload },
+    update: { payload, processed: false },
+  });
 
   try {
     await processMercadoPagoPayment(dataId);

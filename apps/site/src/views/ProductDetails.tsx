@@ -3,7 +3,7 @@
 import { ChevronRight, Info, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type MouseEvent } from "react";
 import { type BorderOption, type Product } from "../components/ui/ProductCard";
 
 import MediaCarousel from "../components/ui/MediaCarousel";
@@ -134,6 +134,12 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
         withInstallation
       }
     );
+  };
+
+  // O href do render sai sem o ref do afiliado: no servidor não há cookie e a
+  // hidratação preserva o href de lá. Regravar no clique garante o ref.
+  const refreshWaHref = (e: MouseEvent<HTMLAnchorElement>) => {
+    e.currentTarget.href = buildLink();
   };
 
   return (
@@ -354,6 +360,7 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
               {/* Botão para Desktop (Escondido no Mobile) */}
               <a
                 href={buildLink()}
+                onClick={refreshWaHref}
                 suppressHydrationWarning
                 target="_blank"
                 rel="noopener noreferrer"
@@ -369,6 +376,7 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
               <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md border-t border-outline-variant z-50 shadow-[0_-10px_30px_-10px_rgba(0,0,0,0.1)]">
                 <a
                   href={buildLink()}
+                  onClick={refreshWaHref}
                   suppressHydrationWarning
                   target="_blank"
                   rel="noopener noreferrer"

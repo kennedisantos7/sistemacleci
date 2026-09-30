@@ -106,9 +106,19 @@ Sem `test.use`, o teste roda **deslogado** — é o que a suíte de login usa.
 | 2 | C — clientes | [tests/clientes.spec.ts](tests/clientes.spec.ts) | 9 |
 | 2 | G — PDF | [tests/pdf.spec.ts](tests/pdf.spec.ts) | 5 |
 | 2 | I — administração de usuários | [tests/admin-usuarios.spec.ts](tests/admin-usuarios.spec.ts) | 12 |
+| 3 | N (parte) — afiliação: /go, cookie, ref no WhatsApp | [tests/afiliacao.spec.ts](tests/afiliacao.spec.ts) | 11 |
 
-**146 testes.** Fases 3 e 4 do
-[PLANO-TESTES-E2E.md](../../PLANO-TESTES-E2E.md) ainda não foram escritas.
+**157 testes.** O restante das fases 3 e 4 do
+[PLANO-TESTES-E2E.md](../../PLANO-TESTES-E2E.md) ainda não foi escrito.
+
+A suíte de afiliação é toda `@smoke` e testa também o **site**, outro app. Ele
+segue o alvo do painel (local → `:3000`, remoto → `cleci.com.br`); para apontar
+separado, use `SITE_URL`:
+
+```bash
+BASE_URL=https://painel.cleci.com.br SITE_URL=http://localhost:3000 \
+  pnpm test -- tests/afiliacao.spec.ts --project=chromium --no-deps
+```
 
 ### Por que existe um `test` próprio
 
@@ -158,6 +168,11 @@ digitar num formulário morto (total em R$ 0,00, "Adicionar item" sem efeito).
   div que contém o e-mail *e* o `select[name=role]`.
 - **O e-mail de um login recém-criado aparece duas vezes** (mensagem de sucesso
   + lista). Espere pela mensagem `Login criado para <e-mail>`.
+- **No site, não espere o `load`.** O carrossel da home tem vídeo e o `load` às
+  vezes passa de 20s em produção. Espere a hidratação — o `GET /api/me`, que o
+  site só dispara de dentro de um efeito (`abrirSite` em `afiliacao.spec.ts`).
+- **Link do WhatsApp: leia o href DEPOIS do clique.** O site regrava o link no
+  clique para incluir o ref; o href do render sai sem ele de propósito.
 
 ## Fragilidade conhecida do ambiente
 

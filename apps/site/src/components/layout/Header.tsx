@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "../../lib/utils";
 import { useAccount, firstName } from "../../lib/use-account";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
+import WhatsAppContactLink from "../WhatsAppContactLink";
 import { SACOLAS_CATALOG } from "../../data/sacolas";
 import { TAPETES_CATALOG } from "../../data/tapetes";
 import { GRAFICA_CATALOG } from "../../data/grafica";
@@ -194,15 +195,12 @@ export default function Header() {
 
             {/* Ações (Sempre no canto) */}
             <div className="flex items-center gap-3 md:gap-5 text-[#1541FC] flex-shrink-0 justify-self-end">
-              <a
-                href="https://wa.me/556392349085"
-                target="_blank"
-                rel="noopener noreferrer"
+              <WhatsAppContactLink
                 aria-label="Atendimento pelo WhatsApp"
                 className="hover:text-[#1034D3] transition-colors hover:scale-110 transform"
               >
                 <WhatsAppIcon className="w-7 h-7" />
-              </a>
+              </WhatsAppContactLink>
               {/* Acesso ao painel (vendedor/afiliado/admin). Quando há sessão
                   ativa no painel, vira um atalho para a conta. */}
               {isLogged ? (

@@ -4,17 +4,20 @@ import { createCommissionForSale, cancelCommissionForSale } from "./commission";
 /**
  * Resolve a atribuição a partir de um `ref`. Aceita:
  *  - ref de um link de campanha (AffiliateLink) ativo; ou
- *  - código pessoal de afiliação (User.affiliateCode) de uma conta ATIVA.
- * A comissão sempre vai para o usuário dono do ref/código.
+ *  - código pessoal de afiliação (User.affiliateCode).
+ * Nos dois casos o dono precisa estar com a conta ATIVA — bloquear um afiliado
+ * corta também os links que ele já espalhou. A comissão vai para o dono.
  */
 export async function resolveAttribution(ref?: string | null) {
   if (!ref) return { affiliateLinkId: null, userId: null };
 
   const link = await prisma.affiliateLink.findUnique({
     where: { ref },
-    select: { id: true, userId: true, active: true },
+    select: { id: true, userId: true, active: true, user: { select: { status: true } } },
   });
-  if (link?.active) return { affiliateLinkId: link.id, userId: link.userId };
+  if (link?.active && link.user.status === UserStatus.ATIVO) {
+    return { affiliateLinkId: link.id, userId: link.userId };
+  }
 
   const user = await prisma.user.findUnique({
     where: { affiliateCode: ref },
@@ -77,8 +80,9 @@ export async function markSalePaid(sale: Sale): Promise<void> {
   await createCommissionForSale(updated);
 }
 
-/** Marca como reembolsada e cancela a comissão correspondente. */
+/** Marca como reembolsada e cancela a comissão correspondente. Idempotente. */
 export async function markSaleRefunded(sale: Sale): Promise<void> {
+  if (sale.status === SaleStatus.REEMBOLSADO) return;
   await prisma.sale.update({
     where: { id: sale.id },
     data: { status: SaleStatus.REEMBOLSADO, refundedAt: new Date() },

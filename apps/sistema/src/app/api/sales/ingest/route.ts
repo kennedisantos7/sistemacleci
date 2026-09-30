@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
-import { SaleOrigin } from "@cleci/db";
+import { prisma, SaleOrigin } from "@cleci/db";
 import { createSale } from "@/server/services/sales";
 import { createCheckoutSession } from "@/server/services/checkout";
 import { isValidIngestKey, rateLimit } from "@/server/security";
@@ -47,6 +47,13 @@ export async function POST(req: NextRequest) {
   }
 
   const data = parsed.data;
+
+  // Sem gateway não há pagamento possível: recusa ANTES de gravar a venda, senão
+  // cada clique em "Pagar" deixava uma venda pendente órfã atribuída ao afiliado.
+  if (data.createCheckout && !isMercadoPagoConfigured()) {
+    return NextResponse.json({ error: "checkout_unavailable" }, { status: 503 });
+  }
+
   const sale = await createSale({
     amountCents: data.amountCents,
     currency: data.currency,
@@ -59,7 +66,7 @@ export async function POST(req: NextRequest) {
   });
 
   // Opcionalmente já cria o checkout do Mercado Pago e devolve a URL de pagamento.
-  if (data.createCheckout && isMercadoPagoConfigured()) {
+  if (data.createCheckout) {
     try {
       const checkoutUrl = await createCheckoutSession(sale, {
         ref: data.ref,
@@ -69,6 +76,9 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({ saleId: sale.id, checkoutUrl }, { status: 201 });
     } catch (err) {
+      // A venda acabou de nascer e o cliente nunca viu o pagamento: nada a
+      // preservar. Apagar evita a venda pendente órfã.
+      await prisma.sale.delete({ where: { id: sale.id } }).catch(() => {});
       return NextResponse.json(
         { saleId: sale.id, error: "checkout_failed", message: String(err) },
         { status: 502 },
