@@ -5,7 +5,7 @@
 import { getAttributedRef } from "./attribution";
 
 /** Número de WhatsApp para recebimento de pedidos */
-export const WA_NUMBER = "556392349085";
+export const WA_NUMBER = "5563992349085";
 export const WA_BASE = `https://wa.me/${WA_NUMBER}`;
 
 /** Marca de atribuição anexada à mensagem; o admin copia o código ao lançar a venda. */
