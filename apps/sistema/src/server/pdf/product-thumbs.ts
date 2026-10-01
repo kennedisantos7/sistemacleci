@@ -1,13 +1,14 @@
 import sharp from "sharp";
 import { fetchImageBytes } from "@/server/media-link";
+import { bytesDaMidia, idDaMidia } from "@/server/media";
 
 /**
  * Miniaturas dos produtos para o PDF.
  *
- * As fotos são links externos e o @react-pdf não busca URL sozinho de forma
- * confiável (sem timeout, sem limite de tamanho, e um link fora do ar derruba
- * a geração inteira). Então cada foto é baixada aqui, reduzida e embutida como
- * data URI.
+ * A foto vem do banco (tabela Media) ou, em cadastro antigo, de um link
+ * externo — e o @react-pdf não busca URL sozinho de forma confiável (sem
+ * timeout, sem limite de tamanho, e um link fora do ar derruba a geração
+ * inteira). Então cada foto é lida aqui, reduzida e embutida como data URI.
  *
  * Duas regras que valem mais que a imagem:
  *   1. Falha NUNCA quebra o documento. Link morto, resposta que não é imagem,
@@ -55,7 +56,8 @@ async function miniatura(url: string): Promise<string | null> {
 
   let dataUri: string | null = null;
   try {
-    const bytes = await fetchImageBytes(url, MAX_BYTES);
+    // Foto guardada no banco sai de lá direto; link externo ainda é baixado.
+    const bytes = idDaMidia(url) ? await bytesDaMidia(url) : await fetchImageBytes(url, MAX_BYTES);
     if (bytes) {
       // `contain` com fundo branco: a moldura no PDF é quadrada e a foto do
       // produto raramente é. Cortar (`cover`) comeria pedaço do produto.

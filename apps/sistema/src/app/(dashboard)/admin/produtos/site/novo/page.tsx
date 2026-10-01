@@ -2,7 +2,6 @@ import Link from "next/link";
 import { requireUser } from "@/server/session";
 import { FULL_ACCESS_ROLES } from "@/lib/rbac";
 import { listCategoriesWithSubs } from "@/server/services/products";
-import { isStorageConfigured } from "@/server/storage";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ProductForm } from "../product-form";
@@ -45,7 +44,6 @@ export default async function NovoProdutoPage() {
       <Card>
         <CardContent className="pt-6">
           <ProductForm
-            uploadEnabled={isStorageConfigured()}
             categories={categories.map((c) => ({
               id: c.id,
               name: c.name,

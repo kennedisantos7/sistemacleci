@@ -178,9 +178,8 @@ INGEST_API_KEY=<chave aleatória forte>
 > via Mercado Pago está inativo: os produtos seguem pelo fluxo de orçamento via
 > WhatsApp. Para ativar, veja a seção 6.
 
-> **`S3_*` NÃO estão configuradas.** O botão de enviar arquivo nem aparece no
-> cadastro de produtos; o cadastro **por link** (imagem e vídeo) funciona
-> normalmente. Veja a seção 7.
+> **Fotos e vídeos ficam no Postgres** (tabela `Media`), não em serviço externo.
+> Veja a seção 7 — e o backup do banco passa a proteger também as imagens.
 
 ## 4. Serviço `cleci-site`
 
@@ -273,20 +272,22 @@ converta CRLF→LF (`$s -replace "\`r\`n","\`n"`) ou o bash falha com `$'\r'`.
 4. Adicionar `MP_ACCESS_TOKEN` e `MP_WEBHOOK_SECRET` ao `cleci-sistema` (runtime)
    e **restart**
 
-## 7. Ativar upload de imagens e vídeos (hoje inativo)
+## 7. Imagens e vídeos
 
-Bucket S3-compatível (Cloudflare R2 recomendado — egress zero). No
-`cleci-sistema`, runtime: `S3_ENDPOINT`, `S3_REGION` (`auto` no R2), `S3_BUCKET`,
-`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL`.
+Ficam no próprio Postgres, tabela `Media` — nenhuma variável a configurar. O
+painel serve cada arquivo em `https://painel.cleci.com.br/media/<id>.<ext>`
+(cache de um ano; `?w=96|160|320|640` devolve miniatura; vídeo responde por
+`Range`, que o Safari exige). Os campos de foto do cadastro guardam esse
+endereço, então site, galeria e PDF não sabem de onde a mídia vem.
 
-Enquanto essas variáveis não existirem, o formulário de produto **esconde os
-botões de enviar arquivo** e trabalha só com link (imagem e vídeo). Assim que
-forem configuradas e o serviço reiniciar, os botões voltam sozinhos — aceitando
-imagem até 5 MB e vídeo até 30 MB (MP4, WEBM ou MOV).
+- Envio pelo painel: foto até 15 MB (vira WebP de até 1600px, ~200 KB), vídeo
+  até 30 MB (MP4, WEBM ou MOV). Arquivo idêntico não é gravado duas vezes.
+- Links externos antigos (imgur): **Admin › Imagens › Trazer para o banco**. O
+  link original fica em `Media.sourceUrls`, o que permite desfazer.
+- A mesma página preenche a foto da ficha de pedido pelo código do item.
 
-> ⚠️ As URLs das imagens ficam **gravadas no banco**. Se um dia migrar de bucket,
-> é preciso copiar os objetos **e** reescrever as URLs — não basta trocar as
-> variáveis.
+> ⚠️ Com as imagens no banco, **o backup do Postgres passa a ser o backup das
+> fotos**. Sem ele, perder o volume do banco é perder o catálogo inteiro.
 
 ## 8. Integração site → sistema (checkout)
 
@@ -309,10 +310,10 @@ Preference do Mercado Pago e devolve a `checkoutUrl`.
 - [x] `NEXT_PUBLIC_SISTEMA_URL` como build variable **e** com rebuild aplicado
 - [x] Painel Coolify em HTTPS, portas 8000/6001-6002/8080 bloqueadas em `DOCKER-USER`
 - [x] Seed do admin e do catálogo executados
-- [ ] **Backup automático do Postgres** (aba *Backups* do recurso) — hoje **não existe**
+- [ ] **Backup automático do Postgres** (aba *Backups* do recurso) — hoje **não existe**,
+      e desde a tabela `Media` ele também é o único backup das fotos
 - [ ] Senha do admin trocada (a inicial foi exposta em canal de chat)
 - [ ] Senha do Postgres rotacionada (idem)
 - [ ] `AUTH_SECRET` conferido: forte e único
 - [ ] Mercado Pago configurado e webhook testado (simulador → 200)
-- [ ] Upload de imagens (`S3_*`) configurado
 - [ ] Rate limit do ingest: para múltiplas réplicas, migrar de memória para Redis

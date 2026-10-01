@@ -127,7 +127,7 @@ export default function Footer() {
               className="hover:opacity-80 transition-opacity"
             >
               <img 
-                src="https://i.imgur.com/N12sJ6J.png" 
+                src="/img/agencia-desenvolvedora.webp" 
                 alt="Agência Desenvolvedora" 
                 className="h-16 md:h-24 w-auto object-contain transition-transform hover:scale-105 duration-300"
               />

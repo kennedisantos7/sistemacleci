@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
 import { togglePriceItemAction, toggleSiteAction } from "./actions";
+import { miniatura } from "@/lib/media-url";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +24,33 @@ const SELECT_CLASS =
 export default async function AdminProdutosPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; inativos?: string; categoria?: string; site?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    inativos?: string;
+    categoria?: string;
+    site?: string;
+    foto?: string;
+  }>;
 }) {
   const user = await requireUser(PRODUCT_VIEW_ROLES);
   const canEdit = isFullAccess(user.role);
-  const { q, inativos, categoria, site } = await searchParams;
+  const { q, inativos, categoria, site, foto } = await searchParams;
 
   const search = q?.trim() || undefined;
   const includeInactive = inativos === "1";
   const filtroSite: PriceItemListFilters["site"] =
     site === "no-site" ? "no-site" : site === "fora" ? "fora" : undefined;
+  const filtroFoto: PriceItemListFilters["foto"] =
+    foto === "sem" ? "sem" : foto === "com" ? "com" : undefined;
 
   const [items, categorias] = await Promise.all([
-    listPriceItems({ search, includeInactive, categoryId: categoria || undefined, site: filtroSite }),
+    listPriceItems({
+      search,
+      includeInactive,
+      categoryId: categoria || undefined,
+      site: filtroSite,
+      foto: filtroFoto,
+    }),
     listCategoriesWithSubs(),
   ]);
 
@@ -71,8 +86,11 @@ export default async function AdminProdutosPage({
               ) : null}
               {semFoto > 0 ? (
                 <>
-                  {semFoto} sem foto: {semFoto === 1 ? "esse não sai" : "esses não saem"} com imagem
-                  no PDF nem {semFoto === 1 ? "pode" : "podem"} ir para o site.
+                  <Link href="/admin/produtos?foto=sem" className="font-medium text-primary hover:underline">
+                    {semFoto} sem foto
+                  </Link>
+                  : {semFoto === 1 ? "esse não sai" : "esses não saem"} com imagem no PDF nem{" "}
+                  {semFoto === 1 ? "pode" : "podem"} ir para o site.
                 </>
               ) : null}
             </CardDescription>
@@ -105,6 +123,11 @@ export default async function AdminProdutosPage({
               <option value="no-site">Só os que estão no site</option>
               <option value="fora">Só os que não estão</option>
             </select>
+            <select name="foto" defaultValue={filtroFoto ?? ""} className={SELECT_CLASS}>
+              <option value="">Com e sem foto</option>
+              <option value="sem">Só os sem foto</option>
+              <option value="com">Só os com foto</option>
+            </select>
             <label className="flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -122,7 +145,7 @@ export default async function AdminProdutosPage({
 
           {items.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {search || categoria || site
+              {search || categoria || site || filtroFoto
                 ? "Nenhum produto encontrado."
                 : "Nenhum produto cadastrado ainda."}
             </p>
@@ -150,7 +173,7 @@ export default async function AdminProdutosPage({
                           {item.imageUrl ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
-                              src={item.imageUrl}
+                              src={miniatura(item.imageUrl, 96)}
                               alt=""
                               className="h-10 w-10 rounded-md border border-border object-cover"
                             />

@@ -105,12 +105,9 @@ function StringListField({
 export function ProductForm({
   categories,
   defaults,
-  uploadEnabled = false,
 }: {
   categories: CategoryOption[];
   defaults?: ProductDefaults;
-  /** Só é true quando o bucket S3/R2 está configurado; senão, cadastro por link. */
-  uploadEnabled?: boolean;
 }) {
   const isEdit = Boolean(defaults?.id);
   const [state, action, pending] = useActionState(
@@ -215,12 +212,12 @@ export function ProductForm({
 
       <div className="space-y-1">
         <label className="text-sm font-medium">Imagem principal *</label>
-        <MainImageUpload defaultUrl={defaults?.imageUrl} uploadEnabled={uploadEnabled} />
+        <MainImageUpload defaultUrl={defaults?.imageUrl} />
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-medium">Galeria — imagens e vídeos (opcional)</label>
-        <GalleryUpload defaultUrls={defaults?.gallery} uploadEnabled={uploadEnabled} />
+        <GalleryUpload defaultUrls={defaults?.gallery} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -230,7 +227,7 @@ export function ProductForm({
 
       <div className="space-y-1">
         <label className="text-sm font-medium">Linhas / versões (opcional)</label>
-        <VariantsField defaultValues={defaults?.variants} uploadEnabled={uploadEnabled} />
+        <VariantsField defaultValues={defaults?.variants} />
       </div>
 
       <label className="flex items-center gap-2 text-sm">

@@ -20,7 +20,7 @@ const slides = [
     featuredProduct: {
       name: "Sacola Kraft Personalizada",
       desc: "Sacola ecológica de alta qualidade, ideal para empresas que buscam sustentabilidade e sofisticação.",
-      image: "https://imgur.com/15qBuUf.png"
+      image: "/img/banner-sacolas.webp"
     }
   },
   {
@@ -36,7 +36,7 @@ const slides = [
     featuredProduct: {
       name: "Tapete Gold Vulcanizado",
       desc: "Personalização permanente e de alta durabilidade com logotipo encaixado na própria base.",
-      image: "https://i.imgur.com/B47h1h2.png"
+      image: "/img/banner-tapetes.webp"
     }
   },
   {
@@ -52,7 +52,7 @@ const slides = [
     featuredProduct: {
       name: "Cartão de Visita Premium",
       desc: "Excelente ferramenta de marketing pessoal ou empresarial, com opção de verniz localizado e acabamento premium.",
-      image: "https://imgur.com/1XvQuHB.png"
+      image: "/img/banner-grafica.webp"
     }
   },
   {
@@ -68,7 +68,7 @@ const slides = [
     featuredProduct: {
       name: "Banner Personalizado",
       desc: "Banner de alta qualidade com produção sob medida, ideal para eventos, feiras e publicidade com impacto visual.",
-      image: "https://imgur.com/IHuq9nW.png"
+      image: "/img/banner-comunicacao.webp"
     }
   },
   {
@@ -84,7 +84,7 @@ const slides = [
     featuredProduct: {
       name: "Piso Tátil",
       desc: "Revestimento tátil de alerta e direcional para acessibilidade e sinalização com segurança.",
-      image: "https://imgur.com/3M59FBt.png"
+      image: "/img/banner-seguranca.webp"
     }
   },
   {
@@ -100,7 +100,7 @@ const slides = [
     featuredProduct: {
       name: "Grama Sintética Premium",
       desc: "Ideal para playgrounds, jardins, piscinas e áreas de lazer, resistente ao sol e livre de manutenção.",
-      image: "https://imgur.com/nIkEq2W.png"
+      image: "/img/banner-playground.webp"
     }
   }
 ];

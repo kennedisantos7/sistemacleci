@@ -61,6 +61,8 @@ export const ROUTE_ROLES: Array<{ prefix: string; roles: Role[] }> = [
   // tabela para montar orçamento, mas não a altera (edição fica restrita nas
   // próprias actions). Antes de /admin, que é prefixo.
   { prefix: "/admin/produtos", roles: PRODUCT_VIEW_ROLES },
+  // Fotos do catálogo: mesmo grupo que edita produtos.
+  { prefix: "/admin/imagens", roles: PRODUCT_EDIT_ROLES },
   { prefix: "/admin", roles: STAFF_ROLES },
   { prefix: "/vendedor", roles: ["VENDEDOR_FIXO"] },
   // Manual: cada papel de venda vê o seu, a equipe vê os dois.

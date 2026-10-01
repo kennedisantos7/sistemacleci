@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { deleteProductAction } from "./actions";
+import { miniatura } from "@/lib/media-url";
 
 export const dynamic = "force-dynamic";
 
@@ -94,7 +95,7 @@ export default async function ProdutosSomenteNoSitePage({
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={p.imageUrl}
+                    src={miniatura(p.imageUrl, 160)}
                     alt=""
                     className="h-12 w-12 shrink-0 rounded-md border border-border object-cover"
                   />

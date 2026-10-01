@@ -149,7 +149,7 @@ export default function Home({ products = ALL_PRODUCTS }: { products?: Product[]
             <img
               alt="Fachada da loja Cleci Personalizados"
               className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              src="https://i.imgur.com/JU9LBwl.jpeg"
+              src="/img/fachada-loja.webp"
               loading="lazy"
               decoding="async"
               width={900}

@@ -8,6 +8,13 @@ export function isVideoUrl(url: string): boolean {
   return VIDEO_EXT.test(url);
 }
 
+const FOTO_DO_BANCO = /\/media\/[a-z0-9]{20,40}\.(webp|jpg|png|avif)$/;
+
+/** Miniatura de foto guardada no banco (`?w=`); link externo volta como está. */
+export function miniatura(url: string, largura: 96 | 160 | 320 | 640): string {
+  return FOTO_DO_BANCO.test(url) ? `${url}?w=${largura}` : url;
+}
+
 export function toMediaItem(url: string): MediaItem {
   return { type: isVideoUrl(url) ? "video" : "image", url };
 }

@@ -8,6 +8,7 @@ import { cn } from "../../lib/utils";
 import { useAccount, firstName } from "../../lib/use-account";
 import WhatsAppIcon from "../ui/WhatsAppIcon";
 import WhatsAppContactLink from "../WhatsAppContactLink";
+import { miniatura } from "../../lib/media";
 import { SACOLAS_CATALOG } from "../../data/sacolas";
 import { TAPETES_CATALOG } from "../../data/tapetes";
 import { GRAFICA_CATALOG } from "../../data/grafica";
@@ -95,7 +96,11 @@ const MEGA_MENU_CONTENT: Record<string, any[]> = {
 // URL do sistema (painel). Embutida no build via NEXT_PUBLIC_SISTEMA_URL.
 const PAINEL_URL = process.env.NEXT_PUBLIC_SISTEMA_URL ?? "http://localhost:3001";
 
-export default function Header() {
+/**
+ * `fotosDoMenu`: foto de cada subtipo, vinda do banco (link do menu →
+ * endereço). O que faltar cai na foto do catálogo estático.
+ */
+export default function Header({ fotosDoMenu = {} }: { fotosDoMenu?: Record<string, string> }) {
   const pathname = usePathname() ?? "";
   const router = useRouter();
   const account = useAccount();
@@ -314,7 +319,7 @@ export default function Header() {
                                 </div>
                               ) : (
                                 <img
-                                  src={item.image}
+                                  src={miniatura(fotosDoMenu[item.link] ?? item.image, 160)}
                                   alt={item.name}
                                   width={80}
                                   height={80}

@@ -121,17 +121,24 @@ async function headWithGuard(start: URL): Promise<Response> {
   throw new Error("redirecionamentos demais");
 }
 
+export type MediaBaixada = { bytes: Buffer; contentType: string };
+
 /**
- * Baixa os bytes de uma imagem para uso no servidor — hoje, a miniatura que
- * entra no PDF do orçamento/pedido.
+ * Baixa uma imagem ou vídeo para uso no servidor — a miniatura do PDF e a
+ * importação dos links externos para o banco.
  *
  * Passa pela MESMA guarda do `checkMediaLink`: a URL foi digitada por um
  * usuário e o fetch parte do servidor, então host privado continua barrado a
  * cada redirecionamento. Devolve `null` em qualquer problema (link fora do ar,
- * resposta que não é imagem, arquivo grande demais) — quem chama decide o que
- * fazer, e no PDF a decisão é seguir sem a foto.
+ * resposta que não é do tipo pedido, arquivo grande demais) — quem chama
+ * decide o que fazer.
  */
-export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Buffer | null> {
+export async function fetchMediaBytes(
+  raw: string,
+  maxBytes: number,
+  aceitar: MediaKind[] = ["image", "video"],
+  timeoutMs = TIMEOUT_MS,
+): Promise<MediaBaixada | null> {
   const url = parseUrl(raw);
   if (!url) return null;
 
@@ -142,8 +149,8 @@ export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Bu
       await assertPublicHost(current.hostname);
       res = await fetch(current, {
         redirect: "manual",
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-        headers: { "user-agent": "cleci-pdf" },
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: { "user-agent": "cleci-media" },
       });
     } catch {
       return null;
@@ -159,7 +166,9 @@ export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Bu
     }
 
     if (!res.ok) return null;
-    if (kindOf(res.headers.get("content-type") ?? "") !== "image") return null;
+    const contentType = (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase();
+    const kind = kindOf(contentType);
+    if (!kind || !aceitar.includes(kind)) return null;
 
     // Content-length quando existe evita baixar à toa; quando não existe, o
     // corte vem do tamanho real depois de ler.
@@ -168,12 +177,17 @@ export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Bu
 
     try {
       const bytes = Buffer.from(await res.arrayBuffer());
-      return bytes.byteLength > maxBytes ? null : bytes;
+      return bytes.byteLength > maxBytes ? null : { bytes, contentType };
     } catch {
       return null;
     }
   }
   return null;
+}
+
+/** Só imagem — a miniatura do PDF. */
+export async function fetchImageBytes(raw: string, maxBytes: number): Promise<Buffer | null> {
+  return (await fetchMediaBytes(raw, maxBytes, ["image"]))?.bytes ?? null;
 }
 
 /** Confere se a URL entrega mesmo uma imagem ou vídeo. */

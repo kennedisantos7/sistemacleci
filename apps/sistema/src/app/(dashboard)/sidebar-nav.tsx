@@ -9,6 +9,7 @@ import {
   Building2,
   ClipboardList,
   FileText,
+  Images,
   Link2,
   Package,
   Percent,
@@ -38,6 +39,7 @@ const LOGO_ROUTES = new Set(["/admin", "/vendedor", "/afiliado"]);
 const ICONS: Record<string, LucideIcon> = {
   "/admin/usuarios": Users,
   "/admin/produtos": Package,
+  "/admin/imagens": Images,
   "/admin/vendas": TrendingUp,
   "/admin/vendedores": Trophy,
   "/admin/metas": Target,

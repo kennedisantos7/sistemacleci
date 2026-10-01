@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
+import { SingleImagePicker } from "./site/image-upload";
 
 const initial: PriceItemFormState = {};
 
@@ -195,32 +196,12 @@ export function PriceItemForm({
 
       {/* --- Foto ------------------------------------------------------- */}
       <div className="space-y-1 sm:col-span-2">
-        <label htmlFor="pi-image" className="text-sm font-medium">
-          Foto do produto
-        </label>
-        <div className="flex items-start gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl.trim() || "/logo-cleci-icone.png"}
-            alt=""
-            className="h-16 w-16 shrink-0 rounded-md border border-border bg-muted object-contain p-1"
-          />
-          <div className="min-w-0 flex-1 space-y-1">
-            <Input
-              id="pi-image"
-              name="imageUrl"
-              type="url"
-              inputMode="url"
-              placeholder="https://..."
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-            />
-            <p className="text-xs text-muted-foreground">
-              Cole o link da imagem. Ela aparece na busca do orçamento e sai no PDF do
-              orçamento e do pedido.
-            </p>
-          </div>
-        </div>
+        <span className="text-sm font-medium">Foto do produto</span>
+        <input type="hidden" name="imageUrl" value={imageUrl} />
+        <SingleImagePicker value={imageUrl} onChange={setImageUrl} />
+        <p className="text-xs text-muted-foreground">
+          Aparece na busca do orçamento e sai no PDF do orçamento e do pedido.
+        </p>
       </div>
 
       {/* --- Valores por unidade de venda --- */}

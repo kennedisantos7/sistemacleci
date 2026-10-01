@@ -138,7 +138,7 @@ export const priceItemSchema = z
         }),
       )
       .min(1, "Informe pelo menos um valor."),
-    /** Foto do produto. URL externa — o link é conferido antes de salvar. */
+    /** Foto do produto: endereço da foto no banco (envio pelo painel) ou link. */
     imageUrl: z
       .string()
       .trim()
@@ -200,24 +200,35 @@ export type PriceItemListFilters = {
   categoryId?: string;
   /** "no-site" só publicados; "fora" só os que não estão na vitrine. */
   site?: "no-site" | "fora";
+  /** "sem" só os que ainda não têm foto (a ficha de pedido sai sem imagem). */
+  foto?: "sem" | "com";
 };
 
+const SEM_FOTO: Prisma.PriceItemWhereInput = { OR: [{ imageUrl: null }, { imageUrl: "" }] };
+
 export function listPriceItems(options: PriceItemListFilters = {}) {
-  const { search, includeInactive, categoryId, site } = options;
+  const { search, includeInactive, categoryId, site, foto } = options;
   return prisma.priceItem.findMany({
     where: {
       ...(includeInactive ? {} : { active: true }),
       ...(categoryId ? { categoryId } : {}),
       ...(site === "no-site" ? { siteProductId: { not: null } } : {}),
       ...(site === "fora" ? { siteProductId: null } : {}),
-      ...(search
-        ? {
-            OR: [
-              { description: { contains: search, mode: "insensitive" } },
-              { code: { contains: search } },
-            ],
-          }
-        : {}),
+      // Em AND: a busca também usa OR, e os dois não podem se sobrescrever.
+      AND: [
+        ...(foto === "sem" ? [SEM_FOTO] : []),
+        ...(foto === "com" ? [{ NOT: SEM_FOTO }] : []),
+        ...(search
+          ? [
+              {
+                OR: [
+                  { description: { contains: search, mode: "insensitive" as const } },
+                  { code: { contains: search } },
+                ],
+              },
+            ]
+          : []),
+      ],
     },
     orderBy: [{ description: "asc" }],
     take: 500,

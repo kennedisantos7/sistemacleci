@@ -55,37 +55,26 @@ async function uploadFile(file: File): Promise<string> {
   return data.url;
 }
 
-/**
- * Enquanto o bucket S3/R2 não estiver configurado no servidor, o cadastro é
- * só por link — o botão de enviar arquivo nem aparece (ver DEPLOY.md §7).
- */
-export function MainImageUpload({
-  defaultUrl,
-  uploadEnabled = false,
-}: {
-  defaultUrl?: string;
-  uploadEnabled?: boolean;
-}) {
+/** Foto principal. O arquivo enviado vai para o banco; link externo ainda vale. */
+export function MainImageUpload({ defaultUrl }: { defaultUrl?: string }) {
   const [url, setUrl] = useState(defaultUrl ?? "");
   return (
     <>
       <input type="hidden" name="imageUrl" value={url} />
-      <SingleImagePicker value={url} onChange={setUrl} uploadEnabled={uploadEnabled} />
+      <SingleImagePicker value={url} onChange={setUrl} />
     </>
   );
 }
 
-/** Seletor de uma imagem (link, ou upload quando habilitado), controlado pelo pai. */
+/** Seletor de uma imagem (envio de arquivo ou link), controlado pelo pai. */
 export function SingleImagePicker({
   value,
   onChange,
   size = "lg",
-  uploadEnabled = false,
 }: {
   value: string;
   onChange: (url: string) => void;
   size?: "sm" | "lg";
-  uploadEnabled?: boolean;
 }) {
   const url = value;
   const setUrl = onChange;
@@ -142,12 +131,10 @@ export function SingleImagePicker({
           </div>
         )}
         <div className="space-y-1">
-          {uploadEnabled ? (
-            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-              {busy ? "Enviando..." : url ? "Trocar imagem" : "Enviar imagem"}
-            </Button>
-          ) : null}
+          <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+            {busy ? "Enviando..." : url ? "Trocar imagem" : "Enviar imagem"}
+          </Button>
           {url ? (
             <button
               type="button"
@@ -162,7 +149,7 @@ export function SingleImagePicker({
       <div className="flex gap-2">
         <Input
           value={link}
-          placeholder={uploadEnabled ? "ou cole um link (https://...)" : "cole o link da imagem (https://...)"}
+          placeholder="ou cole um link (https://...)"
           onChange={(e) => setLink(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -181,19 +168,17 @@ export function SingleImagePicker({
           {checking ? "Conferindo..." : "Usar link"}
         </Button>
       </div>
-      {uploadEnabled ? (
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void onPick(f);
-            e.target.value = "";
-          }}
-        />
-      ) : null}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void onPick(f);
+          e.target.value = "";
+        }}
+      />
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
       {fix ? (
         <button
@@ -219,13 +204,7 @@ export function isVideoUrl(url: string): boolean {
  * (JSON de URLs). A ordem da lista é a ordem exibida no site — as setas
  * ← → reordenam.
  */
-export function GalleryUpload({
-  defaultUrls,
-  uploadEnabled = false,
-}: {
-  defaultUrls?: string[];
-  uploadEnabled?: boolean;
-}) {
+export function GalleryUpload({ defaultUrls }: { defaultUrls?: string[] }) {
   const [urls, setUrls] = useState<string[]>(defaultUrls ?? []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -269,9 +248,12 @@ export function GalleryUpload({
     setBusy(true);
     setError(null);
     try {
-      const uploaded: string[] = [];
-      for (const file of Array.from(files)) uploaded.push(await uploadFile(file));
-      setUrls((prev) => [...prev, ...uploaded]);
+      // Um a um, entrando na lista assim que sobe: se um falhar, os anteriores
+      // não se perdem.
+      for (const file of Array.from(files)) {
+        const url = await uploadFile(file);
+        setUrls((prev) => (prev.includes(url) ? prev : [...prev, url]));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha no upload.");
     } finally {
@@ -340,20 +322,14 @@ export function GalleryUpload({
           ))}
         </div>
       ) : null}
-      {uploadEnabled ? (
-        <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
-          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
-          {busy ? "Enviando..." : "Adicionar imagem ou vídeo"}
-        </Button>
-      ) : null}
+      <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => inputRef.current?.click()}>
+        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+        {busy ? "Enviando..." : "Adicionar imagem ou vídeo"}
+      </Button>
       <div className="flex gap-2">
         <Input
           value={link}
-          placeholder={
-            uploadEnabled
-              ? "ou cole um link (https://...)"
-              : "cole o link da imagem ou do vídeo (https://...)"
-          }
+          placeholder="ou cole um link (https://...)"
           onChange={(e) => setLink(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -381,24 +357,21 @@ export function GalleryUpload({
           Usar o link do arquivo: {fix}
         </button>
       ) : null}
-      {uploadEnabled ? (
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*,video/mp4,video/webm,video/quicktime"
-          multiple
-          className="hidden"
-          onChange={(e) => {
-            if (e.target.files?.length) void onPick(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      ) : null}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif,image/gif,video/mp4,video/webm,video/quicktime"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) void onPick(e.target.files);
+          e.target.value = "";
+        }}
+      />
       <p className="text-xs text-muted-foreground">
-        {uploadEnabled
-          ? "Imagens até 5 MB, vídeos até 30 MB (MP4, WEBM ou MOV). "
-          : "Vídeo pelo link do arquivo (.mp4, .webm ou .mov) — link de YouTube não funciona aqui. "}
-        A ordem acima é a ordem que o cliente vê ao arrastar a foto no card do produto.
+        Pode escolher vários arquivos de uma vez. Fotos até 15 MB (são reduzidas ao salvar),
+        vídeos até 30 MB (MP4, WEBM ou MOV). A ordem acima é a ordem que o cliente vê ao
+        arrastar a foto no card do produto.
       </p>
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
     </div>

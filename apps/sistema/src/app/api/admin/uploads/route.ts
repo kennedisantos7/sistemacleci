@@ -1,22 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { requireUser } from "@/server/session";
-import { STAFF_ROLES } from "@/lib/rbac";
-import { uploadMedia, isStorageConfigured } from "@/server/storage";
+import { FULL_ACCESS_ROLES } from "@/lib/rbac";
+import { salvarUpload } from "@/server/media";
 import { mensagemDoErro } from "@/server/errors";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-/** Upload de imagem ou vídeo de produto (admin/gerente). Devolve a URL pública. */
+/**
+ * Envio de foto ou vídeo de produto. Grava no banco e devolve o endereço.
+ * Mesmo grupo que edita Produtos: quem não altera o cadastro não sobe arquivo.
+ */
 export async function POST(req: NextRequest) {
-  await requireUser(STAFF_ROLES);
-
-  if (!isStorageConfigured()) {
-    return NextResponse.json(
-      { error: "Armazenamento de imagens não configurado no servidor." },
-      { status: 503 },
-    );
-  }
+  await requireUser(FULL_ACCESS_ROLES);
 
   let form: FormData;
   try {
@@ -31,12 +27,8 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const url = await uploadMedia(file);
-    return NextResponse.json({ url });
+    return NextResponse.json({ url: await salvarUpload(file) });
   } catch (err) {
-    return NextResponse.json(
-      { error: mensagemDoErro(err, "Falha no upload.") },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: mensagemDoErro(err, "Falha no envio.") }, { status: 400 });
   }
 }

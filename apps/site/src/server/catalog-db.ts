@@ -136,6 +136,35 @@ export async function getCategoryCatalog(categorySlug: string): Promise<Category
   }
 }
 
+/**
+ * Foto de cada subtipo para o menu do cabeçalho: a do primeiro produto ativo
+ * dele (o catálogo tem um produto por subtipo). Chave = o link do menu,
+ * `/grafica?tipo=escritorio` — o nome sozinho não serve, "ACESSÓRIOS" existe em
+ * duas categorias. Banco fora → `{}` e o menu usa o catálogo estático.
+ */
+export async function getMenuPhotos(): Promise<Record<string, string>> {
+  try {
+    const rows = await prisma.product.findMany({
+      where: { active: true, subcategoryId: { not: null } },
+      orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+      select: {
+        imageUrl: true,
+        category: { select: { path: true } },
+        subcategory: { select: { slug: true } },
+      },
+    });
+    const fotos: Record<string, string> = {};
+    for (const r of rows) {
+      if (!r.subcategory || !r.imageUrl) continue;
+      const link = `${r.category.path}?tipo=${r.subcategory.slug}`;
+      fotos[link] ??= r.imageUrl;
+    }
+    return fotos;
+  } catch {
+    return {};
+  }
+}
+
 /** Todos os produtos ativos (páginas de busca e home); `null` se indisponível. */
 export async function getAllProducts(): Promise<Product[] | null> {
   try {

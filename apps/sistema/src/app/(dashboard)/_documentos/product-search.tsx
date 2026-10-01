@@ -6,6 +6,7 @@ import { searchPriceItemsAction } from "./actions";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
+import { miniatura } from "@/lib/media-url";
 
 export type PriceOption = { unit: BudgetUnit; priceCents: number };
 
@@ -261,7 +262,7 @@ export function ProductSearch({
                     {primeira && option.imageUrl ? (
                       /* eslint-disable-next-line @next/next/no-img-element */
                       <img
-                        src={option.imageUrl}
+                        src={miniatura(option.imageUrl, 96)}
                         alt=""
                         className="h-8 w-8 shrink-0 rounded border border-border object-cover"
                       />

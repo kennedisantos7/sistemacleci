@@ -7,6 +7,7 @@ import Footer from "../components/layout/Footer";
 import AttributionTracker from "../components/AttributionTracker";
 import AffiliateModeBar from "../components/AffiliateModeBar";
 import AccountAffiliateSync from "../components/AccountAffiliateSync";
+import { getMenuPhotos } from "../server/catalog-db";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "https://cleci.com.br"),
@@ -35,7 +36,12 @@ export const viewport: Viewport = {
 
 const GTM_ID = "GTM-NKX3CBZV";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// As fotos do menu vêm do banco. Sem isto, página estática (ex.: /privacidade)
+// congelaria o menu do momento do build — quando o Docker nem tem banco.
+export const revalidate = 60;
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const fotosDoMenu = await getMenuPhotos();
   return (
     <html lang="pt-BR">
       <head>
@@ -72,7 +78,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         </Suspense>
         <AccountAffiliateSync />
         <div className="min-h-screen flex flex-col">
-          <Header />
+          <Header fotosDoMenu={fotosDoMenu} />
           <main className="flex-1 w-full">{children}</main>
           <Footer />
         </div>

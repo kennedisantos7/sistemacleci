@@ -279,6 +279,30 @@ model WebhookEvent {
   @@unique([gateway, eventId])
 }
 
+// ------------- Mídia do catálogo (fotos e vídeos) -------------
+// Os arquivos moram no próprio banco: o catálogo é pequeno (centenas de fotos,
+// poucos vídeos), e assim tudo entra no mesmo backup, sem serviço externo.
+// Quem usa a mídia guarda um ENDEREÇO (/media/<id>.<ext>) nos campos de foto —
+// site, galeria, linhas, bordas e PDF não precisam saber de onde ela vem.
+model Media {
+  id          String @id @default(cuid())
+  contentType String // image/webp, image/gif, video/mp4...
+  bytes       Bytes
+  size        Int
+  width       Int?
+  height      Int?
+
+  // SHA-256 do conteúdo gravado: o mesmo arquivo enviado duas vezes vira um
+  // registro só.
+  sha256 String @unique
+
+  // Links externos de onde o arquivo foi importado (imgur etc.). É o que
+  // permite desfazer a importação e não baixar o mesmo link de novo.
+  sourceUrls String[] @default([])
+
+  createdAt DateTime @default(now())
+}
+
 // ----------------- Catálogo de produtos ---------------------
 // Categorias e subtipos são semeados a partir do catálogo atual (fixos);
 // o admin/gerente apenas seleciona ao cadastrar um produto.
@@ -324,7 +348,7 @@ model Product {
   description String?
   priceCents  Int? // opcional (habilita checkout online no futuro)
 
-  imageUrl String // imagem principal (URL — imgur migrado ou upload R2)
+  imageUrl String // imagem principal (endereço /media/<id> do banco, ou link externo antigo)
   gallery  String[] @default([]) // galeria
 
   sizes    String[] @default([]) // tamanhos (texto livre)
@@ -465,7 +489,7 @@ model PriceItem {
   group String?
 
   // --- Catálogo (a seção Produtos e a vitrine do site) ---------------------
-  /** Foto do produto: URL externa. Sai na busca do orçamento e no PDF. */
+  /** Foto do produto (endereço /media/<id> do banco). Sai na busca do orçamento e no PDF. */
   imageUrl String?
 
   // Categoria/subtipo do site. Opcionais: item de planilha pode nunca ter

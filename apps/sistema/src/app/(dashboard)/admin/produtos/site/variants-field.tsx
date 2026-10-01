@@ -86,13 +86,7 @@ function TagList({
  * imagem — o cliente escolhe a linha na página do produto.
  * Serializado no hidden input `variants` (JSON).
  */
-export function VariantsField({
-  defaultValues,
-  uploadEnabled = false,
-}: {
-  defaultValues?: VariantValue[];
-  uploadEnabled?: boolean;
-}) {
+export function VariantsField({ defaultValues }: { defaultValues?: VariantValue[] }) {
   const [variants, setVariants] = useState<VariantValue[]>(defaultValues ?? []);
 
   function patch(index: number, changes: Partial<VariantValue>) {
@@ -168,7 +162,6 @@ export function VariantsField({
             </label>
             <SingleImagePicker
               size="sm"
-              uploadEnabled={uploadEnabled}
               value={variant.image ?? ""}
               onChange={(url) => patch(i, { image: url })}
             />

@@ -107,8 +107,9 @@ Sem `test.use`, o teste roda **deslogado** — é o que a suíte de login usa.
 | 2 | G — PDF | [tests/pdf.spec.ts](tests/pdf.spec.ts) | 5 |
 | 2 | I — administração de usuários | [tests/admin-usuarios.spec.ts](tests/admin-usuarios.spec.ts) | 12 |
 | 3 | N (parte) — afiliação: /go, cookie, ref no WhatsApp | [tests/afiliacao.spec.ts](tests/afiliacao.spec.ts) | 11 |
+| 3 | Mídia do catálogo no banco: /media, miniatura, sem imgur | [tests/midia.spec.ts](tests/midia.spec.ts) | 4 |
 
-**157 testes.** O restante das fases 3 e 4 do
+**161 testes.** O restante das fases 3 e 4 do
 [PLANO-TESTES-E2E.md](../../PLANO-TESTES-E2E.md) ainda não foi escrito.
 
 A suíte de afiliação é toda `@smoke` e testa também o **site**, outro app. Ele

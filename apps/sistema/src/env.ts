@@ -16,14 +16,6 @@ const envSchema = z.object({
   // é registrado e a tela de login mostra só o formulário de e-mail/senha.
   AUTH_GOOGLE_ID: z.string().optional(),
   AUTH_GOOGLE_SECRET: z.string().optional(),
-  // Armazenamento de imagens (S3-compatível / Cloudflare R2). Opcional:
-  // sem isso, o upload responde erro claro em vez de quebrar o boot.
-  S3_ENDPOINT: z.string().url().optional(),
-  S3_REGION: z.string().default("auto"),
-  S3_BUCKET: z.string().optional(),
-  S3_ACCESS_KEY_ID: z.string().optional(),
-  S3_SECRET_ACCESS_KEY: z.string().optional(),
-  S3_PUBLIC_URL: z.string().url().optional(),
 });
 
 const raw = {
@@ -39,12 +31,6 @@ const raw = {
   INGEST_API_KEY: process.env.INGEST_API_KEY,
   AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID,
   AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET,
-  S3_ENDPOINT: process.env.S3_ENDPOINT,
-  S3_REGION: process.env.S3_REGION,
-  S3_BUCKET: process.env.S3_BUCKET,
-  S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
-  S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,
-  S3_PUBLIC_URL: process.env.S3_PUBLIC_URL,
 };
 
 type Env = z.infer<typeof envSchema>;
