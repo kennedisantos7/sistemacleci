@@ -110,9 +110,29 @@ export async function importarLote(limite = 6, ignorar: string[] = []): Promise<
   return { importados, falhas, restantes: pendentes.length - lote.length };
 }
 
+/**
+ * Troca uma foto já guardada por uma versão nova (ex.: foto refeita) em todo o
+ * cadastro: vitrine, galeria, linhas, bordas e a foto da ficha de pedido. A
+ * mídia antiga fica no banco, então a troca pode ser desfeita.
+ */
+export async function substituirMidia(
+  de: string,
+  bytes: Buffer,
+  contentType: string,
+): Promise<{ para: string; produtos: number; itens: number }> {
+  const preparado = await prepararArquivo(bytes, contentType);
+  const { url: para } = await salvarMidia(preparado, de);
+  const trocas = await substituirReferencias(new Map([[de, para]]));
+  return { para, ...trocas };
+}
+
 /** Troca, em todo o cadastro, cada link antigo pelo endereço novo. */
-export async function substituirReferencias(mapa: Map<string, string>): Promise<void> {
-  if (mapa.size === 0) return;
+export async function substituirReferencias(
+  mapa: Map<string, string>,
+): Promise<{ produtos: number; itens: number }> {
+  if (mapa.size === 0) return { produtos: 0, itens: 0 };
+  let produtosAlterados = 0;
+  let itensAlterados = 0;
   const trocar = (u: string | null) => (u && mapa.get(u)) || u;
   const trocarLista = (json: Prisma.JsonValue | null) =>
     lista(json).map((item) => {
@@ -146,11 +166,14 @@ export async function substituirReferencias(mapa: Map<string, string>): Promise<
         ...(p.borders !== null ? { borders: borders as Prisma.InputJsonValue } : {}),
       },
     });
+    produtosAlterados++;
   }
 
   for (const [de, para] of mapa) {
-    await prisma.priceItem.updateMany({ where: { imageUrl: de }, data: { imageUrl: para } });
+    const { count } = await prisma.priceItem.updateMany({ where: { imageUrl: de }, data: { imageUrl: para } });
+    itensAlterados += count;
   }
+  return { produtos: produtosAlterados, itens: itensAlterados };
 }
 
 // ---------------------------------------------------------------------------
