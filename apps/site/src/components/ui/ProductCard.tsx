@@ -41,6 +41,7 @@ export interface Product {
   variants?: ProductVariant[]; // Opções de linha/versão (ex.: sacolas de papel)
   code?: string;       // Código de referência do produto
   codes?: string[];    // Lista de códigos para produtos agrupados
+  codePhotos?: Record<string, string>; // código → foto do item na tabela de preços (foto por tamanho)
   description?: string; // Descrição curta (ex: dimensões)
   images?: string[];    // Galeria de imagens (legado — prefira `media`)
   media?: MediaItem[];  // Galeria ordenada de imagens e vídeos

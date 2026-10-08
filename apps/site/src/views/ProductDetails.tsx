@@ -55,10 +55,13 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
 
   // Galeria exibida: a foto de capa é exclusiva de cada linha — a da linha ativa
   // abre a galeria e as das outras ficam de fora. As demais fotos e vídeos do
-  // produto seguem misturados, sem repetir.
+  // produto seguem misturados, sem repetir. Quando o tamanho escolhido tem foto
+  // própria (a do item da tabela de preços), ela vem antes de todas.
   const media = useMemo(() => {
     if (!product) return [];
     const variants = product.variants ?? [];
+    const codigoDoTamanho = (variants[variantIndex]?.codes ?? product.codes)?.[selectedSizeIndex];
+    const fotoDoTamanho = codigoDoTamanho ? product.codePhotos?.[codigoDoTamanho] : undefined;
     const activeImage = variants[variantIndex]?.image;
     const outrasCapas = new Set(
       variants
@@ -67,7 +70,10 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
         .filter(Boolean) as string[],
     );
 
+    // Linhas que dividem códigos (papel Premium/Popular) dividem também a foto do
+    // item: se ela for a capa de outra linha, não serve para esta.
     const list = [
+      ...(fotoDoTamanho && !outrasCapas.has(fotoDoTamanho) ? [toMediaItem(fotoDoTamanho)] : []),
       ...(activeImage ? [toMediaItem(activeImage)] : []),
       ...productMedia(product).filter((m) => !outrasCapas.has(m.url)),
     ];
@@ -75,7 +81,7 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
     const seen = new Set<string>();
     const unique = list.filter((m) => (seen.has(m.url) ? false : seen.add(m.url)));
     return unique.length > 0 ? unique : [toMediaItem(product.image)];
-  }, [product, variantIndex]);
+  }, [product, variantIndex, selectedSizeIndex]);
 
   if (!product) {
     return (

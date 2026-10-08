@@ -197,8 +197,33 @@ export async function getProductFromDb(id: string): Promise<Product | null> {
         where: { id: { endsWith: `_${id}` }, active: true },
         select: PRODUCT_SELECT,
       }));
-    return row ? toProduct(row) : null;
+    if (!row) return null;
+    const product = toProduct(row);
+    const codePhotos = await getCodePhotos(product);
+    return Object.keys(codePhotos).length > 0 ? { ...product, codePhotos } : product;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Foto de cada código do produto, vinda do item da tabela de preços — é onde o
+ * painel guarda a foto por tamanho (a mesma que sai na ficha de pedido).
+ */
+async function getCodePhotos(product: Product): Promise<Record<string, string>> {
+  const codes = new Set(
+    [product.code, ...(product.codes ?? []), ...(product.variants ?? []).flatMap((v) => v.codes ?? [])]
+      .map((c) => c?.trim())
+      .filter((c): c is string => Boolean(c)),
+  );
+  if (codes.size === 0) return {};
+  try {
+    const itens = await prisma.priceItem.findMany({
+      where: { code: { in: [...codes] }, imageUrl: { not: null } },
+      select: { code: true, imageUrl: true },
+    });
+    return Object.fromEntries(itens.filter((i) => i.imageUrl).map((i) => [i.code, i.imageUrl!]));
+  } catch {
+    return {};
   }
 }
