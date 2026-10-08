@@ -26,6 +26,7 @@ export type ProductVariant = {
   description?: string; // Se ausente, usa a descrição do produto
   codes?: string[];
   sizes?: string[];
+  sizeImages?: Record<string, string>; // medida → foto desta linha naquela medida
   note?: string;        // Aviso em destaque (ex.: pedido mínimo)
 };
 

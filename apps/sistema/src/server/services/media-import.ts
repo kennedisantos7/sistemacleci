@@ -126,6 +126,47 @@ export async function substituirMidia(
   return { para, ...trocas };
 }
 
+/**
+ * Foto de uma medida de uma linha: vai para a linha do produto (o site mostra ao
+ * escolher a medida) e, havendo código, para o item da tabela de preços (ficha de
+ * pedido e orçamento). Linha sem código (ex.: papel Plastificada) fica só no site.
+ */
+export async function salvarFotoDoTamanho(dados: {
+  produtoId: string;
+  linha: string;
+  tamanho: string;
+  codigo?: string;
+  bytes: Buffer;
+  contentType: string;
+}): Promise<{ url: string; linha: boolean; itens: number }> {
+  const produto = await prisma.product.findUnique({
+    where: { id: dados.produtoId },
+    select: { id: true, variants: true },
+  });
+  if (!produto) throw new Error("Produto não encontrado.");
+
+  const linhas = lista(produto.variants) as Array<Record<string, unknown>>;
+  const alvo = linhas.findIndex((v) => texto(v.name) === dados.linha);
+  const medidas = alvo >= 0 && Array.isArray(linhas[alvo]!.sizes) ? (linhas[alvo]!.sizes as unknown[]) : [];
+  if (!medidas.includes(dados.tamanho)) throw new Error("Linha ou medida não existe nesse produto.");
+
+  const preparado = await prepararArquivo(dados.bytes, dados.contentType);
+  const { url } = await salvarMidia(preparado);
+
+  const atual = linhas[alvo]!.sizeImages;
+  const sizeImages = atual && typeof atual === "object" && !Array.isArray(atual) ? { ...(atual as object) } : {};
+  linhas[alvo] = { ...linhas[alvo], sizeImages: { ...sizeImages, [dados.tamanho]: url } };
+  await prisma.product.update({
+    where: { id: produto.id },
+    data: { variants: linhas as Prisma.InputJsonValue },
+  });
+
+  const itens = dados.codigo
+    ? (await prisma.priceItem.updateMany({ where: { code: dados.codigo }, data: { imageUrl: url } })).count
+    : 0;
+  return { url, linha: true, itens };
+}
+
 /** Troca, em todo o cadastro, cada link antigo pelo endereço novo. */
 export async function substituirReferencias(
   mapa: Map<string, string>,
@@ -137,7 +178,16 @@ export async function substituirReferencias(
   const trocarLista = (json: Prisma.JsonValue | null) =>
     lista(json).map((item) => {
       const image = texto(item.image);
-      return image && mapa.has(image) ? { ...item, image: mapa.get(image) } : item;
+      let novo: Linha & { sizeImages?: unknown } =
+        image && mapa.has(image) ? { ...item, image: mapa.get(image) } : item;
+      const porMedida = (item as { sizeImages?: unknown }).sizeImages;
+      if (porMedida && typeof porMedida === "object" && !Array.isArray(porMedida)) {
+        const trocadas = Object.fromEntries(
+          Object.entries(porMedida).map(([m, u]) => [m, typeof u === "string" ? (mapa.get(u) ?? u) : u]),
+        );
+        if (JSON.stringify(trocadas) !== JSON.stringify(porMedida)) novo = { ...novo, sizeImages: trocadas };
+      }
+      return novo;
     });
 
   const produtos = await prisma.product.findMany({

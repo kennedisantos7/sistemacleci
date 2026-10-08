@@ -10,6 +10,7 @@ import {
   importarLote,
   inventarioDeMidia,
   listarLinksExternos,
+  salvarFotoDoTamanho,
   substituirMidia,
 } from "@/server/services/media-import";
 
@@ -24,6 +25,7 @@ export const runtime = "nodejs";
  * GET  → números + links externos + prévia do casamento por código (só lê)
  * POST → { acao: "importar", ignorar? }, { acao: "casar-codigos" } ou
  *        { acao: "substituir", de, contentType, base64 } (troca uma foto do banco por outra)
+ *        { acao: "foto-do-tamanho", produtoId, linha, tamanho, codigo?, contentType, base64 }
  */
 async function autorizar(req: NextRequest): Promise<void> {
   if (isValidIngestKey(req.headers.get("x-api-key"))) return;
@@ -52,12 +54,42 @@ const corpo = z.discriminatedUnion("acao", [
   }),
   z.object({ acao: z.literal("casar-codigos") }),
   z.object({
+    acao: z.literal("foto-do-tamanho"),
+    produtoId: z.string().min(1).max(100),
+    linha: z.string().min(1).max(80),
+    tamanho: z.string().min(1).max(60),
+    codigo: z.string().max(60).optional(),
+    contentType: z.string().max(100),
+    base64: z.string().max(Math.ceil((MAX_IMAGEM_BYTES * 4) / 3) + 4),
+  }),
+  z.object({
     acao: z.literal("substituir"),
     de: z.string().max(1000),
     contentType: z.string().max(100),
     base64: z.string().max(Math.ceil((MAX_IMAGEM_BYTES * 4) / 3) + 4),
   }),
 ]);
+
+/** Foto de uma medida de uma linha (site) e do item daquele código (ficha de pedido). */
+async function fotoDoTamanho(dados: {
+  produtoId: string;
+  linha: string;
+  tamanho: string;
+  codigo?: string;
+  contentType: string;
+  base64: string;
+}) {
+  if (!tipoAceito(dados.contentType) || ehVideo(dados.contentType)) {
+    return NextResponse.json({ error: "Formato inválido." }, { status: 400 });
+  }
+  try {
+    return NextResponse.json(
+      await salvarFotoDoTamanho({ ...dados, bytes: Buffer.from(dados.base64, "base64") }),
+    );
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : "Falhou." }, { status: 400 });
+  }
+}
 
 /** Troca uma foto do banco por outra, em todo o cadastro. Só foto nossa e só imagem. */
 async function substituir(dados: { de: string; contentType: string; base64: string }) {
@@ -87,7 +119,9 @@ export async function POST(req: NextRequest) {
       ? NextResponse.json(await importarLote(parsed.data.limite, parsed.data.ignorar))
       : parsed.data.acao === "substituir"
         ? await substituir(parsed.data)
-        : NextResponse.json(await casarFotosPorCodigo(true));
+        : parsed.data.acao === "foto-do-tamanho"
+          ? await fotoDoTamanho(parsed.data)
+          : NextResponse.json(await casarFotosPorCodigo(true));
 
   revalidatePath("/admin/produtos");
   revalidatePath("/admin/produtos/site");

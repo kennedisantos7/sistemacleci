@@ -6,6 +6,7 @@ import { SingleImagePicker } from "./image-upload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { miniatura } from "@/lib/media-url";
 
 export type VariantValue = {
   name: string;
@@ -15,6 +16,8 @@ export type VariantValue = {
   note?: string | null;
   sizes: string[];
   codes: string[];
+  /** Foto de cada medida (medida → endereço). Vai na página do produto ao escolher a medida. */
+  sizeImages?: Record<string, string>;
 };
 
 /** Lista de tags (tamanhos / códigos) de uma linha. */
@@ -181,6 +184,27 @@ export function VariantsField({ defaultValues }: { defaultValues?: VariantValue[
               onChange={(codes) => patch(i, { codes })}
             />
           </div>
+
+          {variant.sizes.some((s) => variant.sizeImages?.[s]) ? (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Foto de cada medida</label>
+              <div className="flex flex-wrap gap-2">
+                {variant.sizes.map((s) =>
+                  variant.sizeImages?.[s] ? (
+                    <figure key={s} className="w-16 text-center">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={miniatura(variant.sizeImages[s]!, 96)}
+                        alt={s}
+                        className="h-16 w-16 rounded border border-border object-contain"
+                      />
+                      <figcaption className="truncate text-[10px] text-muted-foreground">{s}</figcaption>
+                    </figure>
+                  ) : null,
+                )}
+              </div>
+            </div>
+          ) : null}
         </div>
       ))}
 

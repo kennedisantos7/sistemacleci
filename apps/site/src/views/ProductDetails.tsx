@@ -60,8 +60,13 @@ export default function ProductDetails({ product: fromServer }: { product?: Prod
   const media = useMemo(() => {
     if (!product) return [];
     const variants = product.variants ?? [];
-    const codigoDoTamanho = (variants[variantIndex]?.codes ?? product.codes)?.[selectedSizeIndex];
-    const fotoDoTamanho = codigoDoTamanho ? product.codePhotos?.[codigoDoTamanho] : undefined;
+    // Foto da medida na própria linha vem primeiro; sem ela, a do item daquele código.
+    const linhaAtiva = variants[variantIndex];
+    const medida = (linhaAtiva?.sizes ?? product.sizes)?.[selectedSizeIndex];
+    const codigoDoTamanho = (linhaAtiva?.codes ?? product.codes)?.[selectedSizeIndex];
+    const fotoDaMedida = medida ? linhaAtiva?.sizeImages?.[medida] : undefined;
+    const fotoDoTamanho =
+      fotoDaMedida ?? (codigoDoTamanho ? product.codePhotos?.[codigoDoTamanho] : undefined);
     const activeImage = variants[variantIndex]?.image;
     const outrasCapas = new Set(
       variants

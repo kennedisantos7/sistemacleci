@@ -8,6 +8,8 @@ export type ProductVariantInput = {
   note?: string | null;
   sizes: string[];
   codes: string[];
+  /** Foto de cada medida desta linha (medida → endereço). */
+  sizeImages?: Record<string, string>;
 };
 
 export type ProductInput = {

@@ -66,6 +66,12 @@ function toVariants(raw: unknown): ProductVariant[] | undefined {
         note: typeof v.note === "string" && v.note ? v.note : undefined,
         sizes: strings(v.sizes),
         codes: strings(v.codes),
+        sizeImages:
+          v.sizeImages && typeof v.sizeImages === "object" && !Array.isArray(v.sizeImages)
+            ? Object.fromEntries(
+                Object.entries(v.sizeImages).filter((e): e is [string, string] => typeof e[1] === "string" && Boolean(e[1])),
+              )
+            : undefined,
       },
     ];
   });

@@ -18,6 +18,7 @@ const variantSchema = z.object({
   note: z.string().trim().max(200).optional(),
   sizes: stringArray.default([]),
   codes: stringArray.default([]),
+  sizeImages: z.record(z.string(), z.string().url()).optional(),
 });
 
 const productSchema = z.object({
@@ -90,6 +91,10 @@ function parseForm(formData: FormData) {
         note: v.note || null,
         sizes: v.sizes,
         codes: v.codes,
+        // Só as fotos de medidas que continuam na linha: medida apagada leva a foto junto.
+        sizeImages: Object.fromEntries(
+          Object.entries(v.sizeImages ?? {}).filter(([medida]) => v.sizes.includes(medida)),
+        ),
       })),
       badge: d.badge || null,
       code: d.code || null,
