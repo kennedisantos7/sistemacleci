@@ -101,7 +101,7 @@ export default function ProductCard({
 
         {/* Info */}
         <div className="p-5 flex flex-col flex-grow border-t border-outline-variant/30">
-          <span className="text-[10px] uppercase tracking-[0.15em] text-on-surface-variant/60 mb-1 font-bold">
+          <span className="self-start text-xs md:text-[13px] uppercase tracking-[0.12em] text-primary bg-primary/10 border border-primary/20 px-3 py-1 rounded-full mb-2 font-extrabold">
             {product.category}
           </span>
           <h3 className="font-headline-sm text-xl text-on-surface mb-2 leading-tight group-hover:text-primary transition-colors">
