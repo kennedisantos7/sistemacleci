@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { formatCents, formatQuantity, formatDecimal } from "@/lib/money";
 import { UNIT_LABEL, type BudgetUnit } from "@/lib/budget-math";
+import { displayCpfCnpj } from "@/lib/cpf-cnpj";
 
 // Dados fixos da empresa — cabeçalho impresso da planilha.
 const EMPRESA = {
@@ -298,7 +299,7 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
               <>
                 {client.document ? (
                   <Text style={[styles.infoLine, styles.infoMuted]}>
-                    CPF/CNPJ: {client.document}
+                    CPF/CNPJ: {displayCpfCnpj(client.document)}
                   </Text>
                 ) : null}
                 {client.address ? (

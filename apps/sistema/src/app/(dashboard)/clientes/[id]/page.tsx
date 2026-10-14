@@ -6,6 +6,7 @@ import { BUDGET_ROLES, isStaff } from "@/lib/rbac";
 import { getClientProfile, listTransferTargets } from "@/server/services/clients";
 import { rotuloStatus, DIAS_ATE_LIBERAR } from "@/lib/client-ownership";
 import { formatCents } from "@/lib/money";
+import { displayCpfCnpj } from "@/lib/cpf-cnpj";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ActivityForm } from "../activity-form";
@@ -161,7 +162,7 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
             </p>
             <dl className="mt-4 grid gap-4 sm:grid-cols-3">
               <Campo label="Razão social / nome" value={client.name} />
-              <Campo label="CPF/CNPJ" value={client.document} />
+              <Campo label="CPF/CNPJ" value={displayCpfCnpj(client.document)} />
               <Campo label="Cidade" value={client.local} />
             </dl>
           </CardContent>
@@ -176,7 +177,7 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
               <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Campo label="Razão social / nome" value={client.name} />
                 <Campo label="Nome fantasia" value={client.companyName} />
-                <Campo label="CPF/CNPJ" value={client.document} />
+                <Campo label="CPF/CNPJ" value={displayCpfCnpj(client.document)} />
                 <Campo label="Contato" value={client.ficha?.contactName ?? null} />
                 <Campo label="Telefone" value={client.ficha?.phone ?? null} />
                 <Campo label="WhatsApp" value={client.ficha?.whatsapp ?? null} />

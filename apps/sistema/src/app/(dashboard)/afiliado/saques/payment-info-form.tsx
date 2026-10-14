@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { updatePaymentInfoAction, type PaymentInfoState } from "@/server/actions/payment-info";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CpfCnpjInput } from "@/components/ui/cpf-cnpj-input";
 
 const initial: PaymentInfoState = {};
 
@@ -30,7 +31,7 @@ export function PaymentInfoForm({
         <label htmlFor="document" className="text-sm font-medium">
           CPF/CNPJ
         </label>
-        <Input id="document" name="document" defaultValue={document ?? ""} />
+        <CpfCnpjInput id="document" name="document" defaultValue={document} />
       </div>
       <div className="space-y-1">
         <label htmlFor="bankName" className="text-sm font-medium">

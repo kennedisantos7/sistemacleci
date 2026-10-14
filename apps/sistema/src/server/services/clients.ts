@@ -1,6 +1,7 @@
 import { prisma, ClientActivityType, type Prisma, type Role } from "@cleci/db";
 import { z } from "zod";
 import { isStaff } from "@/lib/rbac";
+import { formatCpfCnpj } from "@/lib/cpf-cnpj";
 import {
   DIAS_ATE_LIBERAR,
   statusTitularidade,
@@ -254,6 +255,10 @@ export async function listClients(
             { name: { contains: search, mode: "insensitive" } },
             { companyName: { contains: search, mode: "insensitive" } },
             { document: { contains: search } },
+            // Quem busca digitando só os números acha o documento salvo com pontuação.
+            ...(/^[\d.\/-]+$/.test(search) && search.replace(/\D/g, "").length >= 4
+              ? [{ document: { contains: formatCpfCnpj(search) } }]
+              : []),
           ],
         }
       : {}),

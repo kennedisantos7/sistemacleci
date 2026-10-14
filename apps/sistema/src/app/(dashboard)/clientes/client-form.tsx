@@ -5,6 +5,7 @@ import { createClientAction, updateClientAction, type ClientFormState } from "./
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CpfCnpjInput } from "@/components/ui/cpf-cnpj-input";
 
 const initial: ClientFormState = {};
 
@@ -44,7 +45,7 @@ export function ClientFields({ defaults }: { defaults?: ClientDefaults }) {
         <label htmlFor="cl-document" className="text-sm font-medium">
           CPF/CNPJ
         </label>
-        <Input id="cl-document" name="document" defaultValue={defaults?.document ?? ""} />
+        <CpfCnpjInput id="cl-document" name="document" defaultValue={defaults?.document} />
       </div>
       <div className="space-y-1">
         <label htmlFor="cl-contact" className="text-sm font-medium">
