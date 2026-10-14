@@ -111,6 +111,7 @@ export default async function ClientesPage({
                       {/* Sem contato quando bloqueada com outro vendedor: o corte
                           é feito no servidor, aqui só não há o que mostrar. */}
                       {[
+                        c.cpf,
                         c.document,
                         c.local,
                         c.contato?.phone ?? c.contato?.whatsapp,

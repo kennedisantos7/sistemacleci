@@ -13,6 +13,7 @@ export type ClientDefaults = {
   id?: string;
   name?: string;
   companyName?: string | null;
+  cpf?: string | null;
   document?: string | null;
   email?: string | null;
   phone?: string | null;
@@ -42,10 +43,16 @@ export function ClientFields({ defaults }: { defaults?: ClientDefaults }) {
         <Input id="cl-company" name="companyName" defaultValue={defaults?.companyName ?? ""} />
       </div>
       <div className="space-y-1">
-        <label htmlFor="cl-document" className="text-sm font-medium">
-          CPF/CNPJ
+        <label htmlFor="cl-cpf" className="text-sm font-medium">
+          CPF
         </label>
-        <CpfCnpjInput id="cl-document" name="document" defaultValue={defaults?.document} />
+        <CpfCnpjInput kind="cpf" id="cl-cpf" name="cpf" defaultValue={defaults?.cpf} />
+      </div>
+      <div className="space-y-1">
+        <label htmlFor="cl-document" className="text-sm font-medium">
+          CNPJ
+        </label>
+        <CpfCnpjInput kind="cnpj" id="cl-document" name="document" defaultValue={defaults?.document} />
       </div>
       <div className="space-y-1">
         <label htmlFor="cl-contact" className="text-sm font-medium">

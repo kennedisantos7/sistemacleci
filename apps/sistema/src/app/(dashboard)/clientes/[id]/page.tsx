@@ -162,7 +162,8 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
             </p>
             <dl className="mt-4 grid gap-4 sm:grid-cols-3">
               <Campo label="Razão social / nome" value={client.name} />
-              <Campo label="CPF/CNPJ" value={displayCpfCnpj(client.document)} />
+              <Campo label="CPF" value={displayCpfCnpj(client.cpf)} />
+              <Campo label="CNPJ" value={displayCpfCnpj(client.document)} />
               <Campo label="Cidade" value={client.local} />
             </dl>
           </CardContent>
@@ -177,7 +178,8 @@ export default async function ClientePerfilPage({ params }: { params: Promise<{ 
               <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Campo label="Razão social / nome" value={client.name} />
                 <Campo label="Nome fantasia" value={client.companyName} />
-                <Campo label="CPF/CNPJ" value={displayCpfCnpj(client.document)} />
+                <Campo label="CPF" value={displayCpfCnpj(client.cpf)} />
+                <Campo label="CNPJ" value={displayCpfCnpj(client.document)} />
                 <Campo label="Contato" value={client.ficha?.contactName ?? null} />
                 <Campo label="Telefone" value={client.ficha?.phone ?? null} />
                 <Campo label="WhatsApp" value={client.ficha?.whatsapp ?? null} />

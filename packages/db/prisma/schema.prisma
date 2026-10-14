@@ -397,7 +397,8 @@ model Client {
 
   name        String // nome do contato / razão social
   companyName String? // empresa / nome fantasia
-  document    String? // CPF/CNPJ
+  cpf         String?
+  document    String? // CNPJ
   email       String?
   phone       String? // WhatsApp
   note        String?

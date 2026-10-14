@@ -44,6 +44,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
     client: {
       name: budget.client.name,
       companyName: budget.client.companyName,
+      cpf: budget.client.cpf,
       document: budget.client.document,
       email: budget.client.email,
       phone: budget.client.phone,

@@ -173,6 +173,7 @@ export type OrcamentoPdfData = {
   client: {
     name: string;
     companyName: string | null;
+    cpf: string | null;
     document: string | null;
     email: string | null;
     phone: string | null;
@@ -297,9 +298,14 @@ export function OrcamentoDocument({ data }: { data: OrcamentoPdfData }) {
             {client.companyName ? <Text style={styles.infoLine}>{client.companyName}</Text> : null}
             {isPedido ? (
               <>
+                {client.cpf ? (
+                  <Text style={[styles.infoLine, styles.infoMuted]}>
+                    CPF: {displayCpfCnpj(client.cpf)}
+                  </Text>
+                ) : null}
                 {client.document ? (
                   <Text style={[styles.infoLine, styles.infoMuted]}>
-                    CPF/CNPJ: {displayCpfCnpj(client.document)}
+                    CNPJ: {displayCpfCnpj(client.document)}
                   </Text>
                 ) : null}
                 {client.address ? (

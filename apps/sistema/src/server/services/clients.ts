@@ -1,7 +1,7 @@
 import { prisma, ClientActivityType, type Prisma, type Role } from "@cleci/db";
 import { z } from "zod";
 import { isStaff } from "@/lib/rbac";
-import { formatCpfCnpj } from "@/lib/cpf-cnpj";
+import { formatCpf, formatCnpj } from "@/lib/cpf-cnpj";
 import {
   DIAS_ATE_LIBERAR,
   statusTitularidade,
@@ -18,6 +18,7 @@ export type ClientActor = { id: string; role: Role; name?: string | null; email?
 export const clientSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome ou a razão social.").max(160),
   companyName: z.string().trim().max(160).nullable().optional(),
+  cpf: z.string().trim().max(24).nullable().optional(),
   document: z.string().trim().max(24).nullable().optional(),
   email: z.string().trim().email("E-mail inválido.").max(160).nullable().optional().or(z.literal("")),
   phone: z.string().trim().max(32).nullable().optional(),
@@ -46,6 +47,7 @@ type ClientFields = {
   [K in
     | "name"
     | "companyName"
+    | "cpf"
     | "document"
     | "email"
     | "phone"
@@ -67,6 +69,7 @@ function normalize(data: ClientInput): ClientFields {
   return {
     name: data.name.trim(),
     companyName: blankToNull(data.companyName),
+    cpf: blankToNull(data.cpf),
     document: blankToNull(data.document),
     email: blankToNull(data.email),
     phone: blankToNull(data.phone),
@@ -189,6 +192,7 @@ const LIST_SELECT = {
   id: true,
   name: true,
   companyName: true,
+  cpf: true,
   document: true,
   city: true,
   state: true,
@@ -206,6 +210,7 @@ export type ClientListRow = {
   id: string;
   name: string;
   companyName: string | null;
+  cpf: string | null;
   document: string | null;
   local: string | null;
   status: OwnershipStatus;
@@ -225,6 +230,7 @@ function toListRow(actor: ClientActor, c: ClientRow, agora: Date): ClientListRow
     id: c.id,
     name: c.name,
     companyName: c.companyName,
+    cpf: c.cpf,
     document: c.document,
     local: [c.city, c.state].filter(Boolean).join("/") || null,
     status,
@@ -254,10 +260,14 @@ export async function listClients(
           OR: [
             { name: { contains: search, mode: "insensitive" } },
             { companyName: { contains: search, mode: "insensitive" } },
+            { cpf: { contains: search } },
             { document: { contains: search } },
             // Quem busca digitando só os números acha o documento salvo com pontuação.
             ...(/^[\d.\/-]+$/.test(search) && search.replace(/\D/g, "").length >= 4
-              ? [{ document: { contains: formatCpfCnpj(search) } }]
+              ? [
+                  { cpf: { contains: formatCpf(search) } },
+                  { document: { contains: formatCnpj(search) } },
+                ]
               : []),
           ],
         }
@@ -298,6 +308,7 @@ export function listClientOptions(actor: ClientActor) {
       id: true,
       name: true,
       companyName: true,
+      cpf: true,
       document: true,
       email: true,
       phone: true,
@@ -365,6 +376,7 @@ export async function getClientProfile(actor: ClientActor, clientId: string) {
     id: client.id,
     name: client.name,
     companyName: client.companyName,
+    cpf: client.cpf,
     document: client.document,
     local: [client.city, client.state].filter(Boolean).join("/") || null,
     status,

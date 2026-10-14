@@ -29,6 +29,7 @@ function parseClientForm(formData: FormData) {
   return clientSchema.safeParse({
     name: String(formData.get("name") ?? ""),
     companyName: text("companyName"),
+    cpf: text("cpf"),
     document: text("document"),
     email: text("email"),
     phone: text("phone"),
