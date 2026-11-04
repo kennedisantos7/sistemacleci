@@ -2,18 +2,13 @@ import Link from "next/link";
 import { requireUser } from "@/server/session";
 import { listClients } from "@/server/services/clients";
 import { BUDGET_ROLES } from "@/lib/rbac";
-import { rotuloStatus, DIAS_ATE_LIBERAR } from "@/lib/client-ownership";
+import { DIAS_ATE_LIBERAR } from "@/lib/client-ownership";
+import { ClientList } from "./client-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLE = {
-  livre: "bg-muted text-muted-foreground",
-  bloqueada: "bg-primary/10 text-primary",
-  disponivel: "bg-amber-100 text-amber-800",
-} as const;
 
 const FILTROS = [
   { value: "", label: "Toda a base" },
@@ -47,9 +42,17 @@ export default async function ClientesPage({
             {DIAS_ATE_LIBERAR} dias, renovada a cada atividade registrada.
           </p>
         </div>
-        <Link href="/clientes/novo" className={buttonVariants({ className: "w-fit" })}>
-          Nova empresa
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/clientes/cidades"
+            className={buttonVariants({ variant: "outline", className: "w-fit" })}
+          >
+            Por cidade
+          </Link>
+          <Link href="/clientes/novo" className={buttonVariants({ className: "w-fit" })}>
+            Nova empresa
+          </Link>
+        </div>
       </header>
 
       <Card>
@@ -87,66 +90,7 @@ export default async function ClientesPage({
                 : "Nenhuma empresa cadastrada ainda."}
             </p>
           ) : (
-            <div className="divide-y divide-border">
-              {clients.map((c) => (
-                <div
-                  key={c.id}
-                  className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="flex flex-wrap items-center gap-2">
-                      <Link
-                        href={`/clientes/${c.id}`}
-                        className="truncate font-medium hover:underline"
-                      >
-                        {c.companyName ?? c.name}
-                      </Link>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_STYLE[c.status.kind]}`}
-                      >
-                        {c.isMine ? "Sua" : rotuloStatus(c.status)}
-                      </span>
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {/* Sem contato quando bloqueada com outro vendedor: o corte
-                          é feito no servidor, aqui só não há o que mostrar. */}
-                      {[
-                        c.cpf,
-                        c.document,
-                        c.local,
-                        c.contato?.phone ?? c.contato?.whatsapp,
-                        c.contato?.email,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ") || "Dados restritos ao vendedor responsável"}
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {c.ownerName ? `Responsável: ${c.ownerName}` : "Sem responsável"}
-                      {c.status.kind === "bloqueada"
-                        ? ` · livre em ${c.status.diasRestantes} dia${c.status.diasRestantes === 1 ? "" : "s"}`
-                        : ""}
-                      {c.contato ? ` · ${c.budgetCount} orçamento${c.budgetCount === 1 ? "" : "s"}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    {c.isMine ? (
-                      <Link
-                        href={`/orcamentos/novo?cliente=${c.id}`}
-                        className="text-sm font-medium text-primary hover:underline"
-                      >
-                        Novo orçamento
-                      </Link>
-                    ) : null}
-                    <Link
-                      href={`/clientes/${c.id}`}
-                      className="text-sm font-medium text-foreground/70 hover:text-foreground hover:underline"
-                    >
-                      Ver perfil
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ClientList clients={clients} />
           )}
         </CardContent>
       </Card>

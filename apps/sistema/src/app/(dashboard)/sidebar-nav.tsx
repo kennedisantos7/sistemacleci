@@ -11,6 +11,7 @@ import {
   FileText,
   Images,
   Link2,
+  MapPin,
   Package,
   Percent,
   Target,
@@ -48,6 +49,7 @@ const ICONS: Record<string, LucideIcon> = {
   "/orcamentos": FileText,
   "/pedidos": ClipboardList,
   "/clientes": Building2,
+  "/clientes/cidades": MapPin,
   "/vendedor/links": Link2,
   "/afiliado/links": Link2,
   "/afiliado/saques": Wallet,
@@ -68,8 +70,16 @@ export function SidebarNav({
     <nav className="flex-1 space-y-0.5 px-3">
       {items.map((item) => {
         // "Dashboard" (índice) só ativo na rota exata; demais por prefixo.
+        // Entre prefixos aninhados (/clientes e /clientes/cidades), só o mais
+        // específico acende.
         const isIndex = item.href.split("/").length === 2;
-        const active = isIndex ? pathname === item.href : pathname.startsWith(item.href);
+        const matches = (href: string) => pathname === href || pathname.startsWith(href + "/");
+        const shadowed = items.some(
+          (o) => o.href.length > item.href.length && o.href.startsWith(item.href + "/") && matches(o.href),
+        );
+        const active = isIndex
+          ? pathname === item.href
+          : matches(item.href) && !shadowed;
         const Icon = ICONS[item.href];
         return (
           <Link

@@ -2,6 +2,7 @@ import { prisma, ClientActivityType, type Prisma, type Role } from "@cleci/db";
 import { z } from "zod";
 import { isStaff } from "@/lib/rbac";
 import { formatCpf, formatCnpj } from "@/lib/cpf-cnpj";
+import { cityKey } from "@/lib/city-key";
 import {
   DIAS_ATE_LIBERAR,
   statusTitularidade,
@@ -289,6 +290,90 @@ export async function listClients(
     where,
     orderBy: [{ name: "asc" }],
     take: 100,
+    select: LIST_SELECT,
+  });
+
+  return rows.map((c) => toListRow(actor, c, agora));
+}
+
+// ------------------------- Clientes por cidade -------------------------
+
+export type CityGroup = {
+  /** Chave normalizada; "" = clientes sem cidade cadastrada. */
+  key: string;
+  /** Grafia mais usada no cadastro, para exibir. */
+  label: string;
+  state: string | null;
+  count: number;
+  /** Valores exatos gravados no banco que caem neste grupo. */
+  variants: (string | null)[];
+};
+
+/** Todas as cidades com clientes cadastrados (base inteira, todos os vendedores). */
+export async function listClientCities(): Promise<CityGroup[]> {
+  const rows = await prisma.client.groupBy({
+    by: ["city", "state"],
+    _count: { _all: true },
+  });
+
+  const groups = new Map<
+    string,
+    { count: number; variants: Set<string | null>; spellings: Map<string, number>; states: Map<string, number> }
+  >();
+  for (const r of rows) {
+    const key = cityKey(r.city);
+    const g =
+      groups.get(key) ??
+      { count: 0, variants: new Set(), spellings: new Map(), states: new Map() };
+    const n = r._count._all;
+    g.count += n;
+    g.variants.add(r.city);
+    const spelling = r.city?.replace(/\s+/g, " ").trim();
+    if (spelling) g.spellings.set(spelling, (g.spellings.get(spelling) ?? 0) + n);
+    const uf = r.state?.trim().toUpperCase();
+    if (uf) g.states.set(uf, (g.states.get(uf) ?? 0) + n);
+    groups.set(key, g);
+  }
+
+  const maisUsado = (m: Map<string, number>) =>
+    [...m.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+
+  return [...groups.entries()]
+    .map(([key, g]) => ({
+      key,
+      label: key ? (maisUsado(g.spellings) ?? key) : "Sem cidade informada",
+      state: maisUsado(g.states),
+      count: g.count,
+      variants: [...g.variants],
+    }))
+    .sort((a, b) => {
+      // "Sem cidade" vai para o fim; o resto em ordem alfabética.
+      if (!a.key) return 1;
+      if (!b.key) return -1;
+      return a.label.localeCompare(b.label, "pt-BR");
+    });
+}
+
+/**
+ * Todos os clientes de uma cidade, de todos os vendedores. O corte de contato
+ * por titularidade é o mesmo da listagem geral (toListRow).
+ */
+export async function listClientsByCity(
+  actor: ClientActor,
+  group: CityGroup,
+): Promise<ClientListRow[]> {
+  const agora = new Date();
+  const named = group.variants.filter((v): v is string => v !== null);
+  const semCidade = group.variants.includes(null);
+
+  const rows = await prisma.client.findMany({
+    where: {
+      OR: [
+        ...(named.length ? [{ city: { in: named } }] : []),
+        ...(semCidade ? [{ city: null }] : []),
+      ],
+    },
+    orderBy: [{ name: "asc" }],
     select: LIST_SELECT,
   });
 
