@@ -6,9 +6,8 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 /* ── Raiz da página ──────────────────────────────────────────────────────────
-   O layout raiz do site coloca Header e Footer em todas as páginas.
-   A página de links é uma "link na bio": ocupa a tela inteira por cima deles,
-   com rolagem própria. Assim não é preciso mexer no layout do site. */
+   /links fica fora do grupo (site), então não recebe Header nem Footer: a
+   página ocupa a tela sozinha e rola com o próprio documento (uma barra só). */
 .lk-root {
   --lk-primary:           #1541fc;
   --lk-primary-dark:      #0d2fcc;
@@ -22,12 +21,9 @@
   --lk-radius-card: 1.5rem;
   --lk-radius-card-lg: 2rem;
 
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  overflow-y: auto;
-  overflow-x: hidden;
-  scroll-behavior: smooth;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: clip;
   background-color: var(--lk-background);
   color: var(--lk-on-surface);
   font-family: var(--lk-font), ui-sans-serif, system-ui, sans-serif;
@@ -106,7 +102,9 @@
   display: flex;
   flex-direction: column;
   width: 100%;
-  overflow-x: hidden;
+  /* clip, e não hidden: hidden transforma o elemento num segundo contêiner
+     de rolagem vertical. */
+  overflow-x: clip;
 }
 
 /* Utilitário para centralizar conteúdo nas seções full-width */
@@ -128,7 +126,6 @@
 .lk-hero {
   width: 100%;
   background: var(--lk-primary);
-  background-attachment: fixed;
   color: #fff;
   padding: 2.5rem 0 3.5rem; /* Aumentado o topo de 1.5rem para 2.5rem */
   display: flex;
@@ -226,7 +223,6 @@
 .lk-links-grid {
   width: 100%;
   background: #fff;
-  background-attachment: fixed;
   padding: 0 0 2.5rem; /* Removemos o padding superior para o efeito de flutuação */
   display: flex;
   flex-direction: column;
@@ -295,7 +291,6 @@
 .lk-about {
   width: 100%;
   background: linear-gradient(var(--lk-accent), var(--lk-accent));
-  background-attachment: fixed;
   color: #fff;
   padding: 3rem 0;
 }
@@ -370,7 +365,6 @@
 .lk-products {
   width: 100%;
   background: linear-gradient(var(--lk-primary), var(--lk-primary));
-  background-attachment: fixed;
   color: #fff;
   padding: 3rem 0;
 }
@@ -466,6 +460,10 @@
   transition: opacity 0.3s;
 }
 .lk-products__card:hover .lk-products__card-overlay { opacity: 1; }
+/* Celular não tem hover: o nome do produto fica sempre visível. */
+@media (hover: none) {
+  .lk-products__card-overlay { opacity: 1; }
+}
 
 .lk-products__card-label {
   color: #fff;

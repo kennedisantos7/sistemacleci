@@ -11,7 +11,7 @@ São Paulo), Ubuntu 24.04 LTS, com **Coolify 4.1.2** autogerenciado (template
 | --- | --- |
 | Painel Coolify | `https://coolify.cleci.com.br` |
 | Site público | `https://cleci.com.br` + `https://www.cleci.com.br` |
-| Página de links | `https://cleci.com.br/links` (`links.cleci.com.br` redireciona para lá) |
+| Página de links | `https://cleci.com.br/links` (o subdomínio `links.` não é mais usado) |
 | Painéis + API | `https://painel.cleci.com.br` |
 | DNS | zona do `cleci.com.br` no **hPanel da Hostinger** |
 | IP do servidor | `179.198.98.168` |
@@ -188,10 +188,10 @@ Site público em **Next.js (Node standalone)**.
 
 - **Build**: Dockerfile `apps/site/Dockerfile`, contexto = raiz do repo.
 - **Porta**: 3000. **Healthcheck** embutido (GET `/`).
-- **Domínios**: `https://cleci.com.br,https://www.cleci.com.br,https://links.cleci.com.br`
-  (todos no mesmo recurso, separados por vírgula). O `links.` só redireciona para
-  `/links` ([next.config.mjs](apps/site/next.config.mjs)); o antigo app
-  `cleci-links` (`mzvgiloifrk6vsiu6aakdkee`) ficou parado e sem domínio. `SITE_URL` aponta para a versão canônica, sem
+- **Domínios**: `https://cleci.com.br,https://www.cleci.com.br` (os dois no mesmo
+  recurso, separados por vírgula). A página de links mora em `/links`; o antigo
+  app `cleci-links` (`mzvgiloifrk6vsiu6aakdkee`) ficou parado e sem domínio.
+  `SITE_URL` aponta para a versão canônica, sem
   `www` — e deve ser **idêntico** ao `SITE_URL` do painel, senão os links de
   afiliado saem inconsistentes.
 

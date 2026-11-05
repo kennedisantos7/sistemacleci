@@ -2,12 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
 import "./globals.css";
-import Header from "../components/layout/Header";
-import Footer from "../components/layout/Footer";
 import AttributionTracker from "../components/AttributionTracker";
-import AffiliateModeBar from "../components/AffiliateModeBar";
 import AccountAffiliateSync from "../components/AccountAffiliateSync";
-import { getMenuPhotos } from "../server/catalog-db";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.SITE_URL ?? "https://cleci.com.br"),
@@ -36,12 +32,7 @@ export const viewport: Viewport = {
 
 const GTM_ID = "GTM-NKX3CBZV";
 
-// As fotos do menu vêm do banco. Sem isto, página estática (ex.: /privacidade)
-// congelaria o menu do momento do build — quando o Docker nem tem banco.
-export const revalidate = 60;
-
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const fotosDoMenu = await getMenuPhotos();
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <head>
@@ -73,15 +64,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <Suspense fallback={null}>
           <AttributionTracker />
         </Suspense>
-        <Suspense fallback={null}>
-          <AffiliateModeBar />
-        </Suspense>
         <AccountAffiliateSync />
-        <div className="min-h-screen flex flex-col">
-          <Header fotosDoMenu={fotosDoMenu} />
-          <main className="flex-1 w-full">{children}</main>
-          <Footer />
-        </div>
+        {/* Header e Footer ficam em (site)/layout.tsx. A página de links
+            (/links) tem layout próprio, de tela cheia. */}
+        {children}
       </body>
     </html>
   );

@@ -12,7 +12,7 @@ export const LINKS_BRAND = {
   tagline: 'Mais do que impressão, entregamos a sua marca! 🖨️',
   description: 'Com paixão por design e inovação, a CLECI PERSONALIZA nasceu para transformar a identidade da sua marca em realidade.',
   description2: 'Produzimos desde sacolas até cartões de visita com altíssima qualidade, personalização e o cuidado que o seu negócio merece.',
-  whatsapp: 'https://api.whatsapp.com/send/?phone=5563992349085&text=Ol%C3%A1%2C+gostaria+de+solicitar+um+or%C3%A7amento!',
+  whatsapp: 'https://api.whatsapp.com/send/?phone=5563992185572&text=Ol%C3%A1%2C+gostaria+de+solicitar+um+or%C3%A7amento!',
   instagram: 'https://instagram.com/clecipersonaliza',
   facebook: 'https://facebook.com/clecipersonaliza',
 };
@@ -42,7 +42,7 @@ export const LINKS: LinkItem[] = [
     title: 'Falar com Vendedor',
     subtitle: 'Atendimento via WhatsApp',
     image: `${IMG}/link-vendedor.webp`,
-    href: 'https://api.whatsapp.com/send/?phone=5563992349085&text=Vim+pelo+site+e+gostaria+de+saber+mais+sobre+os+produtos&type=phone_number&app_absent=0',
+    href: 'https://api.whatsapp.com/send/?phone=5563992185572&text=Vim+pelo+site+e+gostaria+de+saber+mais+sobre+os+produtos&type=phone_number&app_absent=0',
     external: true,
   },
   {

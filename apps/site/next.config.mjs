@@ -29,18 +29,6 @@ const nextConfig = {
     ];
     return [{ source: "/:path*", headers: securityHeaders }];
   },
-  async redirects() {
-    // links.cleci.com.br era um app separado (cleci-links). Agora a página mora
-    // em /links; o subdomínio aponta para este app e só redireciona.
-    return [
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "links.cleci.com.br" }],
-        destination: "https://cleci.com.br/links",
-        permanent: false,
-      },
-    ];
-  },
   images: {
     // O catálogo usa <img> com URLs externas (imgur). Liberado caso migremos
     // para next/image no futuro.
