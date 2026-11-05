@@ -17,6 +17,7 @@ const STATIC_ROUTES = [
   "/seguranca",
   "/comunicacao-visual",
   "/privacidade",
+  "/links",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
